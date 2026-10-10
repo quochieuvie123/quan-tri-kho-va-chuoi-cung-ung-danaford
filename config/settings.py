@@ -37,6 +37,19 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+# Tạm thời comment hoặc xóa các app này đi
+    'dashboard',
+    'vehicles',
+    'orders',
+    'contracts',
+    'warehouse',
+    'transfers',
+    'incidents',
+    'alerts',
+    'analytics',
+    'reports',
+    'accounts',
+    'core',
 ]
 
 MIDDLEWARE = [
