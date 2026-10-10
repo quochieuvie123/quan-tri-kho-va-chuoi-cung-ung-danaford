@@ -37,6 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'database',
+
 # Tạm thời comment hoặc xóa các app này đi
     'dashboard',
     'vehicles',
@@ -50,6 +53,7 @@ INSTALLED_APPS = [
     'reports',
     'accounts',
     'core',
+
 ]
 
 MIDDLEWARE = [
@@ -67,7 +71,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Nhà cung cấp | DanaFord</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 32px; color: #182230; }
+        h1 { margin-bottom: 8px; }
+        .note { color: #667085; margin-bottom: 24px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 14px; border-bottom: 1px solid #e4e7ec; text-align: left; }
+        th { background: #f2f4f7; }
+        .empty { color: #667085; padding: 24px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h1>Danh sách nhà cung cấp</h1>
+    <p class="note">Trang kiểm tra kết nối giữa Django view, model và database.</p>
+    <table>
+        <thead><tr><th>Mã NCC</th><th>Tên nhà cung cấp</th><th>Địa chỉ</th><th>Mã số thuế</th></tr></thead>
+        <tbody>
+        {% for ncc in danh_sach %}
+            <tr><td>{{ ncc.ma_ncc }}</td><td>{{ ncc.ten_ncc }}</td><td>{{ ncc.dia_chi_ncc|default:"" }}</td><td>{{ ncc.mst }}</td></tr>
+        {% empty %}
+            <tr><td class="empty" colspan="4">Chưa có nhà cung cấp nào.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
