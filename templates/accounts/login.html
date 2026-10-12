@@ -1,10 +1,64 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>$Title$</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đăng nhập | Dana Ford</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
 </head>
 <body>
-$END$
+  <main class="login">
+    <section class="login__brand">
+      <div class="login__brand-inner">
+        <p class="login__eyebrow">DANA FORD</p>
+        <h1>Quản lý kho xe</h1>
+        <p class="login__desc">
+          Theo dõi VIN từ phân bổ, vận chuyển, PDI và tồn kho đến bàn giao khách hàng.
+        </p>
+        <p class="login__branches">Đà Nẵng · Bình Định · Gia Lai</p>
+      </div>
+      {# Tuỳ chọn: bỏ comment khi đã xuất plate.svg vào static/img/ #}
+      {# <img class="login__plate" src="{% static 'img/plate.svg' %}" alt=""> #}
+    </section>
+
+    <section class="login__panel">
+      <div class="login__card">
+        <img class="login__logo" src="{% static 'img/logo-dana-ford.svg' %}" alt="Dana Ford">
+        <h2>Chào mừng trở lại</h2>
+        <p class="login__hint">Sử dụng tài khoản nội bộ được cấp.</p>
+
+        <form method="post" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ next }}">
+
+          {% if form.errors %}
+            <div class="login__error" role="alert">
+              Tên đăng nhập hoặc mật khẩu không đúng.
+            </div>
+          {% endif %}
+
+          <label for="id_username">Tên đăng nhập</label>
+          <input id="id_username" type="text" name="username"
+                 value="{{ form.username.value|default:'' }}"
+                 placeholder="Nhập tên đăng nhập" autocomplete="username" autofocus required>
+
+          <label for="id_password">Mật khẩu</label>
+          <input id="id_password" type="password" name="password"
+                 placeholder="Nhập mật khẩu" autocomplete="current-password" required>
+
+          <button type="submit">Đăng nhập</button>
+        </form>
+
+        <p class="login__note">
+          Vai trò và phạm vi kho được cấp theo tài khoản, không thể tự thay đổi.
+        </p>
+        <p class="login__help">Quên mật khẩu? Liên hệ quản trị Dana Ford</p>
+      </div>
+    </section>
+  </main>
 </body>
 </html>
