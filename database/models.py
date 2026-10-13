@@ -1,13 +1,30 @@
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation, localcontext
+
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
-# SĐT phải gồm đúng 10 chữ số (len = 10 theo tài liệu thiết kế)
-sdt_validator = RegexValidator(r"^\d{10}\Z", "Số điện thoại phải gồm đúng 10 chữ số.")
+# SĐT phải gồm đúng 10 chữ số (len = 10 theo tài liệu thiết kế).
+# Dùng [0-9] thay vì \d vì \d trong Python còn khớp cả chữ số Unicode (vd: chữ số Ả Rập).
+sdt_validator = RegexValidator(r"^[0-9]{10}\Z", "Số điện thoại phải gồm đúng 10 chữ số.")
+
+# ---- Quy ước tính tiền ----
+TIEN_MAX_DIGITS = 18
+TIEN_DECIMAL_PLACES = 2
+TIEN_MAX = Decimal(10) ** (TIEN_MAX_DIGITS - TIEN_DECIMAL_PLACES) - Decimal("0.01")  # 9999999999999999.99
+TIEN_LAM_TRON = Decimal("0.01")
+VAT_RATE = Decimal("0.10")  # thuế suất VAT 10%
+KIEU_LAM_TRON = ROUND_HALF_UP  # 0.005 -> 0.01 (cách làm tròn thông thường trong kế toán)
 
 
 def tien():
     """DECIMAL(18,2) theo tài liệu thiết kế."""
-    return dict(max_digits=18, decimal_places=2)
+    return dict(max_digits=TIEN_MAX_DIGITS, decimal_places=TIEN_DECIMAL_PLACES)
+
+
+def lam_tron_tien(value):
+    """Làm tròn về 2 chữ số thập phân, dùng KIEU_LAM_TRON."""
+    return Decimal(value).quantize(TIEN_LAM_TRON, rounding=KIEU_LAM_TRON)
 
 
 class NhaCungCap(models.Model):
@@ -162,12 +179,35 @@ class ChiTietNhap(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["hoa_don_nhap", "xe"], name="uniq_chitietnhap_hdn_xe"),
             models.CheckConstraint(condition=models.Q(so_luong_nhap__gte=1), name="chk_chitietnhap_so_luong_gte_1"),
+            models.CheckConstraint(condition=models.Q(don_gia__gte=0), name="chk_chitietnhap_don_gia_gte_0"),
+            models.CheckConstraint(condition=models.Q(thanh_tien__gte=0), name="chk_chitietnhap_thanh_tien_gte_0"),
         ]
         verbose_name = verbose_name_plural = "Chi Tiết Nhập Kho"
 
+    def tinh_tien(self):
+        """thanh_tien = so_luong_nhap * don_gia. Trả về False nếu dữ liệu đầu vào chưa hợp lệ."""
+        try:
+            with localcontext() as ctx:
+                ctx.prec = 50
+                self.thanh_tien = lam_tron_tien(self.so_luong_nhap * self.don_gia)
+        except (TypeError, InvalidOperation):
+            return False
+        return True
+
+    def clean_fields(self, exclude=None):
+        # Tính trước để thanh_tien (editable=False) luôn có giá trị khi validate
+        self.tinh_tien()
+        super().clean_fields(exclude=exclude)
+
+    def clean(self):
+        super().clean()
+        # Admin/ModelForm không validate trường editable=False, nên kiểm tra tràn số ở đây
+        if self.thanh_tien is not None and self.thanh_tien > TIEN_MAX:
+            raise ValidationError({"don_gia": "Thành tiền vượt giới hạn cho phép (tối đa 18 chữ số, 2 số lẻ)."})
+
     def save(self, *args, **kwargs):
-        if self.so_luong_nhap is not None and self.don_gia is not None:
-            self.thanh_tien = self.so_luong_nhap * self.don_gia
+        # Lưu ý: bulk_create/bulk_update/QuerySet.update() không gọi save(); hiện dự án không dùng.
+        self.tinh_tien()
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -178,16 +218,56 @@ class ChiTietBan(models.Model):
     hoa_don_ban = models.ForeignKey(HoaDonBan, on_delete=models.CASCADE, db_column="MaHDB")
     xe = models.ForeignKey(Xe, on_delete=models.PROTECT, db_column="MaSP")
     so_luong_ban = models.IntegerField(default=1, validators=[MinValueValidator(1)])
+    # Đơn giá 1 xe, CHƯA gồm VAT
     gia_ban = models.DecimalField(validators=[MinValueValidator(0)], **tien())
-    tien_vat = models.DecimalField(validators=[MinValueValidator(0)], **tien())
-    tong_thanh_toan = models.DecimalField(validators=[MinValueValidator(0)], **tien())
+    # Tự tính trong save(), không cho nhập tay:
+    #   tien_hang       = so_luong_ban * gia_ban
+    #   tien_vat        = tien_hang * 10%  (làm tròn 1 lần, ROUND_HALF_UP)
+    #   tong_thanh_toan = tien_hang + tien_vat  (đã gồm VAT)
+    tien_vat = models.DecimalField(editable=False, **tien())
+    tong_thanh_toan = models.DecimalField(editable=False, **tien())
 
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["hoa_don_ban", "xe"], name="uniq_chitietban_hdb_xe"),
             models.CheckConstraint(condition=models.Q(so_luong_ban__gte=1), name="chk_chitietban_so_luong_gte_1"),
+            models.CheckConstraint(condition=models.Q(gia_ban__gte=0), name="chk_chitietban_gia_ban_gte_0"),
+            models.CheckConstraint(condition=models.Q(tien_vat__gte=0), name="chk_chitietban_tien_vat_gte_0"),
+            models.CheckConstraint(condition=models.Q(tong_thanh_toan__gte=0), name="chk_chitietban_tong_thanh_toan_gte_0"),
         ]
         verbose_name = verbose_name_plural = "Chi Tiết Bán Hàng"
+
+    @property
+    def tien_hang(self):
+        """Tiền hàng chưa VAT của dòng = so_luong_ban * gia_ban."""
+        return self.so_luong_ban * self.gia_ban
+
+    def tinh_tien(self):
+        """Tính tien_vat và tong_thanh_toan. Trả về False nếu dữ liệu đầu vào chưa hợp lệ."""
+        try:
+            with localcontext() as ctx:
+                ctx.prec = 50
+                tien_hang = self.tien_hang
+                # VAT tính từ tiền hàng gốc, chỉ làm tròn đúng 1 lần
+                self.tien_vat = lam_tron_tien(tien_hang * VAT_RATE)
+                self.tong_thanh_toan = lam_tron_tien(tien_hang) + self.tien_vat
+        except (TypeError, InvalidOperation):
+            return False
+        return True
+
+    def clean_fields(self, exclude=None):
+        self.tinh_tien()
+        super().clean_fields(exclude=exclude)
+
+    def clean(self):
+        super().clean()
+        if self.tong_thanh_toan is not None and self.tong_thanh_toan > TIEN_MAX:
+            raise ValidationError({"gia_ban": "Tổng thanh toán vượt giới hạn cho phép (tối đa 18 chữ số, 2 số lẻ)."})
+
+    def save(self, *args, **kwargs):
+        # Lưu ý: bulk_create/bulk_update/QuerySet.update() không gọi save(); hiện dự án không dùng.
+        self.tinh_tien()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.hoa_don_ban_id} - {self.xe_id}"

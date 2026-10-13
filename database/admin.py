@@ -18,8 +18,14 @@ class ChiTietNhapAdmin(admin.ModelAdmin):
     readonly_fields = ("thanh_tien",)  # tự tính khi lưu
 
 
+@admin.register(ChiTietBan)
+class ChiTietBanAdmin(admin.ModelAdmin):
+    list_display = ("hoa_don_ban", "xe", "so_luong_ban", "gia_ban", "tien_vat", "tong_thanh_toan")
+    readonly_fields = ("tien_vat", "tong_thanh_toan")  # tự tính khi lưu
+
+
 admin.site.register([
     NhaCungCap, DonViVanChuyen, KhachHang, ChiNhanh, Kho, Xe,
-    HoaDonNhap, HoaDonBan, TonKho, ChiTietBan, BienBanPDI,
+    HoaDonNhap, HoaDonBan, TonKho, BienBanPDI,
     HopDong, PhieuXuatKho, PhieuKiemKe, ChiTietKiemKe,
 ])
