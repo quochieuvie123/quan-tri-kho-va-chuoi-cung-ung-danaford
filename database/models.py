@@ -299,6 +299,8 @@ class HopDong(models.Model):
     khach_hang = models.ForeignKey(KhachHang, on_delete=models.CASCADE, db_column="MaKH")
     ngay_ky = models.DateTimeField()
     so_tien_coc = models.DecimalField(default=0, **tien())   # tiền cọc của cả hợp đồng
+    class Meta:
+        verbose_name = verbose_name_plural = "Hợp đồng"
     # ĐÃ BỎ trường xe
 
 
