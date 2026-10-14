@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     NhaCungCap, DonViVanChuyen, KhachHang, ChiNhanh, NhanVien, Kho, Xe,
     HoaDonNhap, HoaDonBan, TonKho, ChiTietNhap, ChiTietBan, BienBanPDI,
-    HopDong, PhieuXuatKho, PhieuKiemKe, ChiTietKiemKe,
+    HopDong,ChiTietHopDong ,PhieuXuatKho, PhieuKiemKe, ChiTietKiemKe,
 )
 
 
@@ -27,5 +27,5 @@ class ChiTietBanAdmin(admin.ModelAdmin):
 admin.site.register([
     NhaCungCap, DonViVanChuyen, KhachHang, ChiNhanh, Kho, Xe,
     HoaDonNhap, HoaDonBan, TonKho, BienBanPDI,
-    HopDong, PhieuXuatKho, PhieuKiemKe, ChiTietKiemKe,
+    HopDong,ChiTietHopDong ,PhieuXuatKho, PhieuKiemKe, ChiTietKiemKe,
 ])
