@@ -139,6 +139,7 @@ class HoaDonBan(models.Model):
     ngay_ban = models.DateTimeField()
     so_hoa_don = models.CharField(max_length=50, null=True, blank=True)
     hinh_thuc_tt = models.CharField(max_length=50, null=True, blank=True)
+    phieu_xuat_kho = models.OneToOneField("PhieuXuatKho", on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         verbose_name = verbose_name_plural = "Hóa Đơn Bán Hàng"
@@ -234,6 +235,7 @@ class ChiTietBan(models.Model):
             models.CheckConstraint(condition=models.Q(gia_ban__gte=0), name="chk_chitietban_gia_ban_gte_0"),
             models.CheckConstraint(condition=models.Q(tien_vat__gte=0), name="chk_chitietban_tien_vat_gte_0"),
             models.CheckConstraint(condition=models.Q(tong_thanh_toan__gte=0), name="chk_chitietban_tong_thanh_toan_gte_0"),
+            models.UniqueConstraint(fields=["hoa_don_ban"], name="uniq_chitietban_mot_xe_moi_hoa_don"),
         ]
         verbose_name = verbose_name_plural = "Chi Tiết Bán Hàng"
 
@@ -293,23 +295,29 @@ class BienBanPDI(models.Model):
 
 class HopDong(models.Model):
     ma_hd = models.CharField(max_length=50, primary_key=True)
-    chi_nhanh = models.ForeignKey(ChiNhanh, on_delete=models.PROTECT, db_column="MaCN")
-    khach_hang = models.ForeignKey(KhachHang, on_delete=models.PROTECT, db_column="MaKH")
-    xe = models.ForeignKey(Xe, on_delete=models.PROTECT, db_column="MaSP")
+    chi_nhanh = models.ForeignKey(ChiNhanh, on_delete=models.CASCADE, db_column="MaCN")
+    khach_hang = models.ForeignKey(KhachHang, on_delete=models.CASCADE, db_column="MaKH")
     ngay_ky = models.DateTimeField()
-    so_tien_coc = models.DecimalField(default=0, validators=[MinValueValidator(0)], **tien())
+    so_tien_coc = models.DecimalField(default=0, **tien())   # tiền cọc của cả hợp đồng
+    # ĐÃ BỎ trường xe
+
+
+class ChiTietHopDong(models.Model):          # mới: hợp đồng gồm những xe nào
+    hop_dong = models.ForeignKey(HopDong, on_delete=models.CASCADE, db_column="MaHD")
+    xe = models.ForeignKey(Xe, on_delete=models.CASCADE, db_column="MaSP")
 
     class Meta:
-        verbose_name = verbose_name_plural = "Hợp Đồng"
-    def __str__(self):
-        return self.ma_hd
+        verbose_name = verbose_name_plural = "Chi tiết hợp đồng"
+        constraints = [
+            models.UniqueConstraint(fields=["hop_dong", "xe"], name="uniq_chitiethopdong_hd_xe"),
+        ]
 
 
 class PhieuXuatKho(models.Model):
     ma_pxk = models.CharField(max_length=50, primary_key=True)
-    # FK + UK = OneToOneField (mỗi hợp đồng 1 phiếu xuất)
-    hop_dong = models.OneToOneField(HopDong, on_delete=models.PROTECT, db_column="MaHD")
-    kho = models.ForeignKey(Kho, on_delete=models.PROTECT, db_column="MaKho")
+    # mỗi dòng chi tiết hợp đồng (1 xe trong 1 hợp đồng) có đúng 1 phiếu xuất
+    chi_tiet_hop_dong = models.OneToOneField(ChiTietHopDong, on_delete=models.CASCADE)
+    kho = models.ForeignKey(Kho, on_delete=models.CASCADE, db_column="MaKho")
     ngay_xuat = models.DateTimeField()
 
     class Meta:
