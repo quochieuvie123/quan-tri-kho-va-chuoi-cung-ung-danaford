@@ -11,15 +11,30 @@ class TrangThaiXe(models.TextChoices):
     DANG_LUU_CHUYEN = "DANG_LUU_CHUYEN", "Đang lưu chuyển"
     SU_CO_PDI = "SU_CO_PDI", "Sự cố PDI - Khóa xuất"
     DA_XUAT = "DA_XUAT", "Đã xuất kho"
+
 class TrangThaiHopDong(models.TextChoices):
     CHO_XU_LY = "CHO_XU_LY", "Chờ xử lý"
     DU_DIEU_KIEN_XUAT = "DU_DIEU_KIEN_XUAT", "Đủ điều kiện xuất kho"
     DANG_XUAT_KHO = "DANG_XUAT_KHO", "Đang xuất kho"
     HOAN_TAT = "HOAN_TAT", "Hoàn tất"
+
 class TrangThaiPhieuXuat(models.TextChoices):
     CHO_DUYET = "CHO_DUYET", "Chờ duyệt"
     DA_DUYET = "DA_DUYET", "Đã duyệt"
     DA_HUY = "DA_HUY", "Đã hủy"
+
+class TrangThaiKiemKe(models.TextChoices):
+    DANG_KIEM_KE = "DANG_KIEM_KE", "Đang kiểm kê"
+    CHO_XU_LY = "CHO_XU_LY", "Chờ xử lý chênh lệch"
+    HOAN_TAT = "HOAN_TAT", "Hoàn tất"
+    DA_HUY = "DA_HUY", "Đã hủy"
+
+class PhanLoaiKiemKe(models.TextChoices):
+    KHOP = "KHOP", "Khớp"
+    THIEU = "THIEU", "Thiếu"
+    THUA = "THUA", "Thừa"
+    SAI_VI_TRI = "SAI_VI_TRI", "Sai vị trí"
+    DANG_XU_LY_NGHIEP_VU = "DANG_XU_LY_NGHIEP_VU", "Đang xử lý nghiệp vụ"
 
 # SĐT phải gồm đúng 10 chữ số (len = 10 theo tài liệu thiết kế).
 # Dùng [0-9] thay vì \d vì \d trong Python còn khớp cả chữ số Unicode (vd: chữ số Ả Rập).
@@ -175,6 +190,7 @@ class TonKho(models.Model):
     xe = models.ForeignKey(Xe, on_delete=models.PROTECT, db_column="MaSP")
     ngay_vao_kho = models.DateField()
     so_luong_ton = models.IntegerField(default=1, validators=[MinValueValidator(0)])
+    vi_tri = models.CharField(max_length=50, default="A01", blank=True, help_text="Vị trí đỗ trong bãi")
 
     class Meta:
         constraints = [
@@ -373,12 +389,25 @@ class PhieuKiemKe(models.Model):
     kho = models.ForeignKey(Kho, on_delete=models.PROTECT, db_column="MaKho")
     nhan_vien = models.ForeignKey(NhanVien, on_delete=models.PROTECT, db_column="MaNV")
     ngay_kiem_ke = models.DateTimeField()
-    ghi_chu = models.CharField(max_length=255, null=True, blank=True)
-
+    ky_kiem_ke = models.CharField(max_length=50, help_text="VD: Tháng 10/2026")
+    pham_vi = models.CharField(max_length=100, default="Toàn kho")
+    ghi_chu = models.TextField(null=True, blank=True)
+    trang_thai = models.CharField(
+        max_length=30,
+        choices=TrangThaiKiemKe.choices,
+        default=TrangThaiKiemKe.DANG_KIEM_KE,
+        db_index=True
+    )
+    nguoi_duyet = models.ForeignKey(
+        NhanVien, on_delete=models.PROTECT, null=True, blank=True,
+        related_name="phieu_kiem_ke_da_duyet"
+    )
+    ngay_duyet = models.DateTimeField(null=True, blank=True)
     class Meta:
         verbose_name = verbose_name_plural = "Phiếu Kiểm Kê Hàng Hóa"
+        ordering = ["-ngay_kiem_ke"]
     def __str__(self):
-        return self.ma_pkk
+        return f"{self.ma_pkk} - {self.kho_id} ({self.get_trang_thai_display()})"
 
 
 class ChiTietKiemKe(models.Model):
@@ -390,7 +419,16 @@ class ChiTietKiemKe(models.Model):
     xe = models.ForeignKey(Xe, on_delete=models.PROTECT, db_column="MaSP")
     ton_he_thong = models.IntegerField(default=1, validators=[MinValueValidator(0)])
     ton_thuc_te = models.IntegerField(choices=TonThucTe.choices, default=TonThucTe.CON)  # 1: còn, 0: mất
-    tinh_trang = models.CharField(max_length=100, null=True, blank=True)
+    vi_tri_he_thong = models.CharField(max_length=50, default="A01", blank=True)
+    vi_tri_thuc_te = models.CharField(max_length=50, null=True, blank=True)
+    tinh_trang = models.CharField(max_length=100, null=True, blank=True, default="Bình thường")
+    phan_loai = models.CharField(
+        max_length=30,
+        choices=PhanLoaiKiemKe.choices,
+        default=PhanLoaiKiemKe.KHOP
+    )
+    nguyen_nhan = models.TextField(null=True, blank=True)
+    phuong_an_xu_ly = models.TextField(null=True, blank=True)
 
     class Meta:
         constraints = [
@@ -401,7 +439,7 @@ class ChiTietKiemKe(models.Model):
         verbose_name = verbose_name_plural = "Chi Tiết Kiểm Kê"
 
     def __str__(self):
-        return f"{self.phieu_kiem_ke_id} - {self.xe_id}"
+        return f"{self.phieu_kiem_ke_id} - {self.xe_id} ({self.phan_loai})"
 
 
 class LichSuXuatKho(models.Model):

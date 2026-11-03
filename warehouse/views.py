@@ -8,6 +8,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from database.models import PhieuXuatKho, TrangThaiPhieuXuat
 from .services import XuatKhoService, XuatKhoError
 
+from .inventory_services import InventoryService, InventoryError
+from database.models import PhieuKiemKe, TrangThaiKiemKe
 
 class DanhSachPhieuXuatView(LoginRequiredMixin, View):
     """UC-PXK-01: Xem danh sách phiếu xuất kho"""
@@ -218,3 +220,97 @@ class XuatFilePhieuXuatView(LoginRequiredMixin, View):
             return JsonResponse({"status": "success", "data": data})
         except XuatKhoError as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
+
+class DanhSachTonKhoView(LoginRequiredMixin, View):
+    """UC-TK-01 & UC-TK-03: Xem danh sách và lọc xe tồn kho"""
+    def get(self, request, *args, **kwargs):
+        ma_kho = request.GET.get('kho', 'KHO_DN')
+        bo_loc = {
+            "loai_xe": request.GET.get('loai_xe'),
+            "mau_sac": request.GET.get('mau_sac'),
+            "vin": request.GET.get('vin'),
+            "trang_thai": request.GET.get('trang_thai')
+        }
+        data = InventoryService.lay_danh_sach_ton_kho(ma_kho=ma_kho, bo_loc=bo_loc)
+        return JsonResponse({"status": "success", "total": len(data), "data": data})
+class ChiTietXeTonKhoView(LoginRequiredMixin, View):
+    """UC-TK-02: Xem chi tiết xe tồn kho & tuổi tồn"""
+    def get(self, request, vin, *args, **kwargs):
+        ma_kho = request.GET.get('kho', 'KHO_DN')
+        try:
+            data = InventoryService.lay_chi_tiet_xe_ton(vin=vin, ma_kho=ma_kho)
+            return JsonResponse({"status": "success", "data": data})
+        except InventoryError as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=404)
+class TaoPhieuKiemKeView(LoginRequiredMixin, View):
+    """UC-KK-01: Tạo phiếu kiểm kê và chụp snapshot hệ thống"""
+    def post(self, request, *args, **kwargs):
+        try:
+            payload = json.loads(request.body)
+            ma_kho = payload.get("kho", "KHO_DN")
+            ky = payload.get("ky_kiem_ke")
+            pham_vi = payload.get("pham_vi", "Toàn kho")
+            ghi_chu = payload.get("ghi_chu", "")
+            nhan_vien = getattr(request.user, "nhan_vien", None)
+            if not nhan_vien:
+                return JsonResponse({"status": "error", "message": "Chưa gán hồ sơ nhân viên."}, status=403)
+            phieu = InventoryService.tao_phieu_kiem_ke(
+                ma_kho=ma_kho, ma_nv=nhan_vien.ma_nv, ky_kiem_ke=ky, pham_vi=pham_vi, ghi_chu=ghi_chu
+            )
+            return JsonResponse({
+                "status": "success",
+                "message": f"Tạo phiếu kiểm kê {phieu.ma_pkk} thành công. Đã chụp số liệu tồn kho.",
+                "ma_pkk": phieu.ma_pkk
+            }, status=201)
+        except InventoryError as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=400)
+class GhiNhanKiemDemView(LoginRequiredMixin, View):
+    """UC-KK-02 & UC-KK-03: Ghi nhận quét VIN kiểm đếm và tự động phân loại"""
+    def post(self, request, ma_pkk, *args, **kwargs):
+        try:
+            payload = json.loads(request.body)
+            danh_sach_vin = payload.get("danh_sach_vin", [])
+            vi_tri_map = payload.get("vi_tri_map", {})
+            result = InventoryService.ghi_nhan_kiem_dem_thuc_te(
+                ma_pkk=ma_pkk, danh_sach_vin_quet=danh_sach_vin, vi_tri_map=vi_tri_map
+            )
+            return JsonResponse({"status": "success", "data": result})
+        except InventoryError as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=400)
+class XuLyChenhLechView(LoginRequiredMixin, View):
+    """UC-KK-04 & UC-KK-05: Ghi nhận nguyên nhân chênh lệch"""
+    def post(self, request, ma_pkk, *args, **kwargs):
+        try:
+            payload = json.loads(request.body)
+            danh_sach = payload.get("danh_sach_xu_ly", [])
+            nhan_vien = getattr(request.user, "nhan_vien", None)
+            InventoryService.xu_ly_chenh_lech(ma_pkk=ma_pkk, ma_nv_xuly=nhan_vien.ma_nv, danh_sach_xu_ly=danh_sach)
+            return JsonResponse({"status": "success", "message": "Đã ghi nhận nguyên nhân xử lý chênh lệch."})
+        except InventoryError as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=400)
+class DuyetPhieuKiemKeView(LoginRequiredMixin, View):
+    """UC-KK-06 & UC-KK-07: Duyệt kiểm kê và điều chỉnh tồn kho tự động"""
+    def post(self, request, ma_pkk, *args, **kwargs):
+        try:
+            nhan_vien = getattr(request.user, "nhan_vien", None)
+            phieu = InventoryService.duyet_phieu_kiem_ke(ma_pkk=ma_pkk, ma_nv_duyet=nhan_vien.ma_nv)
+            return JsonResponse({
+                "status": "success",
+                "message": f"Duyệt kiểm kê {phieu.ma_pkk} hoàn tất. Số liệu tồn kho đã được điều chỉnh theo thực tế."
+            })
+        except InventoryError as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=400)
+class LichSuKiemKeView(LoginRequiredMixin, View):
+    """UC-KK-08: Xem lịch sử kiểm kê"""
+    def get(self, request, *args, **kwargs):
+        ma_kho = request.GET.get('kho', 'KHO_DN')
+        qs = PhieuKiemKe.objects.filter(kho_id=ma_kho, trang_thai=TrangThaiKiemKe.HOAN_TAT).select_related('nhan_vien', 'nguoi_duyet')
+        data = [{
+            "ma_pkk": p.ma_pkk,
+            "ky_kiem_ke": p.ky_kiem_ke,
+            "pham_vi": p.pham_vi,
+            "ngay_kiem_ke": p.ngay_kiem_ke.strftime("%d/%m/%Y"),
+            "nguoi_lap": p.nhan_vien.ten_nv,
+            "nguoi_duyet": p.nguoi_duyet.ten_nv if p.nguoi_duyet else ""
+        } for p in qs]
+        return JsonResponse({"status": "success", "data": data})

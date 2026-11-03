@@ -1,15 +1,19 @@
 # warehouse/tests.py
 from decimal import Decimal
+from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
+
 from database.models import (
     ChiNhanh, Kho, NhanVien, KhachHang, Xe, TonKho,
     HopDong, HoaDonBan, ChiTietBan, BienBanPDI,
     NhaCungCap, DonViVanChuyen, HoaDonNhap,
-    TrangThaiXe, TrangThaiHopDong, TrangThaiPhieuXuat
+    ChiTietHopDong, PhieuXuatKho,
+    TrangThaiXe, TrangThaiHopDong, TrangThaiPhieuXuat,
+    TrangThaiKiemKe, PhanLoaiKiemKe
 )
 from warehouse.services import XuatKhoService, XuatKhoError
-
+from warehouse.inventory_services import InventoryService, InventoryError
 
 class XuatKhoConflictPreventionTests(TestCase):
     def setUp(self):
@@ -165,3 +169,66 @@ class XuatKhoConflictPreventionTests(TestCase):
         # Kiểm tra trạng thái xe đã cập nhật sang Đã xuất
         self.xe.refresh_from_db()
         self.assertEqual(self.xe.trang_thai, TrangThaiXe.DA_XUAT)
+
+class InventoryConflictPreventionTests(TestCase):
+    def setUp(self):
+        self.cn = ChiNhanh.objects.create(ma_cn="DANA_DN", ten_cn="Dana Ford Đà Nẵng")
+        self.kho = Kho.objects.create(ma_kho="KHO_DN", chi_nhanh=self.cn)
+        self.nv = NhanVien.objects.create(ma_nv="NV002", chi_nhanh=self.cn, ten_nv="Trần Kho", sdt_nv="0905999888")
+        # Tạo xe có tuổi tồn 45 ngày (nhóm Cần theo dõi)
+        self.xe = Xe.objects.create(
+            vin="VIN_INVENTORY_01", ten_xe="Ford Ranger XLS", loai_xe="Ranger",
+            so_may="SM_INV_01", mau_sac="Đen", trang_thai=TrangThaiXe.SAN_SANG
+        )
+        self.ton = TonKho.objects.create(
+            kho=self.kho, xe=self.xe,
+            ngay_vao_kho=timezone.now().date() - timedelta(days=45),
+            so_luong_ton=1, vi_tri="A01"
+        )
+    def test_05_tinh_tuoi_ton_chinh_xac(self):
+        """Test: Xe nhập 45 ngày trước phải được phân nhóm 'Cần theo dõi'"""
+        chi_tiet = InventoryService.lay_chi_tiet_xe_ton(vin=self.xe.vin, ma_kho=self.kho.ma_kho)
+        self.assertEqual(chi_tiet["so_ngay_ton"], 45)
+        self.assertEqual(chi_tiet["nhom_tuoi_ton"], "Cần theo dõi")
+    def test_06_tao_phieu_kiem_ke_chup_snapshot(self):
+        """Test: Tạo phiếu kiểm kê thành công và tự động snapshot tồn kho hệ thống"""
+        phieu = InventoryService.tao_phieu_kiem_ke(
+            ma_kho=self.kho.ma_kho, ma_nv=self.nv.ma_nv, ky_kiem_ke="Tháng 10/2026"
+        )
+        self.assertEqual(phieu.trang_thai, TrangThaiKiemKe.DANG_KIEM_KE)
+        self.assertTrue(phieu.chitietkiemke_set.filter(xe=self.xe).exists())
+    def test_07_chong_xung_dot_hai_phieu_kiem_ke_cung_mo(self):
+        """Test: Không cho phép tạo 2 phiếu kiểm kê đồng thời trên cùng một kho"""
+        InventoryService.tao_phieu_kiem_ke(
+            ma_kho=self.kho.ma_kho, ma_nv=self.nv.ma_nv, ky_kiem_ke="Kỳ 1"
+        )
+        with self.assertRaises(InventoryError) as ctx:
+            InventoryService.tao_phieu_kiem_ke(
+                ma_kho=self.kho.ma_kho, ma_nv=self.nv.ma_nv, ky_kiem_ke="Kỳ 2"
+            )
+        self.assertIn("chưa hoàn tất", str(ctx.exception))
+    def test_08_chong_xung_dot_xe_dang_xuat_kho_duoc_danh_dau_nghiep_vu(self):
+        """
+        Test quan trọng nhất: Xe đang vướng Phiếu xuất kho 'Chờ duyệt'
+        khi quét kiểm kê phải được đánh dấu 'DANG_XU_LY_NGHIEP_VU' (không bị tính chênh lệch thiếu/thừa).
+        """
+        # Giả lập xe đang nằm trong phiếu xuất chờ duyệt
+        self.xe.trang_thai = TrangThaiXe.GIU_CHO_XUAT
+        self.xe.save()
+        # Tạo hợp đồng & chi tiết để tạo phiếu xuất chờ duyệt
+        kh = KhachHang.objects.create(ma_kh="KH002", ten_kh="Khách Test", sdt_kh="0905123999")
+        hd = HopDong.objects.create(ma_hd="HD_TEST", chi_nhanh=self.cn, khach_hang=kh, ngay_ky=timezone.now())
+        ct_hd = ChiTietHopDong.objects.create(hop_dong=hd, xe=self.xe)
+        PhieuXuatKho.objects.create(
+            ma_pxk="PX-TEST", chi_tiet_hop_dong=ct_hd, kho=self.kho,
+            trang_thai=TrangThaiPhieuXuat.CHO_DUYET
+        )
+        # Tạo phiếu kiểm kê
+        phieu_kk = InventoryService.tao_phieu_kiem_ke(
+            ma_kho=self.kho.ma_kho, ma_nv=self.nv.ma_nv, ky_kiem_ke="Tháng 10/2026"
+        )
+        # Quét kiểm đếm (bỏ trống danh sách quét - thực tế không quét thấy xe)
+        InventoryService.ghi_nhan_kiem_dem_thuc_te(ma_pkk=phieu_kk.ma_pkk, danh_sach_vin_quet=[])
+        # Kết quả: Xe phải được gắn nhãn DANG_XU_LY_NGHIEP_VU chứ không phải THIEU!
+        ct_item = phieu_kk.chitietkiemke_set.get(xe=self.xe)
+        self.assertEqual(ct_item.phan_loai, PhanLoaiKiemKe.DANG_XU_LY_NGHIEP_VU)
