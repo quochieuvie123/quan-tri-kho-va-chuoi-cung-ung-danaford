@@ -35,7 +35,7 @@ body {
   padding: 20px 14px;
 }
 .sidebar__logo { display: block; margin-bottom: 24px; text-align: center; }
-.sidebar__logo img { height: 44px; }
+.sidebar__logo img { width: 118px; height: auto; }
 .sidebar__nav { display: flex; flex-direction: column; gap: 6px; }
 
 .nav-item {

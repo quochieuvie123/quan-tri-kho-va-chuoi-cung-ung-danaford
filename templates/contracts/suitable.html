@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/operations.css' %}">{% endblock %}
+{% block content %}
+<div class="stack">
+  <div class="toolbar">
+    <a class="btn btn--light" href="{% url 'contracts:index' %}"><i class="bi bi-arrow-left"></i>Danh sách hợp đồng</a>
+    <a class="btn btn--light" href="{% url 'contracts:detail' ma_hd %}"><i class="bi bi-file-earmark-text"></i>Chi tiết hợp đồng</a>
+  </div>
+  {% if canh_bao_du_lieu %}<div class="alert"><i class="bi bi-exclamation-triangle"></i>{{ canh_bao_du_lieu }}</div>{% endif %}
+  {% if canh_bao %}<div class="alert">{{ canh_bao }}</div>{% endif %}
+  <div class="card">
+    {% if message %}
+      <div class="empty"><i class="bi bi-car-front"></i><p>{{ message }}</p><small>Hãy cập nhật đủ dòng xe, phiên bản và màu sắc trong hợp đồng trước khi đề xuất.</small></div>
+    {% else %}
+      <div class="table-wrap"><table class="data-table"><thead><tr><th>VIN</th><th>Xe</th><th>Phiên bản</th><th>Màu</th><th>Vị trí</th><th>Trạng thái</th></tr></thead><tbody>{% for xe in xe_phu_hop %}<tr><td>{{ xe.vin }}</td><td>{{ xe.xe__ten_xe }}</td><td>{{ xe.xe__phien_ban }}</td><td>{{ xe.xe__mau_sac }}</td><td>{{ xe.vi_tri_kho }}</td><td><span class="badge">{{ xe.trang_thai_hien_thi }}</span></td></tr>{% endfor %}</tbody></table></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}<script>document.querySelectorAll('table tbody tr').forEach(row=>{const cell=row.cells[0];if(cell){const a=document.createElement('a');a.textContent=cell.textContent;a.href=window.location.pathname+encodeURIComponent(cell.textContent.trim())+'/';cell.replaceChildren(a);}});</script>{% endblock %}

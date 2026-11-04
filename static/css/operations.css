@@ -1,0 +1,32 @@
+.toolbar { display:flex; gap:12px; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; }
+.filters { display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
+.field { display:flex; flex-direction:column; gap:6px; min-width:150px; }
+.field label { font-size:12px; font-weight:600; color:var(--muted); }
+.input, .select, .textarea { width:100%; border:1px solid var(--border); border-radius:8px; padding:10px 12px; background:#fff; font:inherit; font-size:13px; }
+.textarea { min-height:84px; resize:vertical; }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:7px; border:0; border-radius:8px; padding:10px 14px; font:inherit; font-size:13px; font-weight:600; text-decoration:none; cursor:pointer; }
+.btn--primary { background:var(--blue); color:#fff; }
+.btn--primary:hover { background:var(--blue-dark); }
+.btn--light { background:#eef2f7; color:#1f2937; }
+.btn--success { background:#15803d; color:#fff; }
+.btn--warning { background:#b45309; color:#fff; }
+.table-wrap { overflow-x:auto; }
+.data-table { width:100%; border-collapse:collapse; font-size:13px; }
+.data-table th { padding:12px; color:var(--muted); text-align:left; border-bottom:1px solid var(--border); white-space:nowrap; }
+.data-table td { padding:13px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+.data-table tr:last-child td { border-bottom:0; }
+.badge { display:inline-flex; padding:5px 9px; border-radius:999px; background:#e5e7eb; font-size:11px; font-weight:600; }
+.badge--NHAP { color:#92400e; background:#fef3c7; }
+.badge--CHO_DUYET { color:#1d4ed8; background:#dbeafe; }
+.badge--DA_DUYET, .badge--DAT { color:#166534; background:#dcfce7; }
+.badge--KHONG_DAT { color:#991b1b; background:#fee2e2; }
+.grid { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:18px; }
+.detail-list { display:grid; grid-template-columns:180px 1fr; gap:11px 18px; font-size:13px; }
+.detail-list dt { color:var(--muted); }
+.detail-list dd { margin:0; font-weight:500; }
+.section-title { margin:0 0 16px; font-size:17px; }
+.stack { display:flex; flex-direction:column; gap:18px; }
+.alert { padding:12px 14px; border-radius:8px; margin-bottom:14px; font-size:13px; background:#dbeafe; color:#1e40af; }
+.alert--error { background:#fee2e2; color:#991b1b; }
+.pdi-grid { display:grid; grid-template-columns:1.2fr 1fr 1.2fr; gap:12px; }
+@media (max-width:900px) { .grid, .pdi-grid { grid-template-columns:1fr; } .detail-list { grid-template-columns:1fr; gap:4px; } }

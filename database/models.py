@@ -99,6 +99,8 @@ class Kho(models.Model):
 
 
 class Xe(models.Model):
+    # Bổ sung cho tra cứu đúng phiên bản, không suy đoán từ tên xe.
+    phien_ban = models.CharField(max_length=150, null=True, blank=True)
     vin = models.CharField(max_length=50, primary_key=True)
     ten_xe = models.CharField(max_length=255)
     loai_xe = models.CharField(max_length=50)
@@ -294,6 +296,12 @@ class BienBanPDI(models.Model):
 
 
 class HopDong(models.Model):
+    # Tiêu chí độc lập: hợp đồng chưa gán VIN vẫn có thể tra cứu xe.
+    dong_xe_yeu_cau = models.CharField(max_length=255, null=True, blank=True)
+    phien_ban_yeu_cau = models.CharField(max_length=150, null=True, blank=True)
+    mau_sac_yeu_cau = models.CharField(max_length=50, null=True, blank=True)
+    ngay_du_kien_giao = models.DateField(null=True, blank=True)
+    trang_thai = models.CharField(max_length=50, null=True, blank=True)
     ma_hd = models.CharField(max_length=50, primary_key=True)
     chi_nhanh = models.ForeignKey(ChiNhanh, on_delete=models.CASCADE, db_column="MaCN")
     khach_hang = models.ForeignKey(KhachHang, on_delete=models.CASCADE, db_column="MaKH")

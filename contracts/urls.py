@@ -1,7 +1,10 @@
 from django.urls import path
-from core.views import PlaceholderView
+from . import views
 
-app_name = "contracts"
+app_name = 'contracts'
 urlpatterns = [
-    path("", PlaceholderView.as_view(title="Quản lý hợp đồng xe bán"), name="index"),
+    path('<str:ma_hd>/xe-phu-hop/<str:vin>/', views.suggested_vehicle_detail, name='suggested_vehicle_detail'),
+    path('', views.index, name='index'),
+    path('<str:ma_hd>/xe-phu-hop/', views.suitable_vehicles, name='xe_phu_hop'),
+    path('<str:ma_hd>/', views.detail, name='detail'),
 ]

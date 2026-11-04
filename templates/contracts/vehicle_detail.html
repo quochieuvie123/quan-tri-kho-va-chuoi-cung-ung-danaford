@@ -1,0 +1,3 @@
+{% extends 'base.html' %}{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/operations.css' %}">{% endblock %}
+{% block content %}<div class="stack"><a class="btn btn--light" href="{% url 'contracts:xe_phu_hop' ma_hd %}">Quay lại kết quả đề xuất</a><div class="card"><h2 class="section-title">Thông tin xe được đề xuất</h2><dl class="detail-list"><dt>VIN</dt><dd>{{ xe.vin }}</dd><dt>Dòng xe</dt><dd>{{ xe.xe__ten_xe }}</dd><dt>Phiên bản</dt><dd>{{ xe.xe__phien_ban }}</dd><dt>Màu sắc</dt><dd>{{ xe.xe__mau_sac }}</dd><dt>Vị trí kho</dt><dd>{{ xe.vi_tri_kho }}</dd><dt>Trạng thái</dt><dd>{{ xe.trang_thai_hien_thi }}</dd><dt>Phương án</dt><dd>{{ xe.phuong_an }}</dd></dl></div></div>{% endblock %}
