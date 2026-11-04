@@ -65,6 +65,8 @@ def loc_ngay(queryset, truong, bo_loc):
 
 
 def dinh_dang_ngay(value):
+    if not value:
+        return ''
     if timezone.is_aware(value):
         value = timezone.localtime(value)
 
@@ -74,6 +76,7 @@ def dinh_dang_ngay(value):
 def thong_ke_thang(queryset, truong, phep_tinh):
     rows = (
         queryset
+        .filter(**{f"{truong}__isnull": False})
         .order_by()
         .annotate(thang=TruncMonth(truong))
         .values("thang")
@@ -84,6 +87,7 @@ def thong_ke_thang(queryset, truong, phep_tinh):
     return {
         row["thang"].date().replace(day=1): row["tong"]
         for row in rows
+        if row["thang"] is not None
     }
 
 
@@ -320,7 +324,8 @@ def tao_bao_cao(
 
     # Mỗi phiếu xuất tương ứng một xe.
     xuat = PhieuXuatKho.objects.filter(
-        kho_id__in=kho_ids
+        kho_id__in=kho_ids,
+        ngay_xuat__isnull=False
     )
 
     if ten:
