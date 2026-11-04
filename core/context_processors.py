@@ -7,6 +7,7 @@ MENU = [
     {"label": "Quản lý nhập kho", "url_name": "warehouse:nhap", "icon": "bi-box-arrow-in-down", "perm": None},
     {"label": "Quản lý xuất kho", "url_name": "warehouse:xuat", "icon": "bi-box-arrow-up", "perm": None},
     {"label": "Quản lý tồn kho", "url_name": "warehouse:ton_kho", "icon": "bi-box-seam", "perm": None},
+    {"label": "Cảnh báo", "url_name": "alerts:index", "icon": "bi-bell", "perm": None},
     {"label": "Thống kê và báo cáo", "url_name": "dashboard:index", "icon": "bi-bar-chart", "perm": None},
     {"label": "Dự báo nhu cầu và đề xuất nhập xe", "url_name": "analytics:index", "icon": "bi-graph-up-arrow", "perm": None},
     {"label": "Quản lý sự cố vận chuyển", "url_name": "incidents:index", "icon": "bi-exclamation-triangle", "perm": None},

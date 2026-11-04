@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .canh-bao .bo-loc {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 16px;
+    }
+
+    .canh-bao .bo-loc p {
+        margin: 0;
+        flex: 1 1 180px;
+    }
+
+    .canh-bao label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    .canh-bao input,
+    .canh-bao select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #dce3eb;
+        border-radius: 6px;
+        font: inherit;
+        font-size: 14px;
+    }
+
+    .canh-bao .thao-tac {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .canh-bao button {
+        padding: 11px 24px;
+        background: #0b66c3;
+        color: white;
+        border: 0;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .canh-bao .bang {
+        margin-top: 20px;
+        overflow-x: auto;
+    }
+
+    .canh-bao table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .canh-bao th,
+    .canh-bao td {
+        padding: 14px 12px;
+        border-bottom: 1px solid #e5e7eb;
+        text-align: left;
+        vertical-align: top;
+    }
+
+    .canh-bao th {
+        background: #f4f7fb;
+    }
+
+    .canh-bao .errorlist {
+        color: #b42318;
+        padding-left: 18px;
+        font-size: 13px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="canh-bao">
+    <div class="card">
+        <form method="get" class="bo-loc">
+            {{ form.as_p }}
+
+            <div class="thao-tac">
+                <button type="submit">Lọc</button>
+                <a href="{% url 'alerts:index' %}">Bỏ lọc</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="card bang">
+        <h2>Danh sách cảnh báo</h2>
+        <p>Số cảnh báo phù hợp: {{ tong_so }}</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Mã</th>
+                    <th>Loại cảnh báo</th>
+                    <th>Kho</th>
+                    <th>Đối tượng cảnh báo</th>
+                    <th>Số liệu</th>
+                    <th>Trạng thái xử lý</th>
+                    <th>Ngày phát sinh</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for cb in danh_sach %}
+                <tr>
+                    <td>
+                        <a href="{% url 'alerts:chi_tiet' cb.pk %}?{{ request.GET.urlencode }}">
+                            CB{{ cb.pk }}
+                        </a>
+                    </td>
+                    <td>{{ cb.get_loai_display }}</td>
+                    <td>{{ cb.kho }}</td>
+
+                    <td>
+                        {% if cb.xe %}
+                            {{ cb.xe.vin }}<br>
+                            {{ cb.xe.ten_xe }}<br>
+                            {{ cb.xe.mau_sac|default:"Chưa có màu" }}
+                        {% else %}
+                            {{ cb.nguong.ten_xe }}<br>
+                            {{ cb.nguong.mau_sac|default:"Chưa có màu" }}
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if cb.loai == "TON_LAU" %}
+                            {{ cb.so_ngay_ton }} ngày
+                        {% else %}
+                            Tồn: {{ cb.so_luong_hien_tai }} xe<br>
+                            Ngưỡng: {{ cb.nguong.ton_toi_thieu }} xe
+                        {% endif %}
+                    </td>
+
+                    <td>{{ cb.get_trang_thai_display }}</td>
+                    <td>{{ cb.ngay_phat_sinh|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        Không có cảnh báo phù hợp.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
