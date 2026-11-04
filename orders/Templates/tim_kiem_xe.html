@@ -1,0 +1,115 @@
+{% extends "ql_dat_xe.html" %}
+
+{% block booking_content %}
+
+<h2>Tìm kiếm xe</h2>
+
+<form method="GET">
+    <label for="keyword">Nhập VIN hoặc mô tả xe:</label>
+
+<input type="text"
+       id="keyword"
+       name="keyword"
+       placeholder="Nhập VIN hoặc mô tả"
+       value="{{ keyword }}">
+    <button type="submit">Tìm kiếm</button>
+</form>
+
+{% if keyword %}
+    <h3>Kết quả tìm kiếm</h3>
+
+    {% if allocations %}
+        <table class="vehicle-table">
+        <thead>
+            <tr>
+                <th>Mã dòng xe</th>
+                <th>Mô tả</th>
+                <th>VIN</th>
+                <th>Mã màu</th>
+                <th>Màu ngoại thất</th>
+                <th>Số máy</th>
+                <th>Số lượng phân bổ</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for xe in allocations %}
+                <tr>
+                    <td>{{ xe.vehicle_code }}</td>
+                    <td>{{ xe.description }}</td>
+                    <td>{{ xe.vin }}</td>
+                    <td>{{ xe.color_code }}</td>
+                    <td>{{ xe.exterior_color }}</td>
+                    <td>{{ xe.engine_number }}</td>
+                    <td>{{ xe.quantity }}</td>
+                    <td>
+                        <a href="{% url 'orders:chi_tiet_xe' xe.id %}"
+   class="btn-select">
+    Chọn xe
+</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Không tìm thấy xe phù hợp.</p>
+    {% endif %}
+{% endif %}
+
+<h3>Danh sách xe đã chọn</h3>
+
+{% for message in messages %}
+    <p>{{ message }}</p>
+{% endfor %}
+
+{% if xe_da_chon %}
+    <div class="table-wrapper">
+        <table class="vehicle-table">
+            <thead>
+                <tr>
+                    <th>Mã dòng xe</th>
+                    <th>Mô tả</th>
+                    <th>VIN</th>
+                    <th>Mã màu</th>
+                    <th>Số lượng yêu cầu</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for item in xe_da_chon %}
+                    <tr>
+                        <td>{{ item.xe.vehicle_code }}</td>
+                        <td>{{ item.xe.description }}</td>
+                        <td>{{ item.xe.vin }}</td>
+                        <td>{{ item.xe.color_code }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>
+                            <form method="POST"
+                                  action="{% url 'orders:xoa_xe_da_chon' item.xe.id %}"
+                                  onsubmit="return confirm('Bạn muốn xóa xe này khỏi danh sách?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-delete">
+                                    Xóa
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+<div class="selected-actions">
+    <a href="{% url 'orders:lap_phieu_yeu_cau' %}"
+   class="btn-create-request">
+    Lập phiếu yêu cầu đặt xe
+    </a>
+</div>
+{% else %}
+    <p>Chưa có xe nào được chọn.</p>
+{% endif %}
+
+{% endblock %}

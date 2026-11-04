@@ -1,8 +1,9 @@
-openpyxl
-reportlab
 asgiref==3.12.1
 Django==6.1.2
 sqlparse==0.6.0
 tzdata==2026.5
+openpyxl==3.1.5
+reportlab
 XlsxWriter==3.2.9
 plotly
+xhtml2pdf

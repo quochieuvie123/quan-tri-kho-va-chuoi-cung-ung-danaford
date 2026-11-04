@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Phiếu yêu cầu đặt xe DanaFord</title>
+
+    <style>
+        /* Font tiếng Việt */
+        @font-face {
+            font-family: "DejaVuSans";
+            src: url("/static/fonts/DejaVuSans.ttf");
+        }
+
+        @font-face {
+            font-family: "DejaVuSans";
+            src: url("/static/fonts/DejaVuSans-Bold.ttf");
+            font-weight: bold;
+        }
+
+        @page {
+            size: A4;
+            margin: 18mm;
+        }
+
+        body {
+            font-family: "DejaVuSans";
+            font-size: 10pt;
+        }
+
+        .header {
+            width: 100%;
+        }
+
+        .header td {
+            border: none;
+            vertical-align: top;
+        }
+
+        .title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 13pt;
+        }
+
+        .date {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .company {
+            margin-top: 18px;
+        }
+
+        .company p,
+        .receiver p {
+            margin: 4px 0;
+        }
+
+        .vehicle-table {
+        width: 100%;
+        margin-top: 30px;
+        border-collapse: collapse;
+        table-layout: fixed;
+    }
+
+    .vehicle-table th,
+    .vehicle-table td {
+        border: 1px solid black;
+        padding: 5px 3px;
+        text-align: center;
+        vertical-align: middle;
+        font-size: 8pt;
+    }
+
+    .vehicle-table th {
+        font-weight: bold;
+    }
+
+    /* Riêng cột VIN */
+    .vehicle-table .vin-cell {
+        font-size: 7pt;
+        word-wrap: break-word;
+    }
+
+    .total-row {
+        font-weight: bold;
+    }
+    </style>
+</head>
+
+<body>
+
+    <table class="header">
+        <tr>
+            <td style="width: 25%;">
+                DANAFORD
+            </td>
+
+            <td style="width: 50%;">
+                <div class="title">
+                    PHIẾU YÊU CẦU ĐẶT XE
+                </div>
+
+                <div class="date">
+                    Ngày {{ phieu.created_at|date:"d" }}
+                    tháng {{ phieu.created_at|date:"m" }}
+                    năm {{ phieu.created_at|date:"Y" }}
+                </div>
+            </td>
+
+            <td style="width: 25%; text-align: right;">
+                Số: {{ phieu.request_number }}
+            </td>
+        </tr>
+    </table>
+
+    <div class="company">
+        <p><b>CÔNG TY CỔ PHẦN DANA</b></p>
+        <p>Số 56, Đường Điện Biên Phủ,</p>
+        <p>Quận Thanh Khê, Tp Đà Nẵng.</p>
+        <p>SĐT: 0799 646 555</p>
+        <p>Mã số thuế: 0400259800</p>
+        <p>Người lập phiếu: {{ phieu.created_by.username }}</p>
+    </div>
+
+    <div class="receiver">
+        <p>Đến: Công ty TNHH FORD Việt Nam</p>
+        <p>
+            Địa chỉ: Số 316 Đường Hoàng Ngân,
+            Phường Việt Hoà, TP Hải Phòng
+        </p>
+        <p>Mã số thuế: 0800006882</p>
+    </div>
+
+    <table class="vehicle-table">
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Mã dòng</th>
+                <th>Mô tả</th>
+                <th>VIN</th>
+                <th>Mã màu</th>
+                <th>Số lượng</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for item in phieu.items.all %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.allocation.vehicle_code }}</td>
+                <td>{{ item.allocation.description }}</td>
+                <td class="vin-cell">{{ item.allocation.vin }}</td>
+                <td>{{ item.allocation.color_code }}</td>
+                <td>{{ item.quantity }}</td>
+            </tr>
+            {% endfor %}
+
+            <tr class="total-row">
+                <td colspan="5">Tổng số lượng:</td>
+                <td>{{ tong_so_luong }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+</body>
+</html>

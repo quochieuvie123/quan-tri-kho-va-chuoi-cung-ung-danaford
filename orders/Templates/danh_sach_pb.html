@@ -1,0 +1,194 @@
+
+{% extends 'base.html' %}
+
+{% block page_title %}
+Danh sách phân bổ
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .allocation-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+    }
+
+    .allocation-tabs a {
+        padding: 12px 20px;
+        border: 1px solid #dce4ed;
+        background: white;
+        color: #0066c2;
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .allocation-tabs a.active {
+        background: #0066c2;
+        color: white;
+    }
+
+    .allocation-card {
+        background: white;
+        padding: 20px;
+        margin-bottom: 24px;
+        border: 1px solid #e3e8ef;
+        border-radius: 8px;
+    }
+
+    .allocation-upload-form {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .allocation-btn {
+        background: #0066c2;
+        color: white;
+        padding: 11px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    .allocation-table-wrapper {
+        overflow-x: auto;
+        width: 100%;
+    }
+
+    .allocation-table {
+        width: 100%;
+        border-collapse: collapse;
+        white-space: nowrap;
+        font-size: 13px;
+    }
+
+    .allocation-table th,
+    .allocation-table td {
+        padding: 12px;
+        border-bottom: 1px solid #e3e8ef;
+        text-align: left;
+    }
+
+    .allocation-table th {
+        background: #edf4fc;
+    }
+
+    .allocation-message {
+        padding: 12px;
+        margin-bottom: 15px;
+        border-radius: 6px;
+    }
+
+    .allocation-message.success {
+        background: #e5f5e9;
+        color: #17653b;
+    }
+
+    .allocation-message.error {
+        background: #fdeaea;
+        color: #a52a2a;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- BA TAB ĐIỀU HƯỚNG -->
+<div class="allocation-tabs">
+    <a href="{% url 'orders:allocation_list' %}" class="active">
+        Tải danh sách phân bổ
+    </a>
+
+    <a href="{% url 'orders:proposal_list' %}">
+        Xem danh sách đề xuất nhập
+    </a>
+
+    <a href="{% url 'orders:vehicle_orders' %}">
+        Đặt xe
+    </a>
+</div>
+
+<!-- CHỨC NĂNG 1: TẢI EXCEL -->
+<div class="allocation-card">
+    <h3>Tải danh sách phân bổ lên hệ thống</h3>
+
+    {% for message in messages %}
+        <div class="allocation-message {{ message.tags }}">
+            {{ message }}
+        </div>
+    {% endfor %}
+
+    <form method="POST"
+          enctype="multipart/form-data"
+          class="allocation-upload-form">
+
+        {% csrf_token %}
+
+        {{ form.as_p }}
+
+        <button type="submit" class="allocation-btn">
+            <i class="bi bi-upload"></i>
+            Tải danh sách lên
+        </button>
+    </form>
+</div>
+
+<!-- CHỨC NĂNG 2: XEM DANH SÁCH -->
+<div class="allocation-card">
+    <h3>Danh sách phân bổ đã tải</h3>
+
+    <p>Tổng số xe: {{ allocations|length }}</p>
+
+    <div class="allocation-table-wrapper">
+        <table class="allocation-table">
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Số đơn đặt hàng</th>
+                    <th>Mã dòng xe</th>
+                    <th>Mô tả</th>
+                    <th>VIN</th>
+                    <th>Mã màu</th>
+                    <th>Màu ngoại thất</th>
+                    <th>Số máy</th>
+                    <th>Số lượng</th>
+                    <th>Ngày dự kiến ship</th>
+                    <th>Ngày giao theo hợp đồng</th>
+                    <th>Tháng phân bổ</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for allocation in allocations %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ allocation.order_number }}</td>
+                    <td>{{ allocation.vehicle_code }}</td>
+                    <td>{{ allocation.description }}</td>
+                    <td>{{ allocation.vin }}</td>
+                    <td>{{ allocation.color_code }}</td>
+                    <td>{{ allocation.exterior_color }}</td>
+                    <td>{{ allocation.engine_number }}</td>
+                    <td>{{ allocation.quantity }}</td>
+                    <td>{{ allocation.expected_ship_date|date:"d/m/Y" }}</td>
+                    <td>{{ allocation.contractual_delivery_date|date:"d/m/Y" }}</td>
+                    <td>{{ allocation.allocation_month|date:"m/Y" }}</td>
+                </tr>
+
+                {% empty %}
+                <tr>
+                    <td colspan="11" style="text-align:center;">
+                        Chưa có dữ liệu phân bổ
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

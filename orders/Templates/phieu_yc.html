@@ -1,0 +1,156 @@
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block page_title %}
+Phiếu yêu cầu đặt xe
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet"
+      href="{% static 'css/phieu_yeu_cau.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="request-page">
+
+    <div class="request-paper">
+
+        <!-- LOGO, TIÊU ĐỀ, SỐ PHIẾU -->
+        <div class="request-header">
+
+            <div class="request-logo">
+                <img src="{% static 'images/danaford_logo.png' %}"
+         alt="Logo DanaFord">
+            </div>
+
+            <div class="request-title">
+                <h2>PHIẾU YÊU CẦU ĐẶT XE</h2>
+
+                <p>
+                    Ngày {{ ngay_lap|date:"d" }}
+                    tháng {{ ngay_lap|date:"m" }}
+                    năm {{ ngay_lap|date:"Y" }}
+                </p>
+            </div>
+
+            <div class="request-number">
+                Số: PYC{{ phieu.id|stringformat:"05d" }}
+            </div>
+
+        </div>
+
+        <!-- THÔNG TIN CÔNG TY DANA -->
+        <div class="sender-info">
+
+            <h3>CÔNG TY CỔ PHẦN DANA</h3>
+
+            <p>Số 56, Đường Điện Biên Phủ,</p>
+            <p>Quận Thanh Khê, Tp Đà Nẵng.</p>
+            <p>SĐT: 0799 646 555</p>
+            <p>Mã số thuế: 0400259800</p>
+
+            <p>
+                Người lập phiếu:
+                {{ request.user.username }}
+            </p>
+
+        </div>
+
+        <!-- THÔNG TIN BÊN NHẬN -->
+        <div class="receiver-info">
+
+            <p>Đến: Công ty TNHH FORD Việt Nam</p>
+
+            <p>
+                Địa chỉ: Số 316 Đường Hoàng Ngân,
+                Phường Việt Hoà, TP Hải Phòng
+            </p>
+
+            <p>Mã số thuế: 0800006882</p>
+
+        </div>
+
+        <!-- BẢNG DANH SÁCH XE -->
+        <table class="request-table">
+
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Mã dòng</th>
+                    <th>Mô tả</th>
+                    <th>Vin</th>
+                    <th>Mã màu</th>
+                    <th>Số lượng</th>
+                </tr>
+            </thead>
+
+            <tbody>
+            {% for item in phieu.items.all %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ item.allocation.vehicle_code }}</td>
+                <td>{{ item.allocation.description }}</td>
+                <td>{{ item.allocation.vin }}</td>
+                <td>{{ item.allocation.color_code }}</td>
+                <td>{{ item.quantity }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td colspan="5">Tổng số lượng:</td>
+                <td>{{ tong_so_luong }}</td>
+            </tr>
+            </tbody>
+
+        </table>
+
+    </div>
+<p>Trạng thái thực tế: {{ phieu.status|default:"KHÔNG CÓ" }}</p>
+<p>Mã phiếu: {{ phieu.request_number }}</p>
+    <!-- NÚT XÁC NHẬN: NẰM NGOÀI PHIẾU -->
+    <div class="request-actions">
+
+        {% if phieu.status == "DRAFT" %}
+        <a href="{% url 'orders:vehicle_orders' %}" class="btn-back">
+            Quay lại chỉnh sửa
+        </a>
+        {% elif phieu.status == "PENDING" or phieu.status == "ACCEPTED" %}
+        <a href="{% url 'orders:danh_sach_yeu_cau' %}" class="btn-back">
+            Quay lại danh sách yêu cầu
+        </a>
+        {% endif %}
+
+        {% if phieu.status == "DRAFT" %}
+        <form method="POST"
+              action="{% url 'orders:gui_phieu_yeu_cau' phieu.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-send">
+                Gửi phiếu
+            </button>
+        </form>
+        {% elif phieu.status == "PENDING" %}
+
+        <form method="POST"
+              action="{% url 'orders:xac_nhan_phieu' phieu.id %}">
+            {% csrf_token %}
+
+            <button type="submit"
+                    class="btn-confirm"
+                    onclick="return confirm('Bạn đã nhận được thông tin xác nhận tiếp nhận từ Ford Việt Nam?');">
+                Cập nhật trạng thái: Đã xác nhận
+            </button>
+        </form>
+
+    {% elif phieu.status == "ACCEPTED" %}
+
+        <span class="status-accepted">
+            ✓ Phiếu đã được xác nhận
+        </span>
+
+    {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}

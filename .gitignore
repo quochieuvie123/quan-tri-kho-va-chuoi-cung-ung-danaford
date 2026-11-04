@@ -219,3 +219,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+
+# PyCharm / cơ sở dữ liệu cục bộ
+.idea/
+*.sqlite3

@@ -1,0 +1,82 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý đặt xe</title>
+    <link rel="stylesheet" href="{% static 'css/order.css' %}">
+    <style>
+        .menu {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .menu a {
+            flex: 1;
+            padding: 17px 10px;
+            text-align: center;
+            text-decoration: none;
+            color: #2563d9;
+            background-color: #ffffff;
+            border: 1px solid #dddddd;
+            border-radius: 11px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            box-sizing: border-box;
+        }
+
+        .menu a:hover {
+            background-color: #eaf3ff;
+        }
+
+        .menu a.active {
+            background-color: #0865bd;
+            color: white;
+            border-color: #0865bd;
+        }
+
+        .menu a.active:hover {
+            background-color: #0755a0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="menu">
+        <a href="{% url 'orders:vehicle_orders' %}"
+           class="{% if request.resolver_match.url_name == 'vehicle_orders' %}active{% endif %}">
+            Đặt xe
+        </a>
+        <a href="{% url 'orders:danh_sach_yeu_cau' %}">
+            Danh sách yêu cầu
+        </a>
+    </nav>
+
+    <!-- Nội dung của các trang con sẽ xuất hiện ở đây -->
+    <main class="booking-content">
+        {% block booking_content %}
+        {% endblock %}
+    </main>
+    <footer class="booking-footer">
+    <a href="/phan-bo/"
+       style="
+           display: inline-block;
+           padding: 12px 24px;
+           background-color: #0865bd;
+           color: white;
+           border-radius: 8px;
+           text-decoration: none;
+           font-family: Arial, sans-serif;
+           font-size: 14px;
+           font-weight: bold;
+       ">
+        Quay lại
+    </a>
+    </footer>
+</body>
+</html>

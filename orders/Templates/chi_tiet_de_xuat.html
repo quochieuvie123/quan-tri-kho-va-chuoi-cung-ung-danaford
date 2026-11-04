@@ -1,0 +1,95 @@
+
+{% extends "ql_dat_xe.html" %}
+{% load static %}
+
+{% block booking_content %}
+
+<div class="proposal-detail">
+
+    <h2>CHI TIẾT ĐỀ XUẤT NHẬP XE</h2>
+
+    <!-- THÔNG TIN DÒNG XE -->
+    <div class="proposal-info">
+
+        <h3>Thông tin dòng xe</h3>
+
+        <table class="proposal-table">
+            <tbody>
+                <tr>
+                    <th>Dòng xe</th>
+                    <td>{{ ten_xe }}</td>
+                </tr>
+
+                <tr>
+                    <th>Tháng đề xuất</th>
+                    <td>
+                        {{ allocation.allocation_month|date:"m/Y" }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
+
+    <!-- THÔNG TIN BÁN HÀNG VÀ TỒN KHO -->
+    <div class="proposal-info">
+
+        <h3>Thông tin bán hàng và tồn kho</h3>
+
+        <table class="proposal-table">
+            <tbody>
+                <tr>
+                    <th>Số lượng bán trong tháng</th>
+                    <td>{{ so_ban }} xe</td>
+                </tr>
+
+                <tr>
+                    <th>Số lượng tồn kho hiện tại</th>
+                    <td>{{ so_ton }} xe</td>
+                </tr>
+
+                <tr>
+                    <th>Số lượng phân bổ trong tháng</th>
+                    <td>{{ so_phan_bo }} xe</td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
+
+    <!-- KẾT QUẢ ĐỀ XUẤT -->
+    <div class="proposal-info">
+
+        <h3>Kết quả đề xuất nhập xe</h3>
+
+        <table class="proposal-table">
+            <tbody>
+                <tr>
+                    <th>Nhu cầu nhập xe</th>
+                    <td>{{ nhu_cau }} xe</td>
+                </tr>
+
+                <tr class="proposal-result">
+                    <th>Số lượng đề xuất cần nhập</th>
+                    <td>
+                        <strong>{{ de_xuat_nhap }} xe</strong>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
+
+    <!-- NÚT QUAY LẠI -->
+    <div class="proposal-actions">
+
+        <a href="{% url 'orders:proposal_list' %}"
+           class="proposal-back-btn">
+            ← Quay lại danh sách đề xuất
+        </a>
+
+    </div>
+
+</div>
+
+{% endblock %}
