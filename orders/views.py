@@ -93,6 +93,7 @@ def chuyen_so_luong(value):
         raise ValueError("Số lượng phải lớn hơn 0")
 
     return so_luong
+@login_required
 def allocation_list(request):
     if request.method == "POST":
         form = AllocationUploadForm(request.POST, request.FILES)
@@ -210,6 +211,7 @@ def allocation_list(request):
     })
 # Đặt xe
 
+@login_required
 def dat_xe(request):
         keyword = request.GET.get("keyword", "").strip()
 
@@ -257,6 +259,7 @@ def dat_xe(request):
 
 
 
+@login_required
 def chi_tiet_xe(request, id):
     today = timezone.localdate()
 
@@ -312,6 +315,7 @@ def chi_tiet_xe(request, id):
 
 from django.views.decorators.http import require_POST
 
+@login_required
 @require_POST
 def xoa_xe_da_chon(request, xe_id):
     # Lấy danh sách xe đã chọn từ Session
@@ -644,6 +648,7 @@ from collections import defaultdict
 from database.models import ChiTietBan, TonKho
 
 
+@login_required
 def danh_sach_de_xuat(request):
     today = timezone.localdate()
 

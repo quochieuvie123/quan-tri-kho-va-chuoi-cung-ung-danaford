@@ -1,7 +1,7 @@
 from django.contrib.auth.models import Group, Permission
 from django.core.management.base import BaseCommand
 
-BUSINESS_APPS = ["database"]
+BUSINESS_APPS = ["database", "alerts", "analytics", "incidents", "orders", "warehouse"]
 
 
 class Command(BaseCommand):

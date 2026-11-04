@@ -1,7 +1,7 @@
 """Hàm nghiệp vụ của module sự cố. App khác (vd: warehouse) có thể import để dùng."""
 import re
 
-from database.models import BienBanPDI
+from database.models import BienBanPDI, TrangThaiXe, Xe
 
 from .models import DA_XU_LY
 
@@ -25,3 +25,18 @@ def sinh_ma_pdi():
         if m:
             so_lon_nhat = max(so_lon_nhat, int(m.group(1)))
     return f"PDI{so_lon_nhat + 1:02d}"
+
+
+def khoa_xe_vi_su_co(xe):
+    """Ghi nhận sự cố -> Xe.trang_thai = "Sự cố PDI - Khóa xuất" (xe đã xuất kho thì giữ nguyên)."""
+    if xe.trang_thai not in (TrangThaiXe.SU_CO_PDI, TrangThaiXe.DA_XUAT):
+        xe.trang_thai = TrangThaiXe.SU_CO_PDI
+        xe.save(update_fields=["trang_thai"])
+
+
+def mo_khoa_xe_khi_dong_su_co(xe):
+    """Đóng sự cố -> trả xe về "Sẵn sàng", trừ khi xe còn sự cố khác chưa đóng."""
+    xe = Xe.objects.get(pk=xe.pk)
+    if xe.trang_thai == TrangThaiXe.SU_CO_PDI and not xe_bi_khoa_nhap_kho(xe):
+        xe.trang_thai = TrangThaiXe.SAN_SANG
+        xe.save(update_fields=["trang_thai"])

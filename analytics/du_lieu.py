@@ -94,7 +94,8 @@ def thu_thap(thang, nam):
     for r in TonKho.objects.values("xe__ten_xe").annotate(n=Sum("so_luong_ton")):
         bo.dong_xe[r["xe__ten_xe"]].ton_kho = r["n"] or 0
     # (3) Hợp đồng đã ký chờ giao xe (chưa có phiếu xuất kho)
-    for r in (ChiTietHopDong.objects.filter(phieuxuatkho__isnull=True)
+    # Phiếu xuất kho có trạng thái: chỉ phiếu đã duyệt (xe đã rời kho) mới hết "chờ giao"
+    for r in (ChiTietHopDong.objects.exclude(phieuxuatkho__trang_thai="DA_DUYET")
               .values("xe__ten_xe").annotate(n=Count("id"))):
         bo.dong_xe[r["xe__ten_xe"]].hop_dong_cho_giao = r["n"]
     # (4) Xe đang vận chuyển: đã có trên hóa đơn nhập nhưng chưa vào tồn kho và chưa bán

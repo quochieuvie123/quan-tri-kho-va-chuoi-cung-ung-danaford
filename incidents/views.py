@@ -19,7 +19,7 @@ from . import exports
 from .forms import GhiNhanForm, GuiYeuCauForm, KetQuaForm, LocForm
 from .models import (CHUA_XU_LY, DA_GUI_YEU_CAU, DA_XU_LY, AnhSuCo, DvvcLienHe, HoSoSuCo,
                      LichSuPhanHoi, nhan_trang_thai)
-from .services import sinh_ma_pdi
+from .services import khoa_xe_vi_su_co, mo_khoa_xe_khi_dong_su_co, sinh_ma_pdi
 
 TIEU_DE = "Quản lý sự cố vận chuyển"
 SO_DONG = 10
@@ -141,6 +141,7 @@ def ghi_nhan(request):
             bb.hinh_anh_url = request.build_absolute_uri(reverse("incidents:tep_anh", args=[anh[0].pk]))
             bb.save(update_fields=["hinh_anh_url"])
             _ho_so(bb)
+            khoa_xe_vi_su_co(d["xe"])
             _ghi_lich_su(request, bb, "Ghi nhận sự cố", f"{bb.loai_su_co}: {bb.mo_ta_chi_tiet}")
         messages.success(request, f"Ghi nhận sự cố thành công (mã hồ sơ {bb.ma_pdi}). "
                                   "Xe đang xử lý sự cố - khóa nhập kho.")
@@ -189,10 +190,12 @@ def _soan_thu(bb, ghi_chu, han):
 
 
 def _ket_noi_mail():
-    """Chưa cấu hình SMTP thật -> in email ra cửa sổ lệnh (dùng khi phát triển)."""
-    if settings.EMAIL_BACKEND.endswith("smtp.EmailBackend") and not settings.EMAIL_HOST_USER:
+    """Dùng cấu hình MAILERS["default"] của dự án (giống module đặt xe).
+    Nếu là SMTP nhưng chưa có tài khoản (chưa đặt biến môi trường EMAIL_HOST_USER) -> in email ra cửa sổ lệnh."""
+    cau_hinh = getattr(settings, "MAILERS", {}).get("default", {})
+    if cau_hinh.get("BACKEND", "").endswith("smtp.EmailBackend") and not cau_hinh.get("OPTIONS", {}).get("username"):
         return get_connection("django.core.mail.backends.console.EmailBackend"), True
-    return get_connection(), False
+    return None, False
 
 
 @login_required
@@ -268,6 +271,7 @@ def cap_nhat(request, ma_pdi):
             hs.save()
             bb.trang_thai_claim = DA_XU_LY
             bb.save(update_fields=["trang_thai_claim"])
+            mo_khoa_xe_khi_dong_su_co(bb.xe)
             ten = dict(HoSoSuCo.HINH_THUC)[hs.hinh_thuc_khac_phuc]
             tien = f" - {hs.so_tien_boi_thuong:,.0f} đ" if hs.so_tien_boi_thuong is not None else ""
             _ghi_lich_su(request, bb, "Cập nhật kết quả xử lý, đóng sự cố", f"{ten}{tien}")

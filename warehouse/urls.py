@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import RedirectView
 from core.views import PlaceholderView
 from .views import (
     DanhSachPhieuXuatView,
@@ -20,6 +21,11 @@ from .views import (
 app_name = "warehouse"
 
 urlpatterns = [
+    # 0. Tên URL mà menu sidebar (core/context_processors.py) đang gọi - KHÔNG xóa
+    path("nhap/", PlaceholderView.as_view(title="Quản lý nhập kho"), name="nhap"),
+    path("xuat/", RedirectView.as_view(pattern_name="warehouse:ds_phieu_xuat"), name="xuat"),
+    path("ton-kho/", RedirectView.as_view(pattern_name="warehouse:ds_ton_kho"), name="ton_kho"),
+
     # 1. Quản lý Xuất kho
     path("xuat-kho/danh-sach/", DanhSachPhieuXuatView.as_view(), name="ds_phieu_xuat"),
     path("xuat-kho/<str:ma_pxk>/chi-tiet/", ChiTietPhieuXuatView.as_view(), name="chi_tiet_phieu_xuat"),
