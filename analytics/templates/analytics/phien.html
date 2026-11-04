@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'analytics/analytics.css' %}">{% endblock %}
+{% block content %}
+{% include "analytics/_messages.html" %}
+
+<div class="actions">
+  <a class="btn" href="{% url 'analytics:index' %}"><i class="bi bi-arrow-left"></i> Phiên dự báo</a>
+  <span class="badge {% if phien.trang_thai_de_xuat == 'Tự động' %}badge--auto{% else %}badge--manual{% endif %}">{{ phien.trang_thai_de_xuat }}</span>
+  <span class="spacer"></span>
+  <form method="get" class="inline">
+    <select name="nhom" class="inp" onchange="this.form.submit()">
+      <option value="">Tất cả phân khúc</option>
+      {% for n in ds_nhom %}<option value="{{ n }}" {% if n == nhom %}selected{% endif %}>{{ n }}</option>{% endfor %}
+    </select>
+  </form>
+  <button type="button" class="btn" id="btn-xuat"><i class="bi bi-download"></i> Xuất danh sách đề xuất</button>
+</div>
+
+{% if ds_canh_bao %}
+<details class="msg msg--warning"><summary>Có {{ ds_canh_bao|length }} cảnh báo về độ tin cậy dự báo</summary>
+  <ul>{% for c in ds_canh_bao %}<li>{{ c }}</li>{% endfor %}</ul></details>
+{% endif %}
+
+<form method="post" action="{% url 'analytics:dieu_chinh' phien.pk %}" id="form-dc">
+  {% csrf_token %}
+  <input type="hidden" name="nhom" value="{{ nhom }}">
+
+  <div class="stats">
+    <div class="card stat"><small>Tổng số lượng xe dự kiến đặt</small><strong id="tk-sl">{{ tk.tong_sl }}</strong></div>
+    <div class="card stat"><small>Tỷ lệ so với chỉ tiêu hãng</small><strong id="tk-tl">{% if tk.ty_le is not None %}{{ tk.ty_le }}% ({{ tk.tong_sl }}/{{ tk.tong_chi_tieu }}){% else %}chưa có chỉ tiêu{% endif %}</strong></div>
+    <div class="card stat"><small>Tổng giá trị vốn nhập dự kiến</small><strong id="tk-von">{{ tk.tong_von|floatformat:"0g" }} đ</strong></div>
+  </div>
+  <div id="canh-bao-vuot" class="msg msg--error" {% if not tk.vuot %}hidden{% endif %}>
+    Tổng số lượng xe vượt quá hạn mức phân bổ được giao [<span id="vuot-sl">{{ tk.tong_sl }}</span>/<span id="vuot-ct">{{ tk.tong_chi_tieu }}</span> xe].
+    <label class="block"><input type="checkbox" name="xac_nhan_ngoai_le" {% if canh_bao_vuot %}checked{% endif %}> Tôi xác nhận lý do ngoại lệ</label>
+    <input class="inp" name="ly_do_ngoai_le" placeholder="Lý do ngoại lệ (bắt buộc khi vượt hạn mức)" value="{{ ly_do_ngoai_le }}">
+  </div>
+
+  {% for ten_nhom, ds in cac_nhom.items %}
+  <div class="card">
+    <h3>{{ ten_nhom }} <small class="muted">({{ ds|length }} dòng xe)</small></h3>
+    <div class="scroll">
+    <table class="tbl tbl--sm">
+      <thead><tr><th>Mã dòng xe</th><th>Tên xe</th><th>Phiên bản</th><th>Dự báo SARIMA</th><th>Tồn kho khả dụng</th>
+        <th>HĐ chờ giao</th><th>Đang vận chuyển</th><th>Chỉ tiêu hãng</th><th>Đề xuất POQ</th><th>Số lượng nhập điều chỉnh</th><th>Lý do điều chỉnh</th></tr></thead>
+      <tbody>
+      {% for d in ds %}
+        <tr {% if d.ghi_chu %}class="flag"{% endif %}>
+          <td>{{ d.ma_dong_xe }}{% if d.ghi_chu %} <i class="bi bi-flag-fill" title="{{ d.ghi_chu }}"></i>{% endif %}</td>
+          <td>{{ d.ten_ngan }}</td><td>{{ d.phien_ban }}</td>
+          <td title="{{ d.phuong_phap }}">{{ d.du_bao_sarima }}</td>
+          <td>{{ d.ton_kho }}</td><td>{{ d.hop_dong_cho_giao }}</td><td>{{ d.dang_van_chuyen }}</td>
+          <td>{{ d.chi_tieu|default_if_none:"—" }}</td>
+          <td>{{ d.de_xuat_poq }}</td>
+          <td><input class="inp num" type="number" min="0" step="1" name="sl_{{ d.pk }}" value="{{ d.gia_tri_nhap }}" data-gia="{{ d.don_gia_von|stringformat:'s' }}"></td>
+          <td><input class="inp" name="ly_do_{{ d.pk }}" value="{{ d.ly_do_nhap }}" placeholder="Chính sách khuyến mãi, dự án lớn..."></td>
+        </tr>
+        {% if d.ghi_chu %}<tr class="flag-note"><td colspan="11"><i class="bi bi-flag-fill"></i> {{ d.ghi_chu }}</td></tr>{% endif %}
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  {% empty %}
+  <div class="card"><p class="none">Không có dòng xe nào trong phân khúc đã chọn.</p></div>
+  {% endfor %}
+
+  {% if cac_nhom %}
+  <div class="card">
+    <h3>So sánh nhu cầu dự báo với tháng trước</h3>
+    <p class="muted"><span class="dot dot--prev"></span> Bán tháng trước &nbsp; <span class="dot dot--fc"></span> Dự báo kỳ {{ phien.thang|stringformat:"02d" }}/{{ phien.nam }}</p>
+    {% for ten_nhom, ds in cac_nhom.items %}{% for d in ds %}
+      <div class="bar-row"><span class="bar-label">{{ d.ten_ngan }} {{ d.phien_ban }}</span>
+        <span class="bars"><span class="bar bar--prev" style="width: {{ d.rong_ky_truoc }}%">{{ d.ky_truoc }}</span>
+        <span class="bar bar--fc" style="width: {{ d.rong_du_bao }}%">{{ d.du_bao_sarima }}</span></span></div>
+    {% endfor %}{% endfor %}
+  </div>
+  <div class="actions"><button class="btn btn--primary" type="submit"><i class="bi bi-save"></i> Lưu điều chỉnh</button></div>
+  {% endif %}
+</form>
+
+<dialog id="dlg-xuat" class="dlg">
+  <form method="get" action="{% url 'analytics:xuat' phien.pk %}">
+    <h3>Xuất danh sách đề xuất</h3>
+    <fieldset><legend>Định dạng tệp</legend>
+      <label><input type="radio" name="dinh_dang" value="xlsx" checked> Excel (.xlsx)</label>
+      <label><input type="radio" name="dinh_dang" value="pdf"> PDF</label></fieldset>
+    <label class="block"><input type="checkbox" name="kem_bieu_do" value="1"> Kèm biểu đồ phân tích</label>
+    <label class="block">Ghi chú điều chỉnh<textarea class="inp" name="ghi_chu" rows="3"></textarea></label>
+    <div class="actions"><button class="btn btn--primary" type="submit">Xác nhận xuất</button>
+      <button class="btn" type="button" id="btn-xuat-dong">Hủy</button></div>
+  </form>
+</dialog>
+{% endblock %}
+{% block extra_js %}
+<script>
+  const dlg = document.getElementById('dlg-xuat');
+  document.getElementById('btn-xuat').onclick = () => dlg.showModal();
+  document.getElementById('btn-xuat-dong').onclick = () => dlg.close();
+  // Tính lại tổng ngay khi sửa số lượng (theo đúng thông số đang hiển thị: phần đang lọc + phần ẩn đã lưu)
+  const tongCT = {{ tong_chi_tieu_js }}, coCT = {{ co_chi_tieu_js|yesno:"true,false" }};
+  const goc = {{ tk.tong_sl }}; let tongGoc = 0, vonGoc = 0;
+  const inputs = [...document.querySelectorAll('input[name^="sl_"]')];
+  inputs.forEach(i => { tongGoc += +i.defaultValue; vonGoc += +i.defaultValue * +i.dataset.gia; });
+  const fmt = n => Math.round(n).toLocaleString('vi-VN');
+  function tinh() {
+    let sl = goc - tongGoc, von = {{ tk.tong_von|stringformat:"f" }} - vonGoc;
+    inputs.forEach(i => { const v = Math.max(0, parseInt(i.value || '0', 10) || 0); sl += v; von += v * +i.dataset.gia; });
+    document.getElementById('tk-sl').textContent = sl;
+    document.getElementById('tk-von').textContent = fmt(von) + ' đ';
+    document.getElementById('tk-tl').textContent = coCT && tongCT ? (Math.round(sl * 1000 / tongCT) / 10) + '% (' + sl + '/' + tongCT + ')' : 'chưa có chỉ tiêu';
+    document.getElementById('canh-bao-vuot').hidden = !(coCT && sl > tongCT);
+    document.getElementById('vuot-sl').textContent = sl; document.getElementById('vuot-ct').textContent = tongCT;
+  }
+  inputs.forEach(i => i.addEventListener('input', tinh));
+</script>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'incidents/incidents.css' %}">{% endblock %}
+{% block content %}
+{% include "incidents/_messages.html" %}
+<div class="actions">
+  <a class="btn" href="{% url 'incidents:index' %}"><i class="bi bi-arrow-left"></i> Danh sách</a>
+  <span class="spacer"></span>
+  {% if co_the_gui %}<a class="btn btn--primary" href="{% url 'incidents:gui_yeu_cau' bb.ma_pdi %}"><i class="bi bi-send"></i> Gửi yêu cầu xử lý cho ĐVVC</a>{% endif %}
+  {% if co_the_cap_nhat %}<a class="btn btn--primary" href="{% url 'incidents:cap_nhat' bb.ma_pdi %}"><i class="bi bi-check2-circle"></i> Cập nhật kết quả bồi thường / xử lý</a>{% endif %}
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h3>Thông tin sự cố</h3>
+    <dl class="kv">
+      <dt>Mã sự cố</dt><dd>{{ bb.ma_pdi }}</dd>
+      <dt>Trạng thái</dt><dd><span class="badge {% if nhan_tt == 'Đã đóng' %}badge--done{% else %}badge--open{% endif %}">{{ nhan_tt }}</span> <small class="muted">({{ bb.trang_thai_claim }})</small></dd>
+      <dt>Loại lỗi</dt><dd>{{ bb.loai_su_co }}</dd>
+      <dt>Nội dung sự cố</dt><dd>{{ bb.mo_ta_chi_tiet|default:"—" }}</dd>
+      <dt>Ngày ghi nhận</dt><dd>{{ bb.ngay_ghi_nhan|date:"d/m/Y H:i" }}</dd>
+      <dt>Nhân viên ghi nhận</dt><dd>{{ bb.nhan_vien.ten_nv }}</dd>
+      {% if ho_so.han_phan_hoi %}<dt>Hạn phản hồi</dt><dd>{{ ho_so.han_phan_hoi|date:"d/m/Y" }}</dd>{% endif %}
+    </dl>
+  </div>
+  <div class="card">
+    <h3>Xe và vận chuyển</h3>
+    <dl class="kv">
+      <dt>Số khung VIN</dt><dd>{{ xe.vin }}</dd>
+      <dt>Dòng xe</dt><dd>{{ xe.ten_xe }}</dd>
+      <dt>Màu sắc</dt><dd>{{ xe.mau_sac|default:"—" }}</dd>
+      <dt>Đơn hàng nhập</dt><dd>{{ hdn.ma_hdn }}</dd>
+      <dt>Tên ĐVVC</dt><dd>{{ hdn.don_vi_van_chuyen.ten_dvvc }}</dd>
+      <dt>Tên tài xế</dt><dd>{{ hdn.ten_tai_xe|default:"—" }}</dd>
+      <dt>Biển số xe chở</dt><dd>{{ hdn.bien_so_xe|default:"—" }}</dd>
+      <dt>Thời gian bàn giao</dt><dd>{{ hdn.ngay_nhap|date:"d/m/Y H:i" }}</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Ảnh chụp hư hại</h3>
+  {% if anh %}
+    <div class="thumbs">{% for a in anh %}<a href="{% url 'incidents:tep_anh' a.pk %}" target="_blank"><img src="{% url 'incidents:tep_anh' a.pk %}" alt="Ảnh sự cố {{ bb.ma_pdi }}"></a>{% endfor %}</div>
+  {% elif bb.hinh_anh_url %}
+    <p><a href="{{ bb.hinh_anh_url }}" target="_blank" rel="noopener">{{ bb.hinh_anh_url }}</a></p>
+  {% else %}<p class="muted">Chưa có hình ảnh.</p>{% endif %}
+</div>
+
+{% if ho_so.hinh_thuc_khac_phuc %}
+<div class="card">
+  <h3>Kết quả xử lý</h3>
+  <dl class="kv">
+    <dt>Hình thức khắc phục</dt><dd>{{ ho_so.get_hinh_thuc_khac_phuc_display }}</dd>
+    {% if ho_so.so_tien_boi_thuong is not None %}<dt>Số tiền bồi thường</dt><dd>{{ ho_so.so_tien_boi_thuong|floatformat:"0g" }} đ</dd>{% endif %}
+    <dt>Ngày xác nhận</dt><dd>{{ ho_so.ngay_xac_nhan|date:"d/m/Y" }}</dd>
+    {% if ho_so.bien_ban_thoa_thuan %}<dt>Biên bản thỏa thuận</dt><dd><a href="{% url 'incidents:tep_thoa_thuan' bb.ma_pdi %}">Tải về</a></dd>{% endif %}
+  </dl>
+</div>
+{% endif %}
+
+<div class="card">
+  <h3>Lịch sử phản hồi</h3>
+  <ul class="timeline">
+    {% for l in lich_su %}
+      <li><strong>{{ l.hanh_dong }}</strong> <small class="muted">{{ l.thoi_gian|date:"d/m/Y H:i" }}{% if l.nguoi_thuc_hien %} · {{ l.nguoi_thuc_hien }}{% endif %}</small>
+        {% if l.noi_dung %}<div>{{ l.noi_dung|linebreaksbr }}</div>{% endif %}</li>
+    {% empty %}<li class="muted">Chưa có lịch sử.</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

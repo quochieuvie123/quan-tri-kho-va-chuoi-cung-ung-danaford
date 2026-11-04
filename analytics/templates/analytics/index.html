@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'analytics/analytics.css' %}">{% endblock %}
+{% block content %}
+{% include "analytics/_messages.html" %}
+<form method="post" action="{% url 'analytics:phan_tich' %}" class="card">
+  {% csrf_token %}
+  <h3>Chọn kỳ kế hoạch nhập xe</h3>
+  <div class="row">
+    <label>Tháng
+      <select name="thang" class="inp">{% for t in thang_ds %}<option value="{{ t }}" {% if t == thang %}selected{% endif %}>Tháng {{ t }}</option>{% endfor %}</select>
+    </label>
+    <label>Năm <input class="inp" type="number" name="nam" value="{{ nam }}" min="2000" max="2100"></label>
+    <button class="btn btn--primary" type="submit"><i class="bi bi-graph-up-arrow"></i> Bắt đầu phân tích</button>
+  </div>
+  <p class="muted">Hệ thống thu thập lịch sử bán 24-36 tháng, tồn kho, hợp đồng chờ giao, xe đang vận chuyển và chỉ tiêu
+    của hãng, rồi dự báo (SARIMA mô phỏng) và tính số lượng đặt tối ưu (POQ). Chỉ tiêu hãng nhập ở Trang quản trị > Chỉ tiêu phân bổ của hãng.</p>
+</form>
+
+<div class="card">
+  <h3>Các phiên dự báo đã lưu</h3>
+  <table class="tbl">
+    <thead><tr><th>Kỳ</th><th>Tạo lúc</th><th>Người tạo</th><th>Trạng thái</th><th>Hết hạn</th><th></th></tr></thead>
+    <tbody>
+    {% for p in phien_da_luu %}
+      <tr>
+        <td>{{ p.thang|stringformat:"02d" }}/{{ p.nam }}</td>
+        <td>{{ p.tao_luc|date:"d/m/Y H:i" }}</td>
+        <td>{{ p.nguoi_tao|default:"—" }}</td>
+        <td>{{ p.trang_thai_de_xuat }}</td>
+        <td>{{ p.het_han_luc|date:"d/m/Y" }}</td>
+        <td><a href="{% url 'analytics:phien' p.pk %}">Xem danh sách nhu cầu</a></td>
+      </tr>
+    {% empty %}<tr><td colspan="6" class="none">Chưa có phiên dự báo nào. Hãy bắt đầu phân tích.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

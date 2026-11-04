@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'incidents/incidents.css' %}">{% endblock %}
+{% block content %}
+{% include "incidents/_messages.html" %}
+<form method="post" enctype="multipart/form-data" class="card form">
+  {% csrf_token %}
+  <p>Sự cố <strong>{{ bb.ma_pdi }}</strong> · xe {{ bb.xe_id }} · {{ bb.loai_su_co }}</p>
+  {% if form.non_field_errors %}<div class="msg msg--error">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+  {% for f in form %}
+    <div class="field">
+      <label for="{{ f.id_for_label }}">{{ f.label }}</label>
+      {{ f }}
+      {% for e in f.errors %}<small class="err">{{ e }}</small>{% endfor %}
+    </div>
+  {% endfor %}
+  <div class="actions">
+    <button class="btn btn--primary" type="submit">Xác nhận hoàn tất</button>
+    <a class="btn" href="{% url 'incidents:chi_tiet' bb.ma_pdi %}">Hủy</a>
+  </div>
+</form>
+{% endblock %}
