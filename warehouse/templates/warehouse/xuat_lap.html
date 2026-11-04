@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
+{% block content %}
+{% include "warehouse/_messages.html" %}
+<form method="get" class="card">
+  <h3>1. Chọn hợp đồng</h3>
+  <div class="actions">
+    <select name="ma_hd" class="inp" required>
+      <option value="">-- chọn hợp đồng --</option>
+      {% for h in ds_hop_dong %}<option value="{{ h.ma_hd }}" {% if h.ma_hd == ma_hd %}selected{% endif %}>{{ h.ma_hd }} - {{ h.khach_hang.ten_kh }} ({{ h.get_trang_thai_display }})</option>{% endfor %}
+    </select>
+    <select name="kho" class="inp">{% for k in ds_kho %}<option value="{{ k.ma_kho }}" {% if k.ma_kho == ma_kho %}selected{% endif %}>{{ k.ma_kho }} - {{ k.chi_nhanh.ten_cn }}</option>{% endfor %}</select>
+    <button class="btn btn--primary" type="submit">Kiểm tra hợp đồng và tìm xe</button>
+    <a class="btn" href="{% url 'warehouse:xuat' %}">Quay lại</a>
+  </div>
+</form>
+
+{% if ma_hd %}
+<form method="post" class="card form">
+  {% csrf_token %}
+  <input type="hidden" name="ma_hd" value="{{ ma_hd }}"><input type="hidden" name="kho" value="{{ ma_kho }}">
+  <h3>2. Đối chiếu hóa đơn</h3>
+  {% if doi_chieu.hop_le %}
+    <p><span class="badge badge--ok">Khớp</span> Hóa đơn {{ doi_chieu.ma_hdb }} · {{ doi_chieu.so_tien|floatformat:"0g" }} đ · khách {{ doi_chieu.khach_hang }}</p>
+  {% else %}
+    <p><span class="badge badge--bad">Chưa khớp</span> {{ doi_chieu.canh_bao }}</p>
+  {% endif %}
+  <h3>3. Chọn xe trong kho {{ ma_kho }}</h3>
+  {% for x in xe_kha_dung %}
+    <label class="radio-row"><input type="radio" name="vin" value="{{ x.vin }}" required> {{ x.vin }} · {{ x.ten_xe }} · {{ x.mau_sac|default:"—" }} · {{ x.so_may }}</label>
+  {% empty %}
+    <p class="muted">Không có xe khả dụng phù hợp (xe phải ở trạng thái Sẵn sàng, không có sự cố chưa đóng và chưa nằm trong phiếu chờ duyệt).</p>
+  {% endfor %}
+  {% if xe_kha_dung %}
+  <h3>4. Người nhận xe</h3>
+  <div class="field"><label>Người nhận xe</label><input class="inp" name="nguoi_nhan" required></div>
+  <div class="field"><label>Ghi chú</label><textarea class="inp" name="ghi_chu" rows="2"></textarea></div>
+  {% include "warehouse/_chon_nv.html" %}
+  <div class="actions"><button class="btn btn--primary" type="submit">Lập phiếu xuất kho</button></div>
+  {% endif %}
+</form>
+{% endif %}
+{% endblock %}

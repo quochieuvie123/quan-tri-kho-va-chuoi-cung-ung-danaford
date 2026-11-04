@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'analytics/analytics.css' %}">{% endblock %}
+{% block content %}
+{% include "analytics/_messages.html" %}
+<form method="post" action="{% url 'analytics:phan_tich' %}" class="card">
+  {% csrf_token %}
+  <input type="hidden" name="thang" value="{{ phien.thang }}"><input type="hidden" name="nam" value="{{ phien.nam }}">
+  <p>Kỳ {{ phien.thang|stringformat:"02d" }}/{{ phien.nam }}.</p>
+  <button class="btn btn--primary" type="submit">Khởi tạo lại dự báo</button>
+  <a class="btn" href="{% url 'analytics:index' %}">Quay lại</a>
+</form>
+{% endblock %}

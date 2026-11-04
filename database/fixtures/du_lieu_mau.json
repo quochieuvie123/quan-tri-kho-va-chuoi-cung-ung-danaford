@@ -1,272 +1,4313 @@
 [
-  {"model": "database.chinhanh", "pk": "CN01", "fields": {"ten_cn": "Dana Ford Đà Nẵng", "dia_chi_cn": "56 Điện Biên Phủ, Quận Thanh Khê, TP. Đà Nẵng"}},
-  {"model": "database.chinhanh", "pk": "CN02", "fields": {"ten_cn": "Dana Ford Bình Định", "dia_chi_cn": "73 Tây Sơn, Phường Ghềnh Ráng, TP. Quy Nhơn, Bình Định"}},
-  {"model": "database.chinhanh", "pk": "CN03", "fields": {"ten_cn": "Dana Ford Gia Lai", "dia_chi_cn": "284 Lê Duẩn, Phường Trà Bá, TP. Pleiku, Gia Lai"}},
-
-  {"model": "database.kho", "pk": "KHO01", "fields": {"chi_nhanh": "CN01"}},
-  {"model": "database.kho", "pk": "KHO02", "fields": {"chi_nhanh": "CN02"}},
-  {"model": "database.kho", "pk": "KHO03", "fields": {"chi_nhanh": "CN03"}},
-
-  {"model": "database.nhanvien", "pk": "NV01", "fields": {"chi_nhanh": "CN01", "ten_nv": "Nguyễn Văn Hải", "sdt_nv": "0905112233"}},
-  {"model": "database.nhanvien", "pk": "NV02", "fields": {"chi_nhanh": "CN01", "ten_nv": "Trần Thị Minh Thư", "sdt_nv": "0905223344"}},
-  {"model": "database.nhanvien", "pk": "NV03", "fields": {"chi_nhanh": "CN01", "ten_nv": "Lê Hoàng Nam", "sdt_nv": "0905334455"}},
-  {"model": "database.nhanvien", "pk": "NV04", "fields": {"chi_nhanh": "CN02", "ten_nv": "Phạm Quốc Khánh", "sdt_nv": "0914112233"}},
-  {"model": "database.nhanvien", "pk": "NV05", "fields": {"chi_nhanh": "CN02", "ten_nv": "Võ Thị Thanh Ngân", "sdt_nv": "0914223344"}},
-  {"model": "database.nhanvien", "pk": "NV06", "fields": {"chi_nhanh": "CN02", "ten_nv": "Đặng Minh Tuấn", "sdt_nv": "0914334455"}},
-  {"model": "database.nhanvien", "pk": "NV07", "fields": {"chi_nhanh": "CN03", "ten_nv": "Hoàng Gia Bảo", "sdt_nv": "0983112233"}},
-  {"model": "database.nhanvien", "pk": "NV08", "fields": {"chi_nhanh": "CN03", "ten_nv": "Bùi Thị Lan Anh", "sdt_nv": "0983223344"}},
-  {"model": "database.nhanvien", "pk": "NV09", "fields": {"chi_nhanh": "CN03", "ten_nv": "Đỗ Trọng Nghĩa", "sdt_nv": "0983334455"}},
-
-  {"model": "database.nhacungcap", "pk": "NCC01", "fields": {"ten_ncc": "Công ty TNHH Ford Việt Nam - Nhà máy Hải Dương", "dia_chi_ncc": "Phường Tứ Minh, TP. Hải Dương, Tỉnh Hải Dương", "mst": "0800100125"}},
-  {"model": "database.nhacungcap", "pk": "NCC02", "fields": {"ten_ncc": "Chi nhánh Công ty TNHH Ford Việt Nam tại TP.HCM", "dia_chi_ncc": "35 Tôn Đức Thắng, Quận 1, TP. Hồ Chí Minh", "mst": "0800100126"}},
-  {"model": "database.nhacungcap", "pk": "NCC03", "fields": {"ten_ncc": "Tổng kho Phân phối Xe Nhập khẩu Ford Miền Bắc", "dia_chi_ncc": "KCN Đình Vũ, Quận Hải An, TP. Hải Phòng", "mst": "0201548791"}},
-  {"model": "database.nhacungcap", "pk": "NCC04", "fields": {"ten_ncc": "Tổng kho Phân phối Xe Nhập khẩu Ford Miền Nam", "dia_chi_ncc": "KCN Hiệp Phước, Huyện Nhà Bè, TP. Hồ Chí Minh", "mst": "0312654987"}},
-
-  {"model": "database.donvivanchuyen", "pk": "DVVC01", "fields": {"ten_dvvc": "Công ty Cổ phần Vận tải Ô tô Bắc Nam", "sdt_dvvc": "0903445566", "dia_chi_dvvc": "120 Nguyễn Văn Linh, Quận Hải Châu, TP. Đà Nẵng"}},
-  {"model": "database.donvivanchuyen", "pk": "DVVC02", "fields": {"ten_dvvc": "Công ty TNHH Logistics Miền Trung", "sdt_dvvc": "0904556677", "dia_chi_dvvc": "KCN Hòa Khánh, Quận Liên Chiểu, TP. Đà Nẵng"}},
-  {"model": "database.donvivanchuyen", "pk": "DVVC03", "fields": {"ten_dvvc": "Công ty Cổ phần Giao nhận Vận tải Biển Đông", "sdt_dvvc": "0913667788", "dia_chi_dvvc": "45 Lê Đức Thọ, TP. Quy Nhơn, Bình Định"}},
-  {"model": "database.donvivanchuyen", "pk": "DVVC04", "fields": {"ten_dvvc": "Công ty TNHH Vận tải Chuyên dùng Tây Nguyên", "sdt_dvvc": "0989778899", "dia_chi_dvvc": "102 Trường Chinh, TP. Pleiku, Gia Lai"}},
-
-  {"model": "database.khachhang", "pk": "KH01", "fields": {"ten_kh": "Công ty Cổ phần Xây dựng Hòa Bình Miền Trung", "sdt_kh": "0905888101", "mst_kh": "0401882101"}},
-  {"model": "database.khachhang", "pk": "KH02", "fields": {"ten_kh": "Công ty TNHH Du lịch và Lữ hành Ánh Dương", "sdt_kh": "0905888102", "mst_kh": "0401882102"}},
-  {"model": "database.khachhang", "pk": "KH03", "fields": {"ten_kh": "Nguyễn Thành Long", "sdt_kh": "0905888103", "mst_kh": null}},
-  {"model": "database.khachhang", "pk": "KH04", "fields": {"ten_kh": "Trần Ngọc Bích", "sdt_kh": "0905888104", "mst_kh": null}},
-  {"model": "database.khachhang", "pk": "KH05", "fields": {"ten_kh": "Lê Văn Hùng", "sdt_kh": "0905888105", "mst_kh": null}},
-  {"model": "database.khachhang", "pk": "KH06", "fields": {"ten_kh": "Phạm Thị Thu Hà", "sdt_kh": "0905888106", "mst_kh": null}},
-  {"model": "database.khachhang", "pk": "KH07", "fields": {"ten_kh": "Công ty TNHH Khai thác Khoáng sản An Phát", "sdt_kh": "0914888107", "mst_kh": "4101556107"}},
-  {"model": "database.khachhang", "pk": "KH08", "fields": {"ten_kh": "Võ Minh Quang", "sdt_kh": "0914888108", "mst_kh": null}},
-  {"model": "database.khachhang", "pk": "KH09", "fields": {"ten_kh": "Đặng Thị Hồng Nhung", "sdt_kh": "0914888109", "mst_kh": null}},
-  {"model": "database.khachhang", "pk": "KH10", "fields": {"ten_kh": "Hồ Quốc Việt", "sdt_kh": "0914888110", "mst_kh": null}},
-  {"model": "database.khachhang", "pk": "KH11", "fields": {"ten_kh": "Công ty Cổ phần Nông nghiệp Công nghệ cao Cao Nguyên", "sdt_kh": "0983888111", "mst_kh": "5901123111"}},
-  {"model": "database.khachhang", "pk": "KH12", "fields": {"ten_kh": "Công ty TNHH Vận tải Hành khách Phố Núi", "sdt_kh": "0983888112", "mst_kh": "5901123112"}},
-  {"model": "database.khachhang", "pk": "KH13", "fields": {"ten_kh": "Phan Thanh Tùng", "sdt_kh": "0983888113", "mst_kh": null}},
-  {"model": "database.khachhang", "pk": "KH14", "fields": {"ten_kh": "Ngô Thị Mỹ Linh", "sdt_kh": "0983888114", "mst_kh": null}},
-  {"model": "database.khachhang", "pk": "KH15", "fields": {"ten_kh": "Lý Hoàng Phúc", "sdt_kh": "0983888115", "mst_kh": null}},
-
-  {"model": "database.xe", "pk": "RL2FMA001TZ000001", "fields": {"ten_xe": "Ford Ranger XLS 2.0L 4x2 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0001", "mau_sac": "Trắng", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000002", "fields": {"ten_xe": "Ford Ranger XLS 2.0L 4x2 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0002", "mau_sac": "Đen", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000003", "fields": {"ten_xe": "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0003", "mau_sac": "Vàng Luxe", "nam_sx": 2026, "hop_so": "Tự động 10 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000004", "fields": {"ten_xe": "Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT", "loai_xe": "SUV 7 chỗ", "so_may": "FM2026ENG0004", "mau_sac": "Trắng Tuyết", "nam_sx": 2026, "hop_so": "Tự động 10 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000005", "fields": {"ten_xe": "Ford Territory Titanium X 1.5L EcoBoost", "loai_xe": "CUV 5 chỗ", "so_may": "FM2026ENG0005", "mau_sac": "Đỏ Ngọc Ruby", "nam_sx": 2026, "hop_so": "Tự động 7 cấp", "nhien_lieu": "Xăng", "dung_tich": 1490}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000006", "fields": {"ten_xe": "Ford Transit Trend 16 chỗ 2.3L", "loai_xe": "Thương mại 16 chỗ", "so_may": "FM2026ENG0006", "mau_sac": "Bạc", "nam_sx": 2026, "hop_so": "Số sàn 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 2296}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000007", "fields": {"ten_xe": "Ford Ranger Raptor 2.0L Bi-Turbo 4x4 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0007", "mau_sac": "Cam", "nam_sx": 2026, "hop_so": "Tự động 10 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000008", "fields": {"ten_xe": "Ford Everest Sport 2.0L 4x2 AT", "loai_xe": "SUV 7 chỗ", "so_may": "FM2026ENG0008", "mau_sac": "Đen", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000009", "fields": {"ten_xe": "Ford Territory Trend 1.5L EcoBoost", "loai_xe": "CUV 5 chỗ", "so_may": "FM2026ENG0009", "mau_sac": "Trắng", "nam_sx": 2026, "hop_so": "Tự động 7 cấp", "nhien_lieu": "Xăng", "dung_tich": 1490}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000010", "fields": {"ten_xe": "Ford Explorer Limited 2.3L EcoBoost", "loai_xe": "SUV 7 chỗ", "so_may": "FM2026ENG0010", "mau_sac": "Đen", "nam_sx": 2026, "hop_so": "Tự động 10 cấp", "nhien_lieu": "Xăng", "dung_tich": 2261}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000011", "fields": {"ten_xe": "Ford Ranger XLS 2.0L 4x4 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0011", "mau_sac": "Xám", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000012", "fields": {"ten_xe": "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0012", "mau_sac": "Trắng", "nam_sx": 2026, "hop_so": "Tự động 10 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000013", "fields": {"ten_xe": "Ford Everest Ambiente 2.0L 4x2 AT", "loai_xe": "SUV 7 chỗ", "so_may": "FM2026ENG0013", "mau_sac": "Bạc", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000014", "fields": {"ten_xe": "Ford Everest Titanium 2.0L 4x2 AT", "loai_xe": "SUV 7 chỗ", "so_may": "FM2026ENG0014", "mau_sac": "Nâu", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000015", "fields": {"ten_xe": "Ford Territory Titanium 1.5L EcoBoost", "loai_xe": "CUV 5 chỗ", "so_may": "FM2026ENG0015", "mau_sac": "Xanh", "nam_sx": 2026, "hop_so": "Tự động 7 cấp", "nhien_lieu": "Xăng", "dung_tich": 1490}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000016", "fields": {"ten_xe": "Ford Transit Limousine 10 chỗ 2.3L", "loai_xe": "Thương mại 10 chỗ", "so_may": "FM2026ENG0016", "mau_sac": "Đen", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 2296}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000017", "fields": {"ten_xe": "Ford Ranger Sport 2.0L 4x4 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0017", "mau_sac": "Đỏ Cam", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000018", "fields": {"ten_xe": "Ford Everest Platinum 3.0L V6 4x4 AT", "loai_xe": "SUV 7 chỗ", "so_may": "FM2026ENG0018", "mau_sac": "Nâu Đồng", "nam_sx": 2026, "hop_so": "Tự động 10 cấp", "nhien_lieu": "Dầu", "dung_tich": 2993}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000019", "fields": {"ten_xe": "Ford Territory Titanium X 1.5L EcoBoost", "loai_xe": "CUV 5 chỗ", "so_may": "FM2026ENG0019", "mau_sac": "Đen", "nam_sx": 2026, "hop_so": "Tự động 7 cấp", "nhien_lieu": "Xăng", "dung_tich": 1490}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000020", "fields": {"ten_xe": "Ford Ranger XLS 2.0L 4x2 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0020", "mau_sac": "Bạc", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000021", "fields": {"ten_xe": "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0021", "mau_sac": "Vàng Luxe", "nam_sx": 2026, "hop_so": "Tự động 10 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000022", "fields": {"ten_xe": "Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT", "loai_xe": "SUV 7 chỗ", "so_may": "FM2026ENG0022", "mau_sac": "Đen", "nam_sx": 2026, "hop_so": "Tự động 10 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000023", "fields": {"ten_xe": "Ford Territory Titanium 1.5L EcoBoost", "loai_xe": "CUV 5 chỗ", "so_may": "FM2026ENG0023", "mau_sac": "Trắng", "nam_sx": 2026, "hop_so": "Tự động 7 cấp", "nhien_lieu": "Xăng", "dung_tich": 1490}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000024", "fields": {"ten_xe": "Ford Ranger XLS 2.0L 4x2 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0024", "mau_sac": "Trắng", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000025", "fields": {"ten_xe": "Ford Transit Trend 16 chỗ 2.3L", "loai_xe": "Thương mại 16 chỗ", "so_may": "FM2026ENG0025", "mau_sac": "Trắng", "nam_sx": 2026, "hop_so": "Số sàn 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 2296}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000026", "fields": {"ten_xe": "Ford Ranger Raptor 2.0L Bi-Turbo 4x4 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0026", "mau_sac": "Xám", "nam_sx": 2026, "hop_so": "Tự động 10 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000027", "fields": {"ten_xe": "Ford Everest Sport 2.0L 4x2 AT", "loai_xe": "SUV 7 chỗ", "so_may": "FM2026ENG0027", "mau_sac": "Xanh", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000028", "fields": {"ten_xe": "Ford Territory Trend 1.5L EcoBoost", "loai_xe": "CUV 5 chỗ", "so_may": "FM2026ENG0028", "mau_sac": "Bạc", "nam_sx": 2026, "hop_so": "Tự động 7 cấp", "nhien_lieu": "Xăng", "dung_tich": 1490}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000029", "fields": {"ten_xe": "Ford Explorer Limited 2.3L EcoBoost", "loai_xe": "SUV 7 chỗ", "so_may": "FM2026ENG0029", "mau_sac": "Trắng Tuyết", "nam_sx": 2026, "hop_so": "Tự động 10 cấp", "nhien_lieu": "Xăng", "dung_tich": 2261}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000030", "fields": {"ten_xe": "Ford Ranger Sport 2.0L 4x4 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0030", "mau_sac": "Đen", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000031", "fields": {"ten_xe": "Ford Ranger XLS 2.0L 4x4 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0031", "mau_sac": "Nâu", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000032", "fields": {"ten_xe": "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0032", "mau_sac": "Xám", "nam_sx": 2026, "hop_so": "Tự động 10 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000033", "fields": {"ten_xe": "Ford Transit Trend 16 chỗ 2.3L", "loai_xe": "Thương mại 16 chỗ", "so_may": "FM2026ENG0033", "mau_sac": "Bạc", "nam_sx": 2026, "hop_so": "Số sàn 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 2296}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000034", "fields": {"ten_xe": "Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT", "loai_xe": "SUV 7 chỗ", "so_may": "FM2026ENG0034", "mau_sac": "Trắng Tuyết", "nam_sx": 2026, "hop_so": "Tự động 10 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000035", "fields": {"ten_xe": "Ford Territory Titanium X 1.5L EcoBoost", "loai_xe": "CUV 5 chỗ", "so_may": "FM2026ENG0035", "mau_sac": "Trắng", "nam_sx": 2026, "hop_so": "Tự động 7 cấp", "nhien_lieu": "Xăng", "dung_tich": 1490}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000036", "fields": {"ten_xe": "Ford Ranger Raptor 2.0L Bi-Turbo 4x4 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0036", "mau_sac": "Đen", "nam_sx": 2026, "hop_so": "Tự động 10 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000037", "fields": {"ten_xe": "Ford Everest Ambiente 2.0L 4x2 AT", "loai_xe": "SUV 7 chỗ", "so_may": "FM2026ENG0037", "mau_sac": "Đen", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000038", "fields": {"ten_xe": "Ford Ranger XLS 2.0L 4x2 AT", "loai_xe": "Bán tải", "so_may": "FM2026ENG0038", "mau_sac": "Xanh", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000039", "fields": {"ten_xe": "Ford Territory Titanium 1.5L EcoBoost", "loai_xe": "CUV 5 chỗ", "so_may": "FM2026ENG0039", "mau_sac": "Đỏ Ngọc Ruby", "nam_sx": 2026, "hop_so": "Tự động 7 cấp", "nhien_lieu": "Xăng", "dung_tich": 1490}},
-  {"model": "database.xe", "pk": "RL2FMA001TZ000040", "fields": {"ten_xe": "Ford Everest Titanium 2.0L 4x2 AT", "loai_xe": "SUV 7 chỗ", "so_may": "FM2026ENG0040", "mau_sac": "Trắng Tuyết", "nam_sx": 2026, "hop_so": "Tự động 6 cấp", "nhien_lieu": "Dầu", "dung_tich": 1996}},
-
-  {"model": "database.hoadonnhap", "pk": "HDN01", "fields": {"nha_cung_cap": "NCC01", "chi_nhanh": "CN01", "don_vi_van_chuyen": "DVVC01", "ngay_nhap": "2026-07-05T08:30:00+07:00", "so_hoa_don": "0001201", "ky_hieu": "1C26TFV", "bien_so_xe": "43C-125.68", "ten_tai_xe": "Phạm Văn Đồng"}},
-  {"model": "database.hoadonnhap", "pk": "HDN02", "fields": {"nha_cung_cap": "NCC03", "chi_nhanh": "CN01", "don_vi_van_chuyen": "DVVC02", "ngay_nhap": "2026-07-20T09:15:00+07:00", "so_hoa_don": "0001245", "ky_hieu": "1C26TFV", "bien_so_xe": "43H-045.12", "ten_tai_xe": "Lê Quốc Tuấn"}},
-  {"model": "database.hoadonnhap", "pk": "HDN03", "fields": {"nha_cung_cap": "NCC01", "chi_nhanh": "CN01", "don_vi_van_chuyen": "DVVC01", "ngay_nhap": "2026-08-15T10:00:00+07:00", "so_hoa_don": "0001310", "ky_hieu": "1C26TFV", "bien_so_xe": "43C-125.68", "ten_tai_xe": "Phạm Văn Đồng"}},
-  {"model": "database.hoadonnhap", "pk": "HDN04", "fields": {"nha_cung_cap": "NCC02", "chi_nhanh": "CN01", "don_vi_van_chuyen": "DVVC02", "ngay_nhap": "2026-09-10T14:20:00+07:00", "so_hoa_don": "0001402", "ky_hieu": "1C26TFV", "bien_so_xe": "43H-089.34", "ten_tai_xe": "Trần Đình Trọng"}},
-  {"model": "database.hoadonnhap", "pk": "HDN05", "fields": {"nha_cung_cap": "NCC02", "chi_nhanh": "CN02", "don_vi_van_chuyen": "DVVC03", "ngay_nhap": "2026-07-12T08:45:00+07:00", "so_hoa_don": "0001218", "ky_hieu": "1C26TFV", "bien_so_xe": "77C-098.76", "ten_tai_xe": "Nguyễn Văn Bình"}},
-  {"model": "database.hoadonnhap", "pk": "HDN06", "fields": {"nha_cung_cap": "NCC04", "chi_nhanh": "CN02", "don_vi_van_chuyen": "DVVC03", "ngay_nhap": "2026-08-22T15:10:00+07:00", "so_hoa_don": "0001355", "ky_hieu": "1C26TFV", "bien_so_xe": "77H-012.45", "ten_tai_xe": "Võ Thanh Tùng"}},
-  {"model": "database.hoadonnhap", "pk": "HDN07", "fields": {"nha_cung_cap": "NCC01", "chi_nhanh": "CN03", "don_vi_van_chuyen": "DVVC04", "ngay_nhap": "2026-07-18T09:30:00+07:00", "so_hoa_don": "0001230", "ky_hieu": "1C26TFV", "bien_so_xe": "81C-056.89", "ten_tai_xe": "Đinh Văn Kiên"}},
-  {"model": "database.hoadonnhap", "pk": "HDN08", "fields": {"nha_cung_cap": "NCC04", "chi_nhanh": "CN03", "don_vi_van_chuyen": "DVVC04", "ngay_nhap": "2026-09-05T13:45:00+07:00", "so_hoa_don": "0001389", "ky_hieu": "1C26TFV", "bien_so_xe": "81H-034.21", "ten_tai_xe": "Hoàng Minh Đức"}},
-
-  {"model": "database.chitietnhap", "pk": 1, "fields": {"hoa_don_nhap": "HDN01", "xe": "RL2FMA001TZ000001", "so_luong_nhap": 1, "don_gia": "600000000.00", "thanh_tien": "600000000.00"}},
-  {"model": "database.chitietnhap", "pk": 2, "fields": {"hoa_don_nhap": "HDN01", "xe": "RL2FMA001TZ000002", "so_luong_nhap": 1, "don_gia": "600000000.00", "thanh_tien": "600000000.00"}},
-  {"model": "database.chitietnhap", "pk": 3, "fields": {"hoa_don_nhap": "HDN01", "xe": "RL2FMA001TZ000003", "so_luong_nhap": 1, "don_gia": "860000000.00", "thanh_tien": "860000000.00"}},
-  {"model": "database.chitietnhap", "pk": 4, "fields": {"hoa_don_nhap": "HDN01", "xe": "RL2FMA001TZ000004", "so_luong_nhap": 1, "don_gia": "1320000000.00", "thanh_tien": "1320000000.00"}},
-  {"model": "database.chitietnhap", "pk": 5, "fields": {"hoa_don_nhap": "HDN01", "xe": "RL2FMA001TZ000005", "so_luong_nhap": 1, "don_gia": "820000000.00", "thanh_tien": "820000000.00"}},
-  {"model": "database.chitietnhap", "pk": 6, "fields": {"hoa_don_nhap": "HDN02", "xe": "RL2FMA001TZ000006", "so_luong_nhap": 1, "don_gia": "800000000.00", "thanh_tien": "800000000.00"}},
-  {"model": "database.chitietnhap", "pk": 7, "fields": {"hoa_don_nhap": "HDN02", "xe": "RL2FMA001TZ000007", "so_luong_nhap": 1, "don_gia": "1160000000.00", "thanh_tien": "1160000000.00"}},
-  {"model": "database.chitietnhap", "pk": 8, "fields": {"hoa_don_nhap": "HDN02", "xe": "RL2FMA001TZ000008", "so_luong_nhap": 1, "don_gia": "1050000000.00", "thanh_tien": "1050000000.00"}},
-  {"model": "database.chitietnhap", "pk": 9, "fields": {"hoa_don_nhap": "HDN02", "xe": "RL2FMA001TZ000009", "so_luong_nhap": 1, "don_gia": "720000000.00", "thanh_tien": "720000000.00"}},
-  {"model": "database.chitietnhap", "pk": 10, "fields": {"hoa_don_nhap": "HDN02", "xe": "RL2FMA001TZ000010", "so_luong_nhap": 1, "don_gia": "1820000000.00", "thanh_tien": "1820000000.00"}},
-  {"model": "database.chitietnhap", "pk": 11, "fields": {"hoa_don_nhap": "HDN03", "xe": "RL2FMA001TZ000011", "so_luong_nhap": 1, "don_gia": "660000000.00", "thanh_tien": "660000000.00"}},
-  {"model": "database.chitietnhap", "pk": 12, "fields": {"hoa_don_nhap": "HDN03", "xe": "RL2FMA001TZ000012", "so_luong_nhap": 1, "don_gia": "860000000.00", "thanh_tien": "860000000.00"}},
-  {"model": "database.chitietnhap", "pk": 13, "fields": {"hoa_don_nhap": "HDN03", "xe": "RL2FMA001TZ000013", "so_luong_nhap": 1, "don_gia": "980000000.00", "thanh_tien": "980000000.00"}},
-  {"model": "database.chitietnhap", "pk": 14, "fields": {"hoa_don_nhap": "HDN03", "xe": "RL2FMA001TZ000014", "so_luong_nhap": 1, "don_gia": "1150000000.00", "thanh_tien": "1150000000.00"}},
-  {"model": "database.chitietnhap", "pk": 15, "fields": {"hoa_don_nhap": "HDN03", "xe": "RL2FMA001TZ000015", "so_luong_nhap": 1, "don_gia": "780000000.00", "thanh_tien": "780000000.00"}},
-  {"model": "database.chitietnhap", "pk": 16, "fields": {"hoa_don_nhap": "HDN04", "xe": "RL2FMA001TZ000016", "so_luong_nhap": 1, "don_gia": "1180000000.00", "thanh_tien": "1180000000.00"}},
-  {"model": "database.chitietnhap", "pk": 17, "fields": {"hoa_don_nhap": "HDN04", "xe": "RL2FMA001TZ000017", "so_luong_nhap": 1, "don_gia": "760000000.00", "thanh_tien": "760000000.00"}},
-  {"model": "database.chitietnhap", "pk": 18, "fields": {"hoa_don_nhap": "HDN04", "xe": "RL2FMA001TZ000018", "so_luong_nhap": 1, "don_gia": "1420000000.00", "thanh_tien": "1420000000.00"}},
-  {"model": "database.chitietnhap", "pk": 19, "fields": {"hoa_don_nhap": "HDN04", "xe": "RL2FMA001TZ000019", "so_luong_nhap": 1, "don_gia": "820000000.00", "thanh_tien": "820000000.00"}},
-  {"model": "database.chitietnhap", "pk": 20, "fields": {"hoa_don_nhap": "HDN04", "xe": "RL2FMA001TZ000020", "so_luong_nhap": 1, "don_gia": "600000000.00", "thanh_tien": "600000000.00"}},
-  {"model": "database.chitietnhap", "pk": 21, "fields": {"hoa_don_nhap": "HDN05", "xe": "RL2FMA001TZ000021", "so_luong_nhap": 1, "don_gia": "860000000.00", "thanh_tien": "860000000.00"}},
-  {"model": "database.chitietnhap", "pk": 22, "fields": {"hoa_don_nhap": "HDN05", "xe": "RL2FMA001TZ000022", "so_luong_nhap": 1, "don_gia": "1320000000.00", "thanh_tien": "1320000000.00"}},
-  {"model": "database.chitietnhap", "pk": 23, "fields": {"hoa_don_nhap": "HDN05", "xe": "RL2FMA001TZ000023", "so_luong_nhap": 1, "don_gia": "780000000.00", "thanh_tien": "780000000.00"}},
-  {"model": "database.chitietnhap", "pk": 24, "fields": {"hoa_don_nhap": "HDN05", "xe": "RL2FMA001TZ000024", "so_luong_nhap": 1, "don_gia": "600000000.00", "thanh_tien": "600000000.00"}},
-  {"model": "database.chitietnhap", "pk": 25, "fields": {"hoa_don_nhap": "HDN05", "xe": "RL2FMA001TZ000025", "so_luong_nhap": 1, "don_gia": "800000000.00", "thanh_tien": "800000000.00"}},
-  {"model": "database.chitietnhap", "pk": 26, "fields": {"hoa_don_nhap": "HDN06", "xe": "RL2FMA001TZ000026", "so_luong_nhap": 1, "don_gia": "1160000000.00", "thanh_tien": "1160000000.00"}},
-  {"model": "database.chitietnhap", "pk": 27, "fields": {"hoa_don_nhap": "HDN06", "xe": "RL2FMA001TZ000027", "so_luong_nhap": 1, "don_gia": "1050000000.00", "thanh_tien": "1050000000.00"}},
-  {"model": "database.chitietnhap", "pk": 28, "fields": {"hoa_don_nhap": "HDN06", "xe": "RL2FMA001TZ000028", "so_luong_nhap": 1, "don_gia": "720000000.00", "thanh_tien": "720000000.00"}},
-  {"model": "database.chitietnhap", "pk": 29, "fields": {"hoa_don_nhap": "HDN06", "xe": "RL2FMA001TZ000029", "so_luong_nhap": 1, "don_gia": "1820000000.00", "thanh_tien": "1820000000.00"}},
-  {"model": "database.chitietnhap", "pk": 30, "fields": {"hoa_don_nhap": "HDN06", "xe": "RL2FMA001TZ000030", "so_luong_nhap": 1, "don_gia": "760000000.00", "thanh_tien": "760000000.00"}},
-  {"model": "database.chitietnhap", "pk": 31, "fields": {"hoa_don_nhap": "HDN07", "xe": "RL2FMA001TZ000031", "so_luong_nhap": 1, "don_gia": "660000000.00", "thanh_tien": "660000000.00"}},
-  {"model": "database.chitietnhap", "pk": 32, "fields": {"hoa_don_nhap": "HDN07", "xe": "RL2FMA001TZ000032", "so_luong_nhap": 1, "don_gia": "860000000.00", "thanh_tien": "860000000.00"}},
-  {"model": "database.chitietnhap", "pk": 33, "fields": {"hoa_don_nhap": "HDN07", "xe": "RL2FMA001TZ000033", "so_luong_nhap": 1, "don_gia": "800000000.00", "thanh_tien": "800000000.00"}},
-  {"model": "database.chitietnhap", "pk": 34, "fields": {"hoa_don_nhap": "HDN07", "xe": "RL2FMA001TZ000034", "so_luong_nhap": 1, "don_gia": "1320000000.00", "thanh_tien": "1320000000.00"}},
-  {"model": "database.chitietnhap", "pk": 35, "fields": {"hoa_don_nhap": "HDN07", "xe": "RL2FMA001TZ000035", "so_luong_nhap": 1, "don_gia": "820000000.00", "thanh_tien": "820000000.00"}},
-  {"model": "database.chitietnhap", "pk": 36, "fields": {"hoa_don_nhap": "HDN08", "xe": "RL2FMA001TZ000036", "so_luong_nhap": 1, "don_gia": "1160000000.00", "thanh_tien": "1160000000.00"}},
-  {"model": "database.chitietnhap", "pk": 37, "fields": {"hoa_don_nhap": "HDN08", "xe": "RL2FMA001TZ000037", "so_luong_nhap": 1, "don_gia": "980000000.00", "thanh_tien": "980000000.00"}},
-  {"model": "database.chitietnhap", "pk": 38, "fields": {"hoa_don_nhap": "HDN08", "xe": "RL2FMA001TZ000038", "so_luong_nhap": 1, "don_gia": "600000000.00", "thanh_tien": "600000000.00"}},
-  {"model": "database.chitietnhap", "pk": 39, "fields": {"hoa_don_nhap": "HDN08", "xe": "RL2FMA001TZ000039", "so_luong_nhap": 1, "don_gia": "780000000.00", "thanh_tien": "780000000.00"}},
-  {"model": "database.chitietnhap", "pk": 40, "fields": {"hoa_don_nhap": "HDN08", "xe": "RL2FMA001TZ000040", "so_luong_nhap": 1, "don_gia": "1150000000.00", "thanh_tien": "1150000000.00"}},
-
-  {"model": "database.tonkho", "pk": 1, "fields": {"kho": "KHO01", "xe": "RL2FMA001TZ000007", "ngay_vao_kho": "2026-07-20", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 2, "fields": {"kho": "KHO01", "xe": "RL2FMA001TZ000008", "ngay_vao_kho": "2026-07-20", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 3, "fields": {"kho": "KHO01", "xe": "RL2FMA001TZ000009", "ngay_vao_kho": "2026-07-20", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 4, "fields": {"kho": "KHO01", "xe": "RL2FMA001TZ000010", "ngay_vao_kho": "2026-07-20", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 5, "fields": {"kho": "KHO01", "xe": "RL2FMA001TZ000011", "ngay_vao_kho": "2026-08-15", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 6, "fields": {"kho": "KHO01", "xe": "RL2FMA001TZ000012", "ngay_vao_kho": "2026-08-15", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 7, "fields": {"kho": "KHO01", "xe": "RL2FMA001TZ000013", "ngay_vao_kho": "2026-08-15", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 8, "fields": {"kho": "KHO01", "xe": "RL2FMA001TZ000014", "ngay_vao_kho": "2026-08-15", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 9, "fields": {"kho": "KHO01", "xe": "RL2FMA001TZ000015", "ngay_vao_kho": "2026-08-15", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 10, "fields": {"kho": "KHO01", "xe": "RL2FMA001TZ000016", "ngay_vao_kho": "2026-09-10", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 11, "fields": {"kho": "KHO01", "xe": "RL2FMA001TZ000017", "ngay_vao_kho": "2026-09-10", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 12, "fields": {"kho": "KHO01", "xe": "RL2FMA001TZ000018", "ngay_vao_kho": "2026-09-10", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 13, "fields": {"kho": "KHO02", "xe": "RL2FMA001TZ000024", "ngay_vao_kho": "2026-07-12", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 14, "fields": {"kho": "KHO02", "xe": "RL2FMA001TZ000025", "ngay_vao_kho": "2026-07-12", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 15, "fields": {"kho": "KHO02", "xe": "RL2FMA001TZ000026", "ngay_vao_kho": "2026-08-22", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 16, "fields": {"kho": "KHO02", "xe": "RL2FMA001TZ000027", "ngay_vao_kho": "2026-08-22", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 17, "fields": {"kho": "KHO02", "xe": "RL2FMA001TZ000028", "ngay_vao_kho": "2026-08-22", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 18, "fields": {"kho": "KHO02", "xe": "RL2FMA001TZ000029", "ngay_vao_kho": "2026-08-22", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 19, "fields": {"kho": "KHO03", "xe": "RL2FMA001TZ000034", "ngay_vao_kho": "2026-07-18", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 20, "fields": {"kho": "KHO03", "xe": "RL2FMA001TZ000035", "ngay_vao_kho": "2026-07-18", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 21, "fields": {"kho": "KHO03", "xe": "RL2FMA001TZ000036", "ngay_vao_kho": "2026-09-05", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 22, "fields": {"kho": "KHO03", "xe": "RL2FMA001TZ000037", "ngay_vao_kho": "2026-09-05", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 23, "fields": {"kho": "KHO03", "xe": "RL2FMA001TZ000038", "ngay_vao_kho": "2026-09-05", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 24, "fields": {"kho": "KHO03", "xe": "RL2FMA001TZ000039", "ngay_vao_kho": "2026-09-05", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 25, "fields": {"kho": "KHO01", "xe": "RL2FMA001TZ000019", "ngay_vao_kho": "2026-09-10", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 26, "fields": {"kho": "KHO01", "xe": "RL2FMA001TZ000020", "ngay_vao_kho": "2026-09-10", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 27, "fields": {"kho": "KHO02", "xe": "RL2FMA001TZ000030", "ngay_vao_kho": "2026-08-22", "so_luong_ton": 1}},
-  {"model": "database.tonkho", "pk": 28, "fields": {"kho": "KHO03", "xe": "RL2FMA001TZ000040", "ngay_vao_kho": "2026-09-05", "so_luong_ton": 1}},
-
-  {"model": "database.hopdong", "pk": "HD01", "fields": {"chi_nhanh": "CN01", "khach_hang": "KH01", "ngay_ky": "2026-07-10T09:00:00+07:00", "so_tien_coc": "100000000.00"}},
-  {"model": "database.hopdong", "pk": "HD03", "fields": {"chi_nhanh": "CN01", "khach_hang": "KH03", "ngay_ky": "2026-07-14T10:00:00+07:00", "so_tien_coc": "80000000.00"}},
-  {"model": "database.hopdong", "pk": "HD04", "fields": {"chi_nhanh": "CN01", "khach_hang": "KH04", "ngay_ky": "2026-07-21T14:00:00+07:00", "so_tien_coc": "100000000.00"}},
-  {"model": "database.hopdong", "pk": "HD05", "fields": {"chi_nhanh": "CN01", "khach_hang": "KH05", "ngay_ky": "2026-07-29T15:00:00+07:00", "so_tien_coc": "50000000.00"}},
-  {"model": "database.hopdong", "pk": "HD06", "fields": {"chi_nhanh": "CN01", "khach_hang": "KH02", "ngay_ky": "2026-08-06T08:30:00+07:00", "so_tien_coc": "70000000.00"}},
-  {"model": "database.hopdong", "pk": "HD07", "fields": {"chi_nhanh": "CN02", "khach_hang": "KH07", "ngay_ky": "2026-07-18T09:15:00+07:00", "so_tien_coc": "80000000.00"}},
-  {"model": "database.hopdong", "pk": "HD08", "fields": {"chi_nhanh": "CN02", "khach_hang": "KH08", "ngay_ky": "2026-07-24T11:00:00+07:00", "so_tien_coc": "100000000.00"}},
-  {"model": "database.hopdong", "pk": "HD09", "fields": {"chi_nhanh": "CN03", "khach_hang": "KH11", "ngay_ky": "2026-07-25T10:30:00+07:00", "so_tien_coc": "50000000.00"}},
-  {"model": "database.hopdong", "pk": "HD10", "fields": {"chi_nhanh": "CN03", "khach_hang": "KH12", "ngay_ky": "2026-08-08T13:45:00+07:00", "so_tien_coc": "70000000.00"}},
-  {"model": "database.hopdong", "pk": "HD11", "fields": {"chi_nhanh": "CN01", "khach_hang": "KH06", "ngay_ky": "2026-10-02T09:00:00+07:00", "so_tien_coc": "100000000.00"}},
-  {"model": "database.hopdong", "pk": "HD12", "fields": {"chi_nhanh": "CN02", "khach_hang": "KH10", "ngay_ky": "2026-10-05T14:30:00+07:00", "so_tien_coc": "50000000.00"}},
-  {"model": "database.hopdong", "pk": "HD13", "fields": {"chi_nhanh": "CN03", "khach_hang": "KH13", "ngay_ky": "2026-10-08T10:15:00+07:00", "so_tien_coc": "100000000.00"}},
-  {"model": "database.hopdong", "pk": "HD14", "fields": {"chi_nhanh": "CN03", "khach_hang": "KH14", "ngay_ky": "2026-10-11T15:20:00+07:00", "so_tien_coc": "60000000.00"}},
-  {"model": "database.hopdong", "pk": "HD15", "fields": {"chi_nhanh": "CN02", "khach_hang": "KH09", "ngay_ky": "2026-08-01T10:00:00+07:00", "so_tien_coc": "50000000.00"}},
-  {"model": "database.hopdong", "pk": "HD16", "fields": {"chi_nhanh": "CN03", "khach_hang": "KH11", "ngay_ky": "2026-07-25T11:00:00+07:00", "so_tien_coc": "60000000.00"}},
-
-  {"model": "database.chitiethopdong", "pk": 1, "fields": {"hop_dong": "HD01", "xe": "RL2FMA001TZ000001"}},
-  {"model": "database.chitiethopdong", "pk": 2, "fields": {"hop_dong": "HD01", "xe": "RL2FMA001TZ000002"}},
-  {"model": "database.chitiethopdong", "pk": 3, "fields": {"hop_dong": "HD03", "xe": "RL2FMA001TZ000003"}},
-  {"model": "database.chitiethopdong", "pk": 4, "fields": {"hop_dong": "HD04", "xe": "RL2FMA001TZ000004"}},
-  {"model": "database.chitiethopdong", "pk": 5, "fields": {"hop_dong": "HD05", "xe": "RL2FMA001TZ000005"}},
-  {"model": "database.chitiethopdong", "pk": 6, "fields": {"hop_dong": "HD06", "xe": "RL2FMA001TZ000006"}},
-  {"model": "database.chitiethopdong", "pk": 7, "fields": {"hop_dong": "HD07", "xe": "RL2FMA001TZ000021"}},
-  {"model": "database.chitiethopdong", "pk": 8, "fields": {"hop_dong": "HD08", "xe": "RL2FMA001TZ000022"}},
-  {"model": "database.chitiethopdong", "pk": 9, "fields": {"hop_dong": "HD09", "xe": "RL2FMA001TZ000031"}},
-  {"model": "database.chitiethopdong", "pk": 10, "fields": {"hop_dong": "HD10", "xe": "RL2FMA001TZ000033"}},
-  {"model": "database.chitiethopdong", "pk": 11, "fields": {"hop_dong": "HD11", "xe": "RL2FMA001TZ000007"}},
-  {"model": "database.chitiethopdong", "pk": 12, "fields": {"hop_dong": "HD12", "xe": "RL2FMA001TZ000024"}},
-  {"model": "database.chitiethopdong", "pk": 13, "fields": {"hop_dong": "HD13", "xe": "RL2FMA001TZ000034"}},
-  {"model": "database.chitiethopdong", "pk": 14, "fields": {"hop_dong": "HD14", "xe": "RL2FMA001TZ000035"}},
-  {"model": "database.chitiethopdong", "pk": 15, "fields": {"hop_dong": "HD15", "xe": "RL2FMA001TZ000023"}},
-  {"model": "database.chitiethopdong", "pk": 16, "fields": {"hop_dong": "HD16", "xe": "RL2FMA001TZ000032"}},
-
-  {"model": "database.phieuxuatkho", "pk": "PXK01", "fields": {"chi_tiet_hop_dong": 1, "kho": "KHO01", "ngay_xuat": "2026-07-15T08:30:00+07:00"}},
-  {"model": "database.phieuxuatkho", "pk": "PXK02", "fields": {"chi_tiet_hop_dong": 2, "kho": "KHO01", "ngay_xuat": "2026-07-15T09:00:00+07:00"}},
-  {"model": "database.phieuxuatkho", "pk": "PXK03", "fields": {"chi_tiet_hop_dong": 3, "kho": "KHO01", "ngay_xuat": "2026-07-18T08:45:00+07:00"}},
-  {"model": "database.phieuxuatkho", "pk": "PXK04", "fields": {"chi_tiet_hop_dong": 4, "kho": "KHO01", "ngay_xuat": "2026-07-25T13:30:00+07:00"}},
-  {"model": "database.phieuxuatkho", "pk": "PXK05", "fields": {"chi_tiet_hop_dong": 5, "kho": "KHO01", "ngay_xuat": "2026-08-02T08:15:00+07:00"}},
-  {"model": "database.phieuxuatkho", "pk": "PXK06", "fields": {"chi_tiet_hop_dong": 6, "kho": "KHO01", "ngay_xuat": "2026-08-10T09:00:00+07:00"}},
-  {"model": "database.phieuxuatkho", "pk": "PXK07", "fields": {"chi_tiet_hop_dong": 7, "kho": "KHO02", "ngay_xuat": "2026-07-22T13:30:00+07:00"}},
-  {"model": "database.phieuxuatkho", "pk": "PXK08", "fields": {"chi_tiet_hop_dong": 8, "kho": "KHO02", "ngay_xuat": "2026-07-28T08:30:00+07:00"}},
-  {"model": "database.phieuxuatkho", "pk": "PXK09", "fields": {"chi_tiet_hop_dong": 9, "kho": "KHO03", "ngay_xuat": "2026-07-29T08:15:00+07:00"}},
-  {"model": "database.phieuxuatkho", "pk": "PXK10", "fields": {"chi_tiet_hop_dong": 10, "kho": "KHO03", "ngay_xuat": "2026-08-12T14:00:00+07:00"}},
-  {"model": "database.phieuxuatkho", "pk": "PXK11", "fields": {"chi_tiet_hop_dong": 15, "kho": "KHO02", "ngay_xuat": "2026-08-05T08:30:00+07:00"}},
-  {"model": "database.phieuxuatkho", "pk": "PXK12", "fields": {"chi_tiet_hop_dong": 16, "kho": "KHO03", "ngay_xuat": "2026-07-29T08:45:00+07:00"}},
-
-  {"model": "database.hoadonban", "pk": "HDB01", "fields": {"khach_hang": "KH01", "chi_nhanh": "CN01", "ngay_ban": "2026-07-15T14:30:00+07:00", "so_hoa_don": "0005101", "hinh_thuc_tt": "Chuyển khoản", "phieu_xuat_kho": "PXK01"}},
-  {"model": "database.hoadonban", "pk": "HDB02", "fields": {"khach_hang": "KH03", "chi_nhanh": "CN01", "ngay_ban": "2026-07-18T10:15:00+07:00", "so_hoa_don": "0005102", "hinh_thuc_tt": "Trả góp ngân hàng", "phieu_xuat_kho": "PXK03"}},
-  {"model": "database.hoadonban", "pk": "HDB03", "fields": {"khach_hang": "KH04", "chi_nhanh": "CN01", "ngay_ban": "2026-07-25T16:00:00+07:00", "so_hoa_don": "0005103", "hinh_thuc_tt": "Chuyển khoản", "phieu_xuat_kho": "PXK04"}},
-  {"model": "database.hoadonban", "pk": "HDB04", "fields": {"khach_hang": "KH05", "chi_nhanh": "CN01", "ngay_ban": "2026-08-02T09:45:00+07:00", "so_hoa_don": "0005104", "hinh_thuc_tt": "Tiền mặt", "phieu_xuat_kho": "PXK05"}},
-  {"model": "database.hoadonban", "pk": "HDB05", "fields": {"khach_hang": "KH02", "chi_nhanh": "CN01", "ngay_ban": "2026-08-10T11:20:00+07:00", "so_hoa_don": "0005105", "hinh_thuc_tt": "Chuyển khoản", "phieu_xuat_kho": "PXK06"}},
-  {"model": "database.hoadonban", "pk": "HDB06", "fields": {"khach_hang": "KH07", "chi_nhanh": "CN02", "ngay_ban": "2026-07-22T15:00:00+07:00", "so_hoa_don": "0006101", "hinh_thuc_tt": "Chuyển khoản", "phieu_xuat_kho": "PXK07"}},
-  {"model": "database.hoadonban", "pk": "HDB07", "fields": {"khach_hang": "KH08", "chi_nhanh": "CN02", "ngay_ban": "2026-07-28T10:30:00+07:00", "so_hoa_don": "0006102", "hinh_thuc_tt": "Trả góp ngân hàng", "phieu_xuat_kho": "PXK08"}},
-  {"model": "database.hoadonban", "pk": "HDB08", "fields": {"khach_hang": "KH09", "chi_nhanh": "CN02", "ngay_ban": "2026-08-05T14:15:00+07:00", "so_hoa_don": "0006103", "hinh_thuc_tt": "Tiền mặt", "phieu_xuat_kho": "PXK11"}},
-  {"model": "database.hoadonban", "pk": "HDB09", "fields": {"khach_hang": "KH11", "chi_nhanh": "CN03", "ngay_ban": "2026-07-29T09:30:00+07:00", "so_hoa_don": "0007101", "hinh_thuc_tt": "Chuyển khoản", "phieu_xuat_kho": "PXK09"}},
-  {"model": "database.hoadonban", "pk": "HDB10", "fields": {"khach_hang": "KH12", "chi_nhanh": "CN03", "ngay_ban": "2026-08-12T16:20:00+07:00", "so_hoa_don": "0007102", "hinh_thuc_tt": "Chuyển khoản", "phieu_xuat_kho": "PXK10"}},
-  {"model": "database.hoadonban", "pk": "HDB11", "fields": {"khach_hang": "KH01", "chi_nhanh": "CN01", "ngay_ban": "2026-07-15T15:00:00+07:00", "so_hoa_don": "0005106", "hinh_thuc_tt": "Chuyển khoản", "phieu_xuat_kho": "PXK02"}},
-  {"model": "database.hoadonban", "pk": "HDB12", "fields": {"khach_hang": "KH11", "chi_nhanh": "CN03", "ngay_ban": "2026-07-29T10:00:00+07:00", "so_hoa_don": "0007103", "hinh_thuc_tt": "Chuyển khoản", "phieu_xuat_kho": "PXK12"}},
-
-  {"model": "database.chitietban", "pk": 1, "fields": {"hoa_don_ban": "HDB01", "xe": "RL2FMA001TZ000001", "so_luong_ban": 1, "gia_ban": "650000000.00", "tien_vat": "65000000.00", "tong_thanh_toan": "715000000.00"}},
-  {"model": "database.chitietban", "pk": 2, "fields": {"hoa_don_ban": "HDB11", "xe": "RL2FMA001TZ000002", "so_luong_ban": 1, "gia_ban": "650000000.00", "tien_vat": "65000000.00", "tong_thanh_toan": "715000000.00"}},
-  {"model": "database.chitietban", "pk": 3, "fields": {"hoa_don_ban": "HDB02", "xe": "RL2FMA001TZ000003", "so_luong_ban": 1, "gia_ban": "920000000.00", "tien_vat": "92000000.00", "tong_thanh_toan": "1012000000.00"}},
-  {"model": "database.chitietban", "pk": 4, "fields": {"hoa_don_ban": "HDB03", "xe": "RL2FMA001TZ000004", "so_luong_ban": 1, "gia_ban": "1450000000.00", "tien_vat": "145000000.00", "tong_thanh_toan": "1595000000.00"}},
-  {"model": "database.chitietban", "pk": 5, "fields": {"hoa_don_ban": "HDB04", "xe": "RL2FMA001TZ000005", "so_luong_ban": 1, "gia_ban": "880000000.00", "tien_vat": "88000000.00", "tong_thanh_toan": "968000000.00"}},
-  {"model": "database.chitietban", "pk": 6, "fields": {"hoa_don_ban": "HDB05", "xe": "RL2FMA001TZ000006", "so_luong_ban": 1, "gia_ban": "860000000.00", "tien_vat": "86000000.00", "tong_thanh_toan": "946000000.00"}},
-  {"model": "database.chitietban", "pk": 7, "fields": {"hoa_don_ban": "HDB06", "xe": "RL2FMA001TZ000021", "so_luong_ban": 1, "gia_ban": "920000000.00", "tien_vat": "92000000.00", "tong_thanh_toan": "1012000000.00"}},
-  {"model": "database.chitietban", "pk": 8, "fields": {"hoa_don_ban": "HDB07", "xe": "RL2FMA001TZ000022", "so_luong_ban": 1, "gia_ban": "1450000000.00", "tien_vat": "145000000.00", "tong_thanh_toan": "1595000000.00"}},
-  {"model": "database.chitietban", "pk": 9, "fields": {"hoa_don_ban": "HDB08", "xe": "RL2FMA001TZ000023", "so_luong_ban": 1, "gia_ban": "840000000.00", "tien_vat": "84000000.00", "tong_thanh_toan": "924000000.00"}},
-  {"model": "database.chitietban", "pk": 10, "fields": {"hoa_don_ban": "HDB09", "xe": "RL2FMA001TZ000031", "so_luong_ban": 1, "gia_ban": "720000000.00", "tien_vat": "72000000.00", "tong_thanh_toan": "792000000.00"}},
-  {"model": "database.chitietban", "pk": 11, "fields": {"hoa_don_ban": "HDB12", "xe": "RL2FMA001TZ000032", "so_luong_ban": 1, "gia_ban": "920000000.00", "tien_vat": "92000000.00", "tong_thanh_toan": "1012000000.00"}},
-  {"model": "database.chitietban", "pk": 12, "fields": {"hoa_don_ban": "HDB10", "xe": "RL2FMA001TZ000033", "so_luong_ban": 1, "gia_ban": "860000000.00", "tien_vat": "86000000.00", "tong_thanh_toan": "946000000.00"}},
-
-  {"model": "database.phieukiemke", "pk": "PKK01", "fields": {"kho": "KHO01", "nhan_vien": "NV02", "ngay_kiem_ke": "2026-09-25T16:00:00+07:00", "ghi_chu": "Kiểm kê định kỳ kho Đà Nẵng đợt 1 quý 3/2026"}},
-  {"model": "database.phieukiemke", "pk": "PKK02", "fields": {"kho": "KHO01", "nhan_vien": "NV03", "ngay_kiem_ke": "2026-10-10T16:00:00+07:00", "ghi_chu": "Kiểm kê định kỳ kho Đà Nẵng đầu quý 4/2026"}},
-  {"model": "database.phieukiemke", "pk": "PKK03", "fields": {"kho": "KHO02", "nhan_vien": "NV05", "ngay_kiem_ke": "2026-10-10T16:30:00+07:00", "ghi_chu": "Kiểm kê định kỳ kho Bình Định đầu quý 4/2026"}},
-  {"model": "database.phieukiemke", "pk": "PKK04", "fields": {"kho": "KHO03", "nhan_vien": "NV08", "ngay_kiem_ke": "2026-10-12T16:00:00+07:00", "ghi_chu": "Kiểm kê định kỳ kho Gia Lai đầu quý 4/2026"}},
-
-  {"model": "database.chitietkiemke", "pk": 1, "fields": {"phieu_kiem_ke": "PKK01", "xe": "RL2FMA001TZ000007", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đủ phụ kiện"}},
-  {"model": "database.chitietkiemke", "pk": 2, "fields": {"phieu_kiem_ke": "PKK01", "xe": "RL2FMA001TZ000008", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đủ phụ kiện"}},
-  {"model": "database.chitietkiemke", "pk": 3, "fields": {"phieu_kiem_ke": "PKK01", "xe": "RL2FMA001TZ000009", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đủ phụ kiện"}},
-  {"model": "database.chitietkiemke", "pk": 4, "fields": {"phieu_kiem_ke": "PKK01", "xe": "RL2FMA001TZ000010", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đang trưng bày showroom"}},
-  {"model": "database.chitietkiemke", "pk": 5, "fields": {"phieu_kiem_ke": "PKK01", "xe": "RL2FMA001TZ000011", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đủ phụ kiện"}},
-  {"model": "database.chitietkiemke", "pk": 6, "fields": {"phieu_kiem_ke": "PKK02", "xe": "RL2FMA001TZ000012", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đủ phụ kiện"}},
-  {"model": "database.chitietkiemke", "pk": 7, "fields": {"phieu_kiem_ke": "PKK02", "xe": "RL2FMA001TZ000013", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đủ phụ kiện"}},
-  {"model": "database.chitietkiemke", "pk": 8, "fields": {"phieu_kiem_ke": "PKK02", "xe": "RL2FMA001TZ000014", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đủ phụ kiện"}},
-  {"model": "database.chitietkiemke", "pk": 9, "fields": {"phieu_kiem_ke": "PKK02", "xe": "RL2FMA001TZ000015", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đủ phụ kiện"}},
-  {"model": "database.chitietkiemke", "pk": 10, "fields": {"phieu_kiem_ke": "PKK02", "xe": "RL2FMA001TZ000019", "ton_he_thong": 1, "ton_thuc_te": 0, "tinh_trang": "Không có tại kho, đang chuyển xưởng đồng sơn xử lý PDI"}},
-  {"model": "database.chitietkiemke", "pk": 11, "fields": {"phieu_kiem_ke": "PKK03", "xe": "RL2FMA001TZ000024", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đã có khách đặt cọc"}},
-  {"model": "database.chitietkiemke", "pk": 12, "fields": {"phieu_kiem_ke": "PKK03", "xe": "RL2FMA001TZ000025", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đủ phụ kiện"}},
-  {"model": "database.chitietkiemke", "pk": 13, "fields": {"phieu_kiem_ke": "PKK03", "xe": "RL2FMA001TZ000026", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đang trưng bày showroom"}},
-  {"model": "database.chitietkiemke", "pk": 14, "fields": {"phieu_kiem_ke": "PKK03", "xe": "RL2FMA001TZ000027", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đủ phụ kiện"}},
-  {"model": "database.chitietkiemke", "pk": 15, "fields": {"phieu_kiem_ke": "PKK03", "xe": "RL2FMA001TZ000030", "ton_he_thong": 1, "ton_thuc_te": 0, "tinh_trang": "Thiếu tại bãi kho, đang đối chiếu biên bản bàn giao vận chuyển"}},
-  {"model": "database.chitietkiemke", "pk": 16, "fields": {"phieu_kiem_ke": "PKK04", "xe": "RL2FMA001TZ000034", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đã có khách đặt cọc"}},
-  {"model": "database.chitietkiemke", "pk": 17, "fields": {"phieu_kiem_ke": "PKK04", "xe": "RL2FMA001TZ000035", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đủ phụ kiện"}},
-  {"model": "database.chitietkiemke", "pk": 18, "fields": {"phieu_kiem_ke": "PKK04", "xe": "RL2FMA001TZ000036", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đủ phụ kiện"}},
-  {"model": "database.chitietkiemke", "pk": 19, "fields": {"phieu_kiem_ke": "PKK04", "xe": "RL2FMA001TZ000037", "ton_he_thong": 1, "ton_thuc_te": 1, "tinh_trang": "Bình thường, đủ phụ kiện"}},
-  {"model": "database.chitietkiemke", "pk": 20, "fields": {"phieu_kiem_ke": "PKK04", "xe": "RL2FMA001TZ000040", "ton_he_thong": 1, "ton_thuc_te": 0, "tinh_trang": "Vắng mặt tại kho do điều chuyển nội bộ chưa cập nhật phiếu"}},
-
-  {"model": "database.bienbanpdi", "pk": "PDI01", "fields": {"hoa_don_nhap": "HDN01", "xe": "RL2FMA001TZ000003", "nhan_vien": "NV01", "ngay_ghi_nhan": "2026-07-05T10:30:00+07:00", "loai_su_co": "Trầy xước sơn", "mo_ta_chi_tiet": "Vết xước nhẹ dài 5cm ở cản trước bên phụ do quá trình chằng buộc trên xe lồng.", "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/07/pdi01_ranger_wildtrak.jpg", "trang_thai_claim": "Đã xử lý"}},
-  {"model": "database.bienbanpdi", "pk": "PDI02", "fields": {"hoa_don_nhap": "HDN02", "xe": "RL2FMA001TZ000008", "nhan_vien": "NV02", "ngay_ghi_nhan": "2026-07-20T11:00:00+07:00", "loai_su_co": "Hỏng gương", "mo_ta_chi_tiet": "Nứt mặt gương chiếu hậu bên tài, mô tơ gập gương vẫn hoạt động bình thường.", "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/07/pdi02_everest_sport.jpg", "trang_thai_claim": "Đã xử lý"}},
-  {"model": "database.bienbanpdi", "pk": "PDI03", "fields": {"hoa_don_nhap": "HDN03", "xe": "RL2FMA001TZ000014", "nhan_vien": "NV01", "ngay_ghi_nhan": "2026-08-15T13:30:00+07:00", "loai_su_co": "Lỗi đèn", "mo_ta_chi_tiet": "Đèn sương mù phía trước bên phải không sáng khi bật công tắc kiểm tra PDI.", "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/08/pdi03_everest_titanium.jpg", "trang_thai_claim": "Đã xử lý"}},
-  {"model": "database.bienbanpdi", "pk": "PDI04", "fields": {"hoa_don_nhap": "HDN04", "xe": "RL2FMA001TZ000019", "nhan_vien": "NV03", "ngay_ghi_nhan": "2026-09-10T16:00:00+07:00", "loai_su_co": "Móp thân vỏ", "mo_ta_chi_tiet": "Lõm nhẹ phần cánh cửa sau bên phụ diện tích 4x4cm, cần làm đồng sơn lại.", "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/09/pdi04_territory_x.jpg", "trang_thai_claim": "Đang xử lý"}},
-  {"model": "database.bienbanpdi", "pk": "PDI05", "fields": {"hoa_don_nhap": "HDN05", "xe": "RL2FMA001TZ000025", "nhan_vien": "NV04", "ngay_ghi_nhan": "2026-07-12T10:30:00+07:00", "loai_su_co": "Trầy xước sơn", "mo_ta_chi_tiet": "Trầy xước tay nắm cửa lùa bên hông xe Transit do va quệt khi hạ cầu xe lồng.", "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/07/pdi05_transit_trend.jpg", "trang_thai_claim": "Đã xử lý"}},
-  {"model": "database.bienbanpdi", "pk": "PDI06", "fields": {"hoa_don_nhap": "HDN06", "xe": "RL2FMA001TZ000028", "nhan_vien": "NV06", "ngay_ghi_nhan": "2026-08-22T16:45:00+07:00", "loai_su_co": "Lỗi đèn", "mo_ta_chi_tiet": "Đèn LED định vị ban ngày bên trái chập chờn, báo lỗi trên màn hình taplo.", "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/08/pdi06_territory_trend.jpg", "trang_thai_claim": "Đang xử lý"}},
-  {"model": "database.bienbanpdi", "pk": "PDI07", "fields": {"hoa_don_nhap": "HDN07", "xe": "RL2FMA001TZ000034", "nhan_vien": "NV07", "ngay_ghi_nhan": "2026-07-18T11:15:00+07:00", "loai_su_co": "Trầy xước sơn", "mo_ta_chi_tiet": "Xước nhẹ mâm xe (la-zăng) bánh trước bên phụ khoảng 2cm.", "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/07/pdi07_everest_bi_turbo.jpg", "trang_thai_claim": "Đã xử lý"}},
-  {"model": "database.bienbanpdi", "pk": "PDI08", "fields": {"hoa_don_nhap": "HDN08", "xe": "RL2FMA001TZ000039", "nhan_vien": "NV09", "ngay_ghi_nhan": "2026-09-05T15:30:00+07:00", "loai_su_co": "Hỏng gương", "mo_ta_chi_tiet": "Ốp nhựa gương chiếu hậu bên phụ bị bung ngàm và trầy bề mặt sơn.", "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/09/pdi08_territory_titanium.jpg", "trang_thai_claim": "Chưa xử lý"}}
+{
+  "model": "database.nhacungcap",
+  "pk": "NCC01",
+  "fields": {
+    "ten_ncc": "Công ty TNHH Ford Việt Nam - Nhà máy Hải Dương",
+    "dia_chi_ncc": "Phường Tứ Minh, TP. Hải Dương, Tỉnh Hải Dương",
+    "mst": "0800100125"
+  }
+},
+{
+  "model": "database.nhacungcap",
+  "pk": "NCC02",
+  "fields": {
+    "ten_ncc": "Chi nhánh Công ty TNHH Ford Việt Nam tại TP.HCM",
+    "dia_chi_ncc": "35 Tôn Đức Thắng, Quận 1, TP. Hồ Chí Minh",
+    "mst": "0800100126"
+  }
+},
+{
+  "model": "database.nhacungcap",
+  "pk": "NCC03",
+  "fields": {
+    "ten_ncc": "Tổng kho Phân phối Xe Nhập khẩu Ford Miền Bắc",
+    "dia_chi_ncc": "KCN Đình Vũ, Quận Hải An, TP. Hải Phòng",
+    "mst": "0201548791"
+  }
+},
+{
+  "model": "database.nhacungcap",
+  "pk": "NCC04",
+  "fields": {
+    "ten_ncc": "Tổng kho Phân phối Xe Nhập khẩu Ford Miền Nam",
+    "dia_chi_ncc": "KCN Hiệp Phước, Huyện Nhà Bè, TP. Hồ Chí Minh",
+    "mst": "0312654987"
+  }
+},
+{
+  "model": "database.donvivanchuyen",
+  "pk": "DVVC01",
+  "fields": {
+    "ten_dvvc": "Công ty Cổ phần Vận tải Ô tô Bắc Nam",
+    "sdt_dvvc": "0903445566",
+    "dia_chi_dvvc": "120 Nguyễn Văn Linh, Quận Hải Châu, TP. Đà Nẵng"
+  }
+},
+{
+  "model": "database.donvivanchuyen",
+  "pk": "DVVC02",
+  "fields": {
+    "ten_dvvc": "Công ty TNHH Logistics Miền Trung",
+    "sdt_dvvc": "0904556677",
+    "dia_chi_dvvc": "KCN Hòa Khánh, Quận Liên Chiểu, TP. Đà Nẵng"
+  }
+},
+{
+  "model": "database.donvivanchuyen",
+  "pk": "DVVC03",
+  "fields": {
+    "ten_dvvc": "Công ty Cổ phần Giao nhận Vận tải Biển Đông",
+    "sdt_dvvc": "0913667788",
+    "dia_chi_dvvc": "45 Lê Đức Thọ, TP. Quy Nhơn, Bình Định"
+  }
+},
+{
+  "model": "database.donvivanchuyen",
+  "pk": "DVVC04",
+  "fields": {
+    "ten_dvvc": "Công ty TNHH Vận tải Chuyên dùng Tây Nguyên",
+    "sdt_dvvc": "0989778899",
+    "dia_chi_dvvc": "102 Trường Chinh, TP. Pleiku, Gia Lai"
+  }
+},
+{
+  "model": "database.khachhang",
+  "pk": "KH01",
+  "fields": {
+    "ten_kh": "Công ty Cổ phần Xây dựng Hòa Bình Miền Trung",
+    "sdt_kh": "0905888101",
+    "mst_kh": "0401882101"
+  }
+},
+{
+  "model": "database.khachhang",
+  "pk": "KH02",
+  "fields": {
+    "ten_kh": "Công ty TNHH Du lịch và Lữ hành Ánh Dương",
+    "sdt_kh": "0905888102",
+    "mst_kh": "0401882102"
+  }
+},
+{
+  "model": "database.khachhang",
+  "pk": "KH03",
+  "fields": {
+    "ten_kh": "Nguyễn Thành Long",
+    "sdt_kh": "0905888103",
+    "mst_kh": null
+  }
+},
+{
+  "model": "database.khachhang",
+  "pk": "KH04",
+  "fields": {
+    "ten_kh": "Trần Ngọc Bích",
+    "sdt_kh": "0905888104",
+    "mst_kh": null
+  }
+},
+{
+  "model": "database.khachhang",
+  "pk": "KH05",
+  "fields": {
+    "ten_kh": "Lê Văn Hùng",
+    "sdt_kh": "0905888105",
+    "mst_kh": null
+  }
+},
+{
+  "model": "database.khachhang",
+  "pk": "KH06",
+  "fields": {
+    "ten_kh": "Phạm Thị Thu Hà",
+    "sdt_kh": "0905888106",
+    "mst_kh": null
+  }
+},
+{
+  "model": "database.khachhang",
+  "pk": "KH07",
+  "fields": {
+    "ten_kh": "Công ty TNHH Khai thác Khoáng sản An Phát",
+    "sdt_kh": "0914888107",
+    "mst_kh": "4101556107"
+  }
+},
+{
+  "model": "database.khachhang",
+  "pk": "KH08",
+  "fields": {
+    "ten_kh": "Võ Minh Quang",
+    "sdt_kh": "0914888108",
+    "mst_kh": null
+  }
+},
+{
+  "model": "database.khachhang",
+  "pk": "KH09",
+  "fields": {
+    "ten_kh": "Đặng Thị Hồng Nhung",
+    "sdt_kh": "0914888109",
+    "mst_kh": null
+  }
+},
+{
+  "model": "database.khachhang",
+  "pk": "KH10",
+  "fields": {
+    "ten_kh": "Hồ Quốc Việt",
+    "sdt_kh": "0914888110",
+    "mst_kh": null
+  }
+},
+{
+  "model": "database.khachhang",
+  "pk": "KH11",
+  "fields": {
+    "ten_kh": "Công ty Cổ phần Nông nghiệp Công nghệ cao Cao Nguyên",
+    "sdt_kh": "0983888111",
+    "mst_kh": "5901123111"
+  }
+},
+{
+  "model": "database.khachhang",
+  "pk": "KH12",
+  "fields": {
+    "ten_kh": "Công ty TNHH Vận tải Hành khách Phố Núi",
+    "sdt_kh": "0983888112",
+    "mst_kh": "5901123112"
+  }
+},
+{
+  "model": "database.khachhang",
+  "pk": "KH13",
+  "fields": {
+    "ten_kh": "Phan Thanh Tùng",
+    "sdt_kh": "0983888113",
+    "mst_kh": null
+  }
+},
+{
+  "model": "database.khachhang",
+  "pk": "KH14",
+  "fields": {
+    "ten_kh": "Ngô Thị Mỹ Linh",
+    "sdt_kh": "0983888114",
+    "mst_kh": null
+  }
+},
+{
+  "model": "database.khachhang",
+  "pk": "KH15",
+  "fields": {
+    "ten_kh": "Lý Hoàng Phúc",
+    "sdt_kh": "0983888115",
+    "mst_kh": null
+  }
+},
+{
+  "model": "database.chinhanh",
+  "pk": "CN01",
+  "fields": {
+    "ten_cn": "Dana Ford Đà Nẵng",
+    "dia_chi_cn": "56 Điện Biên Phủ, Quận Thanh Khê, TP. Đà Nẵng"
+  }
+},
+{
+  "model": "database.chinhanh",
+  "pk": "CN02",
+  "fields": {
+    "ten_cn": "Dana Ford Bình Định",
+    "dia_chi_cn": "73 Tây Sơn, Phường Ghềnh Ráng, TP. Quy Nhơn, Bình Định"
+  }
+},
+{
+  "model": "database.chinhanh",
+  "pk": "CN03",
+  "fields": {
+    "ten_cn": "Dana Ford Gia Lai",
+    "dia_chi_cn": "284 Lê Duẩn, Phường Trà Bá, TP. Pleiku, Gia Lai"
+  }
+},
+{
+  "model": "database.nhanvien",
+  "pk": "NV01",
+  "fields": {
+    "chi_nhanh": "CN01",
+    "ten_nv": "Nguyễn Văn Hải",
+    "sdt_nv": "0905112233"
+  }
+},
+{
+  "model": "database.nhanvien",
+  "pk": "NV02",
+  "fields": {
+    "chi_nhanh": "CN01",
+    "ten_nv": "Trần Thị Minh Thư",
+    "sdt_nv": "0905223344"
+  }
+},
+{
+  "model": "database.nhanvien",
+  "pk": "NV03",
+  "fields": {
+    "chi_nhanh": "CN01",
+    "ten_nv": "Lê Hoàng Nam",
+    "sdt_nv": "0905334455"
+  }
+},
+{
+  "model": "database.nhanvien",
+  "pk": "NV04",
+  "fields": {
+    "chi_nhanh": "CN02",
+    "ten_nv": "Phạm Quốc Khánh",
+    "sdt_nv": "0914112233"
+  }
+},
+{
+  "model": "database.nhanvien",
+  "pk": "NV05",
+  "fields": {
+    "chi_nhanh": "CN02",
+    "ten_nv": "Võ Thị Thanh Ngân",
+    "sdt_nv": "0914223344"
+  }
+},
+{
+  "model": "database.nhanvien",
+  "pk": "NV06",
+  "fields": {
+    "chi_nhanh": "CN02",
+    "ten_nv": "Đặng Minh Tuấn",
+    "sdt_nv": "0914334455"
+  }
+},
+{
+  "model": "database.nhanvien",
+  "pk": "NV07",
+  "fields": {
+    "chi_nhanh": "CN03",
+    "ten_nv": "Hoàng Gia Bảo",
+    "sdt_nv": "0983112233"
+  }
+},
+{
+  "model": "database.nhanvien",
+  "pk": "NV08",
+  "fields": {
+    "chi_nhanh": "CN03",
+    "ten_nv": "Bùi Thị Lan Anh",
+    "sdt_nv": "0983223344"
+  }
+},
+{
+  "model": "database.nhanvien",
+  "pk": "NV09",
+  "fields": {
+    "chi_nhanh": "CN03",
+    "ten_nv": "Đỗ Trọng Nghĩa",
+    "sdt_nv": "0983334455"
+  }
+},
+{
+  "model": "database.kho",
+  "pk": "KHO01",
+  "fields": {
+    "chi_nhanh": "CN01"
+  }
+},
+{
+  "model": "database.kho",
+  "pk": "KHO02",
+  "fields": {
+    "chi_nhanh": "CN02"
+  }
+},
+{
+  "model": "database.kho",
+  "pk": "KHO03",
+  "fields": {
+    "chi_nhanh": "CN03"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000001",
+  "fields": {
+    "ten_xe": "Ford Ranger XLS 2.0L 4x2 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0001",
+    "mau_sac": "Trắng",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000002",
+  "fields": {
+    "ten_xe": "Ford Ranger XLS 2.0L 4x2 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0002",
+    "mau_sac": "Đen",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000003",
+  "fields": {
+    "ten_xe": "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0003",
+    "mau_sac": "Vàng Luxe",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 10 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000004",
+  "fields": {
+    "ten_xe": "Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT",
+    "loai_xe": "SUV 7 chỗ",
+    "so_may": "FM2026ENG0004",
+    "mau_sac": "Trắng Tuyết",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 10 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000005",
+  "fields": {
+    "ten_xe": "Ford Territory Titanium X 1.5L EcoBoost",
+    "loai_xe": "CUV 5 chỗ",
+    "so_may": "FM2026ENG0005",
+    "mau_sac": "Đỏ Ngọc Ruby",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 7 cấp",
+    "nhien_lieu": "Xăng",
+    "dung_tich": 1490,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000006",
+  "fields": {
+    "ten_xe": "Ford Transit Trend 16 chỗ 2.3L",
+    "loai_xe": "Thương mại 16 chỗ",
+    "so_may": "FM2026ENG0006",
+    "mau_sac": "Bạc",
+    "nam_sx": 2026,
+    "hop_so": "Số sàn 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 2296,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000007",
+  "fields": {
+    "ten_xe": "Ford Ranger Raptor 2.0L Bi-Turbo 4x4 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0007",
+    "mau_sac": "Cam",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 10 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000008",
+  "fields": {
+    "ten_xe": "Ford Everest Sport 2.0L 4x2 AT",
+    "loai_xe": "SUV 7 chỗ",
+    "so_may": "FM2026ENG0008",
+    "mau_sac": "Đen",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000009",
+  "fields": {
+    "ten_xe": "Ford Territory Trend 1.5L EcoBoost",
+    "loai_xe": "CUV 5 chỗ",
+    "so_may": "FM2026ENG0009",
+    "mau_sac": "Trắng",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 7 cấp",
+    "nhien_lieu": "Xăng",
+    "dung_tich": 1490,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000010",
+  "fields": {
+    "ten_xe": "Ford Explorer Limited 2.3L EcoBoost",
+    "loai_xe": "SUV 7 chỗ",
+    "so_may": "FM2026ENG0010",
+    "mau_sac": "Đen",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 10 cấp",
+    "nhien_lieu": "Xăng",
+    "dung_tich": 2261,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000011",
+  "fields": {
+    "ten_xe": "Ford Ranger XLS 2.0L 4x4 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0011",
+    "mau_sac": "Xám",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000012",
+  "fields": {
+    "ten_xe": "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0012",
+    "mau_sac": "Trắng",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 10 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000013",
+  "fields": {
+    "ten_xe": "Ford Everest Ambiente 2.0L 4x2 AT",
+    "loai_xe": "SUV 7 chỗ",
+    "so_may": "FM2026ENG0013",
+    "mau_sac": "Bạc",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000014",
+  "fields": {
+    "ten_xe": "Ford Everest Titanium 2.0L 4x2 AT",
+    "loai_xe": "SUV 7 chỗ",
+    "so_may": "FM2026ENG0014",
+    "mau_sac": "Nâu",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000015",
+  "fields": {
+    "ten_xe": "Ford Territory Titanium 1.5L EcoBoost",
+    "loai_xe": "CUV 5 chỗ",
+    "so_may": "FM2026ENG0015",
+    "mau_sac": "Xanh",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 7 cấp",
+    "nhien_lieu": "Xăng",
+    "dung_tich": 1490,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000016",
+  "fields": {
+    "ten_xe": "Ford Transit Limousine 10 chỗ 2.3L",
+    "loai_xe": "Thương mại 10 chỗ",
+    "so_may": "FM2026ENG0016",
+    "mau_sac": "Đen",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 2296,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000017",
+  "fields": {
+    "ten_xe": "Ford Ranger Sport 2.0L 4x4 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0017",
+    "mau_sac": "Đỏ Cam",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000018",
+  "fields": {
+    "ten_xe": "Ford Everest Platinum 3.0L V6 4x4 AT",
+    "loai_xe": "SUV 7 chỗ",
+    "so_may": "FM2026ENG0018",
+    "mau_sac": "Nâu Đồng",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 10 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 2993,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000019",
+  "fields": {
+    "ten_xe": "Ford Territory Titanium X 1.5L EcoBoost",
+    "loai_xe": "CUV 5 chỗ",
+    "so_may": "FM2026ENG0019",
+    "mau_sac": "Đen",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 7 cấp",
+    "nhien_lieu": "Xăng",
+    "dung_tich": 1490,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000020",
+  "fields": {
+    "ten_xe": "Ford Ranger XLS 2.0L 4x2 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0020",
+    "mau_sac": "Bạc",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000021",
+  "fields": {
+    "ten_xe": "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0021",
+    "mau_sac": "Vàng Luxe",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 10 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000022",
+  "fields": {
+    "ten_xe": "Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT",
+    "loai_xe": "SUV 7 chỗ",
+    "so_may": "FM2026ENG0022",
+    "mau_sac": "Đen",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 10 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000023",
+  "fields": {
+    "ten_xe": "Ford Territory Titanium 1.5L EcoBoost",
+    "loai_xe": "CUV 5 chỗ",
+    "so_may": "FM2026ENG0023",
+    "mau_sac": "Trắng",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 7 cấp",
+    "nhien_lieu": "Xăng",
+    "dung_tich": 1490,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000024",
+  "fields": {
+    "ten_xe": "Ford Ranger XLS 2.0L 4x2 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0024",
+    "mau_sac": "Trắng",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000025",
+  "fields": {
+    "ten_xe": "Ford Transit Trend 16 chỗ 2.3L",
+    "loai_xe": "Thương mại 16 chỗ",
+    "so_may": "FM2026ENG0025",
+    "mau_sac": "Trắng",
+    "nam_sx": 2026,
+    "hop_so": "Số sàn 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 2296,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000026",
+  "fields": {
+    "ten_xe": "Ford Ranger Raptor 2.0L Bi-Turbo 4x4 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0026",
+    "mau_sac": "Xám",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 10 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000027",
+  "fields": {
+    "ten_xe": "Ford Everest Sport 2.0L 4x2 AT",
+    "loai_xe": "SUV 7 chỗ",
+    "so_may": "FM2026ENG0027",
+    "mau_sac": "Xanh",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000028",
+  "fields": {
+    "ten_xe": "Ford Territory Trend 1.5L EcoBoost",
+    "loai_xe": "CUV 5 chỗ",
+    "so_may": "FM2026ENG0028",
+    "mau_sac": "Bạc",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 7 cấp",
+    "nhien_lieu": "Xăng",
+    "dung_tich": 1490,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000029",
+  "fields": {
+    "ten_xe": "Ford Explorer Limited 2.3L EcoBoost",
+    "loai_xe": "SUV 7 chỗ",
+    "so_may": "FM2026ENG0029",
+    "mau_sac": "Trắng Tuyết",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 10 cấp",
+    "nhien_lieu": "Xăng",
+    "dung_tich": 2261,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000030",
+  "fields": {
+    "ten_xe": "Ford Ranger Sport 2.0L 4x4 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0030",
+    "mau_sac": "Đen",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000031",
+  "fields": {
+    "ten_xe": "Ford Ranger XLS 2.0L 4x4 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0031",
+    "mau_sac": "Nâu",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000032",
+  "fields": {
+    "ten_xe": "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0032",
+    "mau_sac": "Xám",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 10 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000033",
+  "fields": {
+    "ten_xe": "Ford Transit Trend 16 chỗ 2.3L",
+    "loai_xe": "Thương mại 16 chỗ",
+    "so_may": "FM2026ENG0033",
+    "mau_sac": "Bạc",
+    "nam_sx": 2026,
+    "hop_so": "Số sàn 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 2296,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000034",
+  "fields": {
+    "ten_xe": "Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT",
+    "loai_xe": "SUV 7 chỗ",
+    "so_may": "FM2026ENG0034",
+    "mau_sac": "Trắng Tuyết",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 10 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000035",
+  "fields": {
+    "ten_xe": "Ford Territory Titanium X 1.5L EcoBoost",
+    "loai_xe": "CUV 5 chỗ",
+    "so_may": "FM2026ENG0035",
+    "mau_sac": "Trắng",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 7 cấp",
+    "nhien_lieu": "Xăng",
+    "dung_tich": 1490,
+    "trang_thai": "GIU_CHO_XUAT"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000036",
+  "fields": {
+    "ten_xe": "Ford Ranger Raptor 2.0L Bi-Turbo 4x4 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0036",
+    "mau_sac": "Đen",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 10 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000037",
+  "fields": {
+    "ten_xe": "Ford Everest Ambiente 2.0L 4x2 AT",
+    "loai_xe": "SUV 7 chỗ",
+    "so_may": "FM2026ENG0037",
+    "mau_sac": "Đen",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000038",
+  "fields": {
+    "ten_xe": "Ford Ranger XLS 2.0L 4x2 AT",
+    "loai_xe": "Bán tải",
+    "so_may": "FM2026ENG0038",
+    "mau_sac": "Xanh",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000039",
+  "fields": {
+    "ten_xe": "Ford Territory Titanium 1.5L EcoBoost",
+    "loai_xe": "CUV 5 chỗ",
+    "so_may": "FM2026ENG0039",
+    "mau_sac": "Đỏ Ngọc Ruby",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 7 cấp",
+    "nhien_lieu": "Xăng",
+    "dung_tich": 1490,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.xe",
+  "pk": "RL2FMA001TZ000040",
+  "fields": {
+    "ten_xe": "Ford Everest Titanium 2.0L 4x2 AT",
+    "loai_xe": "SUV 7 chỗ",
+    "so_may": "FM2026ENG0040",
+    "mau_sac": "Trắng Tuyết",
+    "nam_sx": 2026,
+    "hop_so": "Tự động 6 cấp",
+    "nhien_lieu": "Dầu",
+    "dung_tich": 1996,
+    "trang_thai": "SAN_SANG"
+  }
+},
+{
+  "model": "database.hoadonnhap",
+  "pk": "HDN01",
+  "fields": {
+    "nha_cung_cap": "NCC01",
+    "chi_nhanh": "CN01",
+    "don_vi_van_chuyen": "DVVC01",
+    "ngay_nhap": "2026-07-05T01:30:00Z",
+    "so_hoa_don": "0001201",
+    "ky_hieu": "1C26TFV",
+    "bien_so_xe": "43C-125.68",
+    "ten_tai_xe": "Phạm Văn Đồng"
+  }
+},
+{
+  "model": "database.hoadonnhap",
+  "pk": "HDN02",
+  "fields": {
+    "nha_cung_cap": "NCC03",
+    "chi_nhanh": "CN01",
+    "don_vi_van_chuyen": "DVVC02",
+    "ngay_nhap": "2026-07-20T02:15:00Z",
+    "so_hoa_don": "0001245",
+    "ky_hieu": "1C26TFV",
+    "bien_so_xe": "43H-045.12",
+    "ten_tai_xe": "Lê Quốc Tuấn"
+  }
+},
+{
+  "model": "database.hoadonnhap",
+  "pk": "HDN03",
+  "fields": {
+    "nha_cung_cap": "NCC01",
+    "chi_nhanh": "CN01",
+    "don_vi_van_chuyen": "DVVC01",
+    "ngay_nhap": "2026-08-15T03:00:00Z",
+    "so_hoa_don": "0001310",
+    "ky_hieu": "1C26TFV",
+    "bien_so_xe": "43C-125.68",
+    "ten_tai_xe": "Phạm Văn Đồng"
+  }
+},
+{
+  "model": "database.hoadonnhap",
+  "pk": "HDN04",
+  "fields": {
+    "nha_cung_cap": "NCC02",
+    "chi_nhanh": "CN01",
+    "don_vi_van_chuyen": "DVVC02",
+    "ngay_nhap": "2026-09-10T07:20:00Z",
+    "so_hoa_don": "0001402",
+    "ky_hieu": "1C26TFV",
+    "bien_so_xe": "43H-089.34",
+    "ten_tai_xe": "Trần Đình Trọng"
+  }
+},
+{
+  "model": "database.hoadonnhap",
+  "pk": "HDN05",
+  "fields": {
+    "nha_cung_cap": "NCC02",
+    "chi_nhanh": "CN02",
+    "don_vi_van_chuyen": "DVVC03",
+    "ngay_nhap": "2026-07-12T01:45:00Z",
+    "so_hoa_don": "0001218",
+    "ky_hieu": "1C26TFV",
+    "bien_so_xe": "77C-098.76",
+    "ten_tai_xe": "Nguyễn Văn Bình"
+  }
+},
+{
+  "model": "database.hoadonnhap",
+  "pk": "HDN06",
+  "fields": {
+    "nha_cung_cap": "NCC04",
+    "chi_nhanh": "CN02",
+    "don_vi_van_chuyen": "DVVC03",
+    "ngay_nhap": "2026-08-22T08:10:00Z",
+    "so_hoa_don": "0001355",
+    "ky_hieu": "1C26TFV",
+    "bien_so_xe": "77H-012.45",
+    "ten_tai_xe": "Võ Thanh Tùng"
+  }
+},
+{
+  "model": "database.hoadonnhap",
+  "pk": "HDN07",
+  "fields": {
+    "nha_cung_cap": "NCC01",
+    "chi_nhanh": "CN03",
+    "don_vi_van_chuyen": "DVVC04",
+    "ngay_nhap": "2026-07-18T02:30:00Z",
+    "so_hoa_don": "0001230",
+    "ky_hieu": "1C26TFV",
+    "bien_so_xe": "81C-056.89",
+    "ten_tai_xe": "Đinh Văn Kiên"
+  }
+},
+{
+  "model": "database.hoadonnhap",
+  "pk": "HDN08",
+  "fields": {
+    "nha_cung_cap": "NCC04",
+    "chi_nhanh": "CN03",
+    "don_vi_van_chuyen": "DVVC04",
+    "ngay_nhap": "2026-09-05T06:45:00Z",
+    "so_hoa_don": "0001389",
+    "ky_hieu": "1C26TFV",
+    "bien_so_xe": "81H-034.21",
+    "ten_tai_xe": "Hoàng Minh Đức"
+  }
+},
+{
+  "model": "database.hoadonban",
+  "pk": "HDB01",
+  "fields": {
+    "khach_hang": "KH01",
+    "chi_nhanh": "CN01",
+    "ngay_ban": "2026-07-15T07:30:00Z",
+    "so_hoa_don": "0005101",
+    "hinh_thuc_tt": "Chuyển khoản",
+    "phieu_xuat_kho": "PXK01"
+  }
+},
+{
+  "model": "database.hoadonban",
+  "pk": "HDB02",
+  "fields": {
+    "khach_hang": "KH03",
+    "chi_nhanh": "CN01",
+    "ngay_ban": "2026-07-18T03:15:00Z",
+    "so_hoa_don": "0005102",
+    "hinh_thuc_tt": "Trả góp ngân hàng",
+    "phieu_xuat_kho": "PXK03"
+  }
+},
+{
+  "model": "database.hoadonban",
+  "pk": "HDB03",
+  "fields": {
+    "khach_hang": "KH04",
+    "chi_nhanh": "CN01",
+    "ngay_ban": "2026-07-25T09:00:00Z",
+    "so_hoa_don": "0005103",
+    "hinh_thuc_tt": "Chuyển khoản",
+    "phieu_xuat_kho": "PXK04"
+  }
+},
+{
+  "model": "database.hoadonban",
+  "pk": "HDB04",
+  "fields": {
+    "khach_hang": "KH05",
+    "chi_nhanh": "CN01",
+    "ngay_ban": "2026-08-02T02:45:00Z",
+    "so_hoa_don": "0005104",
+    "hinh_thuc_tt": "Tiền mặt",
+    "phieu_xuat_kho": "PXK05"
+  }
+},
+{
+  "model": "database.hoadonban",
+  "pk": "HDB05",
+  "fields": {
+    "khach_hang": "KH02",
+    "chi_nhanh": "CN01",
+    "ngay_ban": "2026-08-10T04:20:00Z",
+    "so_hoa_don": "0005105",
+    "hinh_thuc_tt": "Chuyển khoản",
+    "phieu_xuat_kho": "PXK06"
+  }
+},
+{
+  "model": "database.hoadonban",
+  "pk": "HDB06",
+  "fields": {
+    "khach_hang": "KH07",
+    "chi_nhanh": "CN02",
+    "ngay_ban": "2026-07-22T08:00:00Z",
+    "so_hoa_don": "0006101",
+    "hinh_thuc_tt": "Chuyển khoản",
+    "phieu_xuat_kho": "PXK07"
+  }
+},
+{
+  "model": "database.hoadonban",
+  "pk": "HDB07",
+  "fields": {
+    "khach_hang": "KH08",
+    "chi_nhanh": "CN02",
+    "ngay_ban": "2026-07-28T03:30:00Z",
+    "so_hoa_don": "0006102",
+    "hinh_thuc_tt": "Trả góp ngân hàng",
+    "phieu_xuat_kho": "PXK08"
+  }
+},
+{
+  "model": "database.hoadonban",
+  "pk": "HDB08",
+  "fields": {
+    "khach_hang": "KH09",
+    "chi_nhanh": "CN02",
+    "ngay_ban": "2026-08-05T07:15:00Z",
+    "so_hoa_don": "0006103",
+    "hinh_thuc_tt": "Tiền mặt",
+    "phieu_xuat_kho": "PXK11"
+  }
+},
+{
+  "model": "database.hoadonban",
+  "pk": "HDB09",
+  "fields": {
+    "khach_hang": "KH11",
+    "chi_nhanh": "CN03",
+    "ngay_ban": "2026-07-29T02:30:00Z",
+    "so_hoa_don": "0007101",
+    "hinh_thuc_tt": "Chuyển khoản",
+    "phieu_xuat_kho": "PXK09"
+  }
+},
+{
+  "model": "database.hoadonban",
+  "pk": "HDB10",
+  "fields": {
+    "khach_hang": "KH12",
+    "chi_nhanh": "CN03",
+    "ngay_ban": "2026-08-12T09:20:00Z",
+    "so_hoa_don": "0007102",
+    "hinh_thuc_tt": "Chuyển khoản",
+    "phieu_xuat_kho": "PXK10"
+  }
+},
+{
+  "model": "database.hoadonban",
+  "pk": "HDB11",
+  "fields": {
+    "khach_hang": "KH01",
+    "chi_nhanh": "CN01",
+    "ngay_ban": "2026-07-15T08:00:00Z",
+    "so_hoa_don": "0005106",
+    "hinh_thuc_tt": "Chuyển khoản",
+    "phieu_xuat_kho": "PXK02"
+  }
+},
+{
+  "model": "database.hoadonban",
+  "pk": "HDB12",
+  "fields": {
+    "khach_hang": "KH11",
+    "chi_nhanh": "CN03",
+    "ngay_ban": "2026-07-29T03:00:00Z",
+    "so_hoa_don": "0007103",
+    "hinh_thuc_tt": "Chuyển khoản",
+    "phieu_xuat_kho": "PXK12"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 1,
+  "fields": {
+    "kho": "KHO01",
+    "xe": "RL2FMA001TZ000007",
+    "ngay_vao_kho": "2026-07-20",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 2,
+  "fields": {
+    "kho": "KHO01",
+    "xe": "RL2FMA001TZ000008",
+    "ngay_vao_kho": "2026-07-20",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 3,
+  "fields": {
+    "kho": "KHO01",
+    "xe": "RL2FMA001TZ000009",
+    "ngay_vao_kho": "2026-07-20",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 4,
+  "fields": {
+    "kho": "KHO01",
+    "xe": "RL2FMA001TZ000010",
+    "ngay_vao_kho": "2026-07-20",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 5,
+  "fields": {
+    "kho": "KHO01",
+    "xe": "RL2FMA001TZ000011",
+    "ngay_vao_kho": "2026-08-15",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 6,
+  "fields": {
+    "kho": "KHO01",
+    "xe": "RL2FMA001TZ000012",
+    "ngay_vao_kho": "2026-08-15",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 7,
+  "fields": {
+    "kho": "KHO01",
+    "xe": "RL2FMA001TZ000013",
+    "ngay_vao_kho": "2026-08-15",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 8,
+  "fields": {
+    "kho": "KHO01",
+    "xe": "RL2FMA001TZ000014",
+    "ngay_vao_kho": "2026-08-15",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 9,
+  "fields": {
+    "kho": "KHO01",
+    "xe": "RL2FMA001TZ000015",
+    "ngay_vao_kho": "2026-08-15",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 10,
+  "fields": {
+    "kho": "KHO01",
+    "xe": "RL2FMA001TZ000016",
+    "ngay_vao_kho": "2026-09-10",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 11,
+  "fields": {
+    "kho": "KHO01",
+    "xe": "RL2FMA001TZ000017",
+    "ngay_vao_kho": "2026-09-10",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 12,
+  "fields": {
+    "kho": "KHO01",
+    "xe": "RL2FMA001TZ000018",
+    "ngay_vao_kho": "2026-09-10",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 13,
+  "fields": {
+    "kho": "KHO02",
+    "xe": "RL2FMA001TZ000024",
+    "ngay_vao_kho": "2026-07-12",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 14,
+  "fields": {
+    "kho": "KHO02",
+    "xe": "RL2FMA001TZ000025",
+    "ngay_vao_kho": "2026-07-12",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 15,
+  "fields": {
+    "kho": "KHO02",
+    "xe": "RL2FMA001TZ000026",
+    "ngay_vao_kho": "2026-08-22",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 16,
+  "fields": {
+    "kho": "KHO02",
+    "xe": "RL2FMA001TZ000027",
+    "ngay_vao_kho": "2026-08-22",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 17,
+  "fields": {
+    "kho": "KHO02",
+    "xe": "RL2FMA001TZ000028",
+    "ngay_vao_kho": "2026-08-22",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 18,
+  "fields": {
+    "kho": "KHO02",
+    "xe": "RL2FMA001TZ000029",
+    "ngay_vao_kho": "2026-08-22",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 19,
+  "fields": {
+    "kho": "KHO03",
+    "xe": "RL2FMA001TZ000034",
+    "ngay_vao_kho": "2026-07-18",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 20,
+  "fields": {
+    "kho": "KHO03",
+    "xe": "RL2FMA001TZ000035",
+    "ngay_vao_kho": "2026-07-18",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 21,
+  "fields": {
+    "kho": "KHO03",
+    "xe": "RL2FMA001TZ000036",
+    "ngay_vao_kho": "2026-09-05",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 22,
+  "fields": {
+    "kho": "KHO03",
+    "xe": "RL2FMA001TZ000037",
+    "ngay_vao_kho": "2026-09-05",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 23,
+  "fields": {
+    "kho": "KHO03",
+    "xe": "RL2FMA001TZ000038",
+    "ngay_vao_kho": "2026-09-05",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 24,
+  "fields": {
+    "kho": "KHO03",
+    "xe": "RL2FMA001TZ000039",
+    "ngay_vao_kho": "2026-09-05",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 25,
+  "fields": {
+    "kho": "KHO01",
+    "xe": "RL2FMA001TZ000019",
+    "ngay_vao_kho": "2026-09-10",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 26,
+  "fields": {
+    "kho": "KHO01",
+    "xe": "RL2FMA001TZ000020",
+    "ngay_vao_kho": "2026-09-10",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 27,
+  "fields": {
+    "kho": "KHO02",
+    "xe": "RL2FMA001TZ000030",
+    "ngay_vao_kho": "2026-08-22",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.tonkho",
+  "pk": 28,
+  "fields": {
+    "kho": "KHO03",
+    "xe": "RL2FMA001TZ000040",
+    "ngay_vao_kho": "2026-09-05",
+    "so_luong_ton": 1,
+    "vi_tri": "A01"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 1,
+  "fields": {
+    "hoa_don_nhap": "HDN01",
+    "xe": "RL2FMA001TZ000001",
+    "so_luong_nhap": 1,
+    "don_gia": "600000000.00",
+    "thanh_tien": "600000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 2,
+  "fields": {
+    "hoa_don_nhap": "HDN01",
+    "xe": "RL2FMA001TZ000002",
+    "so_luong_nhap": 1,
+    "don_gia": "600000000.00",
+    "thanh_tien": "600000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 3,
+  "fields": {
+    "hoa_don_nhap": "HDN01",
+    "xe": "RL2FMA001TZ000003",
+    "so_luong_nhap": 1,
+    "don_gia": "860000000.00",
+    "thanh_tien": "860000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 4,
+  "fields": {
+    "hoa_don_nhap": "HDN01",
+    "xe": "RL2FMA001TZ000004",
+    "so_luong_nhap": 1,
+    "don_gia": "1320000000.00",
+    "thanh_tien": "1320000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 5,
+  "fields": {
+    "hoa_don_nhap": "HDN01",
+    "xe": "RL2FMA001TZ000005",
+    "so_luong_nhap": 1,
+    "don_gia": "820000000.00",
+    "thanh_tien": "820000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 6,
+  "fields": {
+    "hoa_don_nhap": "HDN02",
+    "xe": "RL2FMA001TZ000006",
+    "so_luong_nhap": 1,
+    "don_gia": "800000000.00",
+    "thanh_tien": "800000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 7,
+  "fields": {
+    "hoa_don_nhap": "HDN02",
+    "xe": "RL2FMA001TZ000007",
+    "so_luong_nhap": 1,
+    "don_gia": "1160000000.00",
+    "thanh_tien": "1160000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 8,
+  "fields": {
+    "hoa_don_nhap": "HDN02",
+    "xe": "RL2FMA001TZ000008",
+    "so_luong_nhap": 1,
+    "don_gia": "1050000000.00",
+    "thanh_tien": "1050000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 9,
+  "fields": {
+    "hoa_don_nhap": "HDN02",
+    "xe": "RL2FMA001TZ000009",
+    "so_luong_nhap": 1,
+    "don_gia": "720000000.00",
+    "thanh_tien": "720000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 10,
+  "fields": {
+    "hoa_don_nhap": "HDN02",
+    "xe": "RL2FMA001TZ000010",
+    "so_luong_nhap": 1,
+    "don_gia": "1820000000.00",
+    "thanh_tien": "1820000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 11,
+  "fields": {
+    "hoa_don_nhap": "HDN03",
+    "xe": "RL2FMA001TZ000011",
+    "so_luong_nhap": 1,
+    "don_gia": "660000000.00",
+    "thanh_tien": "660000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 12,
+  "fields": {
+    "hoa_don_nhap": "HDN03",
+    "xe": "RL2FMA001TZ000012",
+    "so_luong_nhap": 1,
+    "don_gia": "860000000.00",
+    "thanh_tien": "860000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 13,
+  "fields": {
+    "hoa_don_nhap": "HDN03",
+    "xe": "RL2FMA001TZ000013",
+    "so_luong_nhap": 1,
+    "don_gia": "980000000.00",
+    "thanh_tien": "980000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 14,
+  "fields": {
+    "hoa_don_nhap": "HDN03",
+    "xe": "RL2FMA001TZ000014",
+    "so_luong_nhap": 1,
+    "don_gia": "1150000000.00",
+    "thanh_tien": "1150000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 15,
+  "fields": {
+    "hoa_don_nhap": "HDN03",
+    "xe": "RL2FMA001TZ000015",
+    "so_luong_nhap": 1,
+    "don_gia": "780000000.00",
+    "thanh_tien": "780000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 16,
+  "fields": {
+    "hoa_don_nhap": "HDN04",
+    "xe": "RL2FMA001TZ000016",
+    "so_luong_nhap": 1,
+    "don_gia": "1180000000.00",
+    "thanh_tien": "1180000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 17,
+  "fields": {
+    "hoa_don_nhap": "HDN04",
+    "xe": "RL2FMA001TZ000017",
+    "so_luong_nhap": 1,
+    "don_gia": "760000000.00",
+    "thanh_tien": "760000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 18,
+  "fields": {
+    "hoa_don_nhap": "HDN04",
+    "xe": "RL2FMA001TZ000018",
+    "so_luong_nhap": 1,
+    "don_gia": "1420000000.00",
+    "thanh_tien": "1420000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 19,
+  "fields": {
+    "hoa_don_nhap": "HDN04",
+    "xe": "RL2FMA001TZ000019",
+    "so_luong_nhap": 1,
+    "don_gia": "820000000.00",
+    "thanh_tien": "820000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 20,
+  "fields": {
+    "hoa_don_nhap": "HDN04",
+    "xe": "RL2FMA001TZ000020",
+    "so_luong_nhap": 1,
+    "don_gia": "600000000.00",
+    "thanh_tien": "600000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 21,
+  "fields": {
+    "hoa_don_nhap": "HDN05",
+    "xe": "RL2FMA001TZ000021",
+    "so_luong_nhap": 1,
+    "don_gia": "860000000.00",
+    "thanh_tien": "860000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 22,
+  "fields": {
+    "hoa_don_nhap": "HDN05",
+    "xe": "RL2FMA001TZ000022",
+    "so_luong_nhap": 1,
+    "don_gia": "1320000000.00",
+    "thanh_tien": "1320000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 23,
+  "fields": {
+    "hoa_don_nhap": "HDN05",
+    "xe": "RL2FMA001TZ000023",
+    "so_luong_nhap": 1,
+    "don_gia": "780000000.00",
+    "thanh_tien": "780000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 24,
+  "fields": {
+    "hoa_don_nhap": "HDN05",
+    "xe": "RL2FMA001TZ000024",
+    "so_luong_nhap": 1,
+    "don_gia": "600000000.00",
+    "thanh_tien": "600000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 25,
+  "fields": {
+    "hoa_don_nhap": "HDN05",
+    "xe": "RL2FMA001TZ000025",
+    "so_luong_nhap": 1,
+    "don_gia": "800000000.00",
+    "thanh_tien": "800000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 26,
+  "fields": {
+    "hoa_don_nhap": "HDN06",
+    "xe": "RL2FMA001TZ000026",
+    "so_luong_nhap": 1,
+    "don_gia": "1160000000.00",
+    "thanh_tien": "1160000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 27,
+  "fields": {
+    "hoa_don_nhap": "HDN06",
+    "xe": "RL2FMA001TZ000027",
+    "so_luong_nhap": 1,
+    "don_gia": "1050000000.00",
+    "thanh_tien": "1050000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 28,
+  "fields": {
+    "hoa_don_nhap": "HDN06",
+    "xe": "RL2FMA001TZ000028",
+    "so_luong_nhap": 1,
+    "don_gia": "720000000.00",
+    "thanh_tien": "720000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 29,
+  "fields": {
+    "hoa_don_nhap": "HDN06",
+    "xe": "RL2FMA001TZ000029",
+    "so_luong_nhap": 1,
+    "don_gia": "1820000000.00",
+    "thanh_tien": "1820000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 30,
+  "fields": {
+    "hoa_don_nhap": "HDN06",
+    "xe": "RL2FMA001TZ000030",
+    "so_luong_nhap": 1,
+    "don_gia": "760000000.00",
+    "thanh_tien": "760000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 31,
+  "fields": {
+    "hoa_don_nhap": "HDN07",
+    "xe": "RL2FMA001TZ000031",
+    "so_luong_nhap": 1,
+    "don_gia": "660000000.00",
+    "thanh_tien": "660000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 32,
+  "fields": {
+    "hoa_don_nhap": "HDN07",
+    "xe": "RL2FMA001TZ000032",
+    "so_luong_nhap": 1,
+    "don_gia": "860000000.00",
+    "thanh_tien": "860000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 33,
+  "fields": {
+    "hoa_don_nhap": "HDN07",
+    "xe": "RL2FMA001TZ000033",
+    "so_luong_nhap": 1,
+    "don_gia": "800000000.00",
+    "thanh_tien": "800000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 34,
+  "fields": {
+    "hoa_don_nhap": "HDN07",
+    "xe": "RL2FMA001TZ000034",
+    "so_luong_nhap": 1,
+    "don_gia": "1320000000.00",
+    "thanh_tien": "1320000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 35,
+  "fields": {
+    "hoa_don_nhap": "HDN07",
+    "xe": "RL2FMA001TZ000035",
+    "so_luong_nhap": 1,
+    "don_gia": "820000000.00",
+    "thanh_tien": "820000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 36,
+  "fields": {
+    "hoa_don_nhap": "HDN08",
+    "xe": "RL2FMA001TZ000036",
+    "so_luong_nhap": 1,
+    "don_gia": "1160000000.00",
+    "thanh_tien": "1160000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 37,
+  "fields": {
+    "hoa_don_nhap": "HDN08",
+    "xe": "RL2FMA001TZ000037",
+    "so_luong_nhap": 1,
+    "don_gia": "980000000.00",
+    "thanh_tien": "980000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 38,
+  "fields": {
+    "hoa_don_nhap": "HDN08",
+    "xe": "RL2FMA001TZ000038",
+    "so_luong_nhap": 1,
+    "don_gia": "600000000.00",
+    "thanh_tien": "600000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 39,
+  "fields": {
+    "hoa_don_nhap": "HDN08",
+    "xe": "RL2FMA001TZ000039",
+    "so_luong_nhap": 1,
+    "don_gia": "780000000.00",
+    "thanh_tien": "780000000.00"
+  }
+},
+{
+  "model": "database.chitietnhap",
+  "pk": 40,
+  "fields": {
+    "hoa_don_nhap": "HDN08",
+    "xe": "RL2FMA001TZ000040",
+    "so_luong_nhap": 1,
+    "don_gia": "1150000000.00",
+    "thanh_tien": "1150000000.00"
+  }
+},
+{
+  "model": "database.chitietban",
+  "pk": 1,
+  "fields": {
+    "hoa_don_ban": "HDB01",
+    "xe": "RL2FMA001TZ000001",
+    "so_luong_ban": 1,
+    "gia_ban": "650000000.00",
+    "tien_vat": "65000000.00",
+    "tong_thanh_toan": "715000000.00"
+  }
+},
+{
+  "model": "database.chitietban",
+  "pk": 2,
+  "fields": {
+    "hoa_don_ban": "HDB11",
+    "xe": "RL2FMA001TZ000002",
+    "so_luong_ban": 1,
+    "gia_ban": "650000000.00",
+    "tien_vat": "65000000.00",
+    "tong_thanh_toan": "715000000.00"
+  }
+},
+{
+  "model": "database.chitietban",
+  "pk": 3,
+  "fields": {
+    "hoa_don_ban": "HDB02",
+    "xe": "RL2FMA001TZ000003",
+    "so_luong_ban": 1,
+    "gia_ban": "920000000.00",
+    "tien_vat": "92000000.00",
+    "tong_thanh_toan": "1012000000.00"
+  }
+},
+{
+  "model": "database.chitietban",
+  "pk": 4,
+  "fields": {
+    "hoa_don_ban": "HDB03",
+    "xe": "RL2FMA001TZ000004",
+    "so_luong_ban": 1,
+    "gia_ban": "1450000000.00",
+    "tien_vat": "145000000.00",
+    "tong_thanh_toan": "1595000000.00"
+  }
+},
+{
+  "model": "database.chitietban",
+  "pk": 5,
+  "fields": {
+    "hoa_don_ban": "HDB04",
+    "xe": "RL2FMA001TZ000005",
+    "so_luong_ban": 1,
+    "gia_ban": "880000000.00",
+    "tien_vat": "88000000.00",
+    "tong_thanh_toan": "968000000.00"
+  }
+},
+{
+  "model": "database.chitietban",
+  "pk": 6,
+  "fields": {
+    "hoa_don_ban": "HDB05",
+    "xe": "RL2FMA001TZ000006",
+    "so_luong_ban": 1,
+    "gia_ban": "860000000.00",
+    "tien_vat": "86000000.00",
+    "tong_thanh_toan": "946000000.00"
+  }
+},
+{
+  "model": "database.chitietban",
+  "pk": 7,
+  "fields": {
+    "hoa_don_ban": "HDB06",
+    "xe": "RL2FMA001TZ000021",
+    "so_luong_ban": 1,
+    "gia_ban": "920000000.00",
+    "tien_vat": "92000000.00",
+    "tong_thanh_toan": "1012000000.00"
+  }
+},
+{
+  "model": "database.chitietban",
+  "pk": 8,
+  "fields": {
+    "hoa_don_ban": "HDB07",
+    "xe": "RL2FMA001TZ000022",
+    "so_luong_ban": 1,
+    "gia_ban": "1450000000.00",
+    "tien_vat": "145000000.00",
+    "tong_thanh_toan": "1595000000.00"
+  }
+},
+{
+  "model": "database.chitietban",
+  "pk": 9,
+  "fields": {
+    "hoa_don_ban": "HDB08",
+    "xe": "RL2FMA001TZ000023",
+    "so_luong_ban": 1,
+    "gia_ban": "840000000.00",
+    "tien_vat": "84000000.00",
+    "tong_thanh_toan": "924000000.00"
+  }
+},
+{
+  "model": "database.chitietban",
+  "pk": 10,
+  "fields": {
+    "hoa_don_ban": "HDB09",
+    "xe": "RL2FMA001TZ000031",
+    "so_luong_ban": 1,
+    "gia_ban": "720000000.00",
+    "tien_vat": "72000000.00",
+    "tong_thanh_toan": "792000000.00"
+  }
+},
+{
+  "model": "database.chitietban",
+  "pk": 11,
+  "fields": {
+    "hoa_don_ban": "HDB12",
+    "xe": "RL2FMA001TZ000032",
+    "so_luong_ban": 1,
+    "gia_ban": "920000000.00",
+    "tien_vat": "92000000.00",
+    "tong_thanh_toan": "1012000000.00"
+  }
+},
+{
+  "model": "database.chitietban",
+  "pk": 12,
+  "fields": {
+    "hoa_don_ban": "HDB10",
+    "xe": "RL2FMA001TZ000033",
+    "so_luong_ban": 1,
+    "gia_ban": "860000000.00",
+    "tien_vat": "86000000.00",
+    "tong_thanh_toan": "946000000.00"
+  }
+},
+{
+  "model": "database.bienbanpdi",
+  "pk": "PDI01",
+  "fields": {
+    "hoa_don_nhap": "HDN01",
+    "xe": "RL2FMA001TZ000003",
+    "nhan_vien": "NV01",
+    "ngay_ghi_nhan": "2026-07-05T03:30:00Z",
+    "loai_su_co": "Trầy xước sơn",
+    "mo_ta_chi_tiet": "Vết xước nhẹ dài 5cm ở cản trước bên phụ do quá trình chằng buộc trên xe lồng.",
+    "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/07/pdi01_ranger_wildtrak.jpg",
+    "trang_thai_claim": "Đã xử lý"
+  }
+},
+{
+  "model": "database.bienbanpdi",
+  "pk": "PDI02",
+  "fields": {
+    "hoa_don_nhap": "HDN02",
+    "xe": "RL2FMA001TZ000008",
+    "nhan_vien": "NV02",
+    "ngay_ghi_nhan": "2026-07-20T04:00:00Z",
+    "loai_su_co": "Hỏng gương",
+    "mo_ta_chi_tiet": "Nứt mặt gương chiếu hậu bên tài, mô tơ gập gương vẫn hoạt động bình thường.",
+    "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/07/pdi02_everest_sport.jpg",
+    "trang_thai_claim": "Đã gửi yêu cầu"
+  }
+},
+{
+  "model": "database.bienbanpdi",
+  "pk": "PDI03",
+  "fields": {
+    "hoa_don_nhap": "HDN03",
+    "xe": "RL2FMA001TZ000014",
+    "nhan_vien": "NV01",
+    "ngay_ghi_nhan": "2026-08-15T06:30:00Z",
+    "loai_su_co": "Lỗi đèn",
+    "mo_ta_chi_tiet": "Đèn sương mù phía trước bên phải không sáng khi bật công tắc kiểm tra PDI.",
+    "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/08/pdi03_everest_titanium.jpg",
+    "trang_thai_claim": "Chưa xử lý"
+  }
+},
+{
+  "model": "database.bienbanpdi",
+  "pk": "PDI04",
+  "fields": {
+    "hoa_don_nhap": "HDN04",
+    "xe": "RL2FMA001TZ000019",
+    "nhan_vien": "NV03",
+    "ngay_ghi_nhan": "2026-09-10T09:00:00Z",
+    "loai_su_co": "Móp thân vỏ",
+    "mo_ta_chi_tiet": "Lõm nhẹ phần cánh cửa sau bên phụ diện tích 4x4cm, cần làm đồng sơn lại.",
+    "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/09/pdi04_territory_x.jpg",
+    "trang_thai_claim": "Chưa xử lý"
+  }
+},
+{
+  "model": "database.bienbanpdi",
+  "pk": "PDI05",
+  "fields": {
+    "hoa_don_nhap": "HDN05",
+    "xe": "RL2FMA001TZ000025",
+    "nhan_vien": "NV04",
+    "ngay_ghi_nhan": "2026-07-12T03:30:00Z",
+    "loai_su_co": "Trầy xước sơn",
+    "mo_ta_chi_tiet": "Trầy xước tay nắm cửa lùa bên hông xe Transit do va quệt khi hạ cầu xe lồng.",
+    "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/07/pdi05_transit_trend.jpg",
+    "trang_thai_claim": "Đã xử lý"
+  }
+},
+{
+  "model": "database.bienbanpdi",
+  "pk": "PDI06",
+  "fields": {
+    "hoa_don_nhap": "HDN06",
+    "xe": "RL2FMA001TZ000028",
+    "nhan_vien": "NV06",
+    "ngay_ghi_nhan": "2026-08-22T09:45:00Z",
+    "loai_su_co": "Lỗi đèn",
+    "mo_ta_chi_tiet": "Đèn LED định vị ban ngày bên trái chập chờn, báo lỗi trên màn hình taplo.",
+    "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/08/pdi06_territory_trend.jpg",
+    "trang_thai_claim": "Đang xử lý"
+  }
+},
+{
+  "model": "database.bienbanpdi",
+  "pk": "PDI07",
+  "fields": {
+    "hoa_don_nhap": "HDN07",
+    "xe": "RL2FMA001TZ000034",
+    "nhan_vien": "NV07",
+    "ngay_ghi_nhan": "2026-07-18T04:15:00Z",
+    "loai_su_co": "Trầy xước sơn",
+    "mo_ta_chi_tiet": "Xước nhẹ mâm xe (la-zăng) bánh trước bên phụ khoảng 2cm.",
+    "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/07/pdi07_everest_bi_turbo.jpg",
+    "trang_thai_claim": "Đã xử lý"
+  }
+},
+{
+  "model": "database.bienbanpdi",
+  "pk": "PDI08",
+  "fields": {
+    "hoa_don_nhap": "HDN08",
+    "xe": "RL2FMA001TZ000039",
+    "nhan_vien": "NV09",
+    "ngay_ghi_nhan": "2026-09-05T08:30:00Z",
+    "loai_su_co": "Hỏng gương",
+    "mo_ta_chi_tiet": "Ốp nhựa gương chiếu hậu bên phụ bị bung ngàm và trầy bề mặt sơn.",
+    "hinh_anh_url": "https://cdn.danaford.vn/pdi/2026/09/pdi08_territory_titanium.jpg",
+    "trang_thai_claim": "Chưa xử lý"
+  }
+},
+{
+  "model": "database.hopdong",
+  "pk": "HD01",
+  "fields": {
+    "chi_nhanh": "CN01",
+    "khach_hang": "KH01",
+    "ngay_ky": "2026-07-10T02:00:00Z",
+    "so_tien_coc": "100000000.00",
+    "trang_thai": "HOAN_TAT"
+  }
+},
+{
+  "model": "database.hopdong",
+  "pk": "HD03",
+  "fields": {
+    "chi_nhanh": "CN01",
+    "khach_hang": "KH03",
+    "ngay_ky": "2026-07-14T03:00:00Z",
+    "so_tien_coc": "80000000.00",
+    "trang_thai": "HOAN_TAT"
+  }
+},
+{
+  "model": "database.hopdong",
+  "pk": "HD04",
+  "fields": {
+    "chi_nhanh": "CN01",
+    "khach_hang": "KH04",
+    "ngay_ky": "2026-07-21T07:00:00Z",
+    "so_tien_coc": "100000000.00",
+    "trang_thai": "HOAN_TAT"
+  }
+},
+{
+  "model": "database.hopdong",
+  "pk": "HD05",
+  "fields": {
+    "chi_nhanh": "CN01",
+    "khach_hang": "KH05",
+    "ngay_ky": "2026-07-29T08:00:00Z",
+    "so_tien_coc": "50000000.00",
+    "trang_thai": "HOAN_TAT"
+  }
+},
+{
+  "model": "database.hopdong",
+  "pk": "HD06",
+  "fields": {
+    "chi_nhanh": "CN01",
+    "khach_hang": "KH02",
+    "ngay_ky": "2026-08-06T01:30:00Z",
+    "so_tien_coc": "70000000.00",
+    "trang_thai": "HOAN_TAT"
+  }
+},
+{
+  "model": "database.hopdong",
+  "pk": "HD07",
+  "fields": {
+    "chi_nhanh": "CN02",
+    "khach_hang": "KH07",
+    "ngay_ky": "2026-07-18T02:15:00Z",
+    "so_tien_coc": "80000000.00",
+    "trang_thai": "HOAN_TAT"
+  }
+},
+{
+  "model": "database.hopdong",
+  "pk": "HD08",
+  "fields": {
+    "chi_nhanh": "CN02",
+    "khach_hang": "KH08",
+    "ngay_ky": "2026-07-24T04:00:00Z",
+    "so_tien_coc": "100000000.00",
+    "trang_thai": "HOAN_TAT"
+  }
+},
+{
+  "model": "database.hopdong",
+  "pk": "HD09",
+  "fields": {
+    "chi_nhanh": "CN03",
+    "khach_hang": "KH11",
+    "ngay_ky": "2026-07-25T03:30:00Z",
+    "so_tien_coc": "50000000.00",
+    "trang_thai": "HOAN_TAT"
+  }
+},
+{
+  "model": "database.hopdong",
+  "pk": "HD10",
+  "fields": {
+    "chi_nhanh": "CN03",
+    "khach_hang": "KH12",
+    "ngay_ky": "2026-08-08T06:45:00Z",
+    "so_tien_coc": "70000000.00",
+    "trang_thai": "HOAN_TAT"
+  }
+},
+{
+  "model": "database.hopdong",
+  "pk": "HD11",
+  "fields": {
+    "chi_nhanh": "CN01",
+    "khach_hang": "KH06",
+    "ngay_ky": "2026-10-02T02:00:00Z",
+    "so_tien_coc": "100000000.00",
+    "trang_thai": "DU_DIEU_KIEN_XUAT"
+  }
+},
+{
+  "model": "database.hopdong",
+  "pk": "HD12",
+  "fields": {
+    "chi_nhanh": "CN02",
+    "khach_hang": "KH10",
+    "ngay_ky": "2026-10-05T07:30:00Z",
+    "so_tien_coc": "50000000.00",
+    "trang_thai": "CHO_XU_LY"
+  }
+},
+{
+  "model": "database.hopdong",
+  "pk": "HD13",
+  "fields": {
+    "chi_nhanh": "CN03",
+    "khach_hang": "KH13",
+    "ngay_ky": "2026-10-08T03:15:00Z",
+    "so_tien_coc": "100000000.00",
+    "trang_thai": "CHO_XU_LY"
+  }
+},
+{
+  "model": "database.hopdong",
+  "pk": "HD14",
+  "fields": {
+    "chi_nhanh": "CN03",
+    "khach_hang": "KH14",
+    "ngay_ky": "2026-10-11T08:20:00Z",
+    "so_tien_coc": "60000000.00",
+    "trang_thai": "DANG_XUAT_KHO"
+  }
+},
+{
+  "model": "database.hopdong",
+  "pk": "HD15",
+  "fields": {
+    "chi_nhanh": "CN02",
+    "khach_hang": "KH09",
+    "ngay_ky": "2026-08-01T03:00:00Z",
+    "so_tien_coc": "50000000.00",
+    "trang_thai": "HOAN_TAT"
+  }
+},
+{
+  "model": "database.hopdong",
+  "pk": "HD16",
+  "fields": {
+    "chi_nhanh": "CN03",
+    "khach_hang": "KH11",
+    "ngay_ky": "2026-07-25T04:00:00Z",
+    "so_tien_coc": "60000000.00",
+    "trang_thai": "HOAN_TAT"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 1,
+  "fields": {
+    "hop_dong": "HD01",
+    "xe": "RL2FMA001TZ000001"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 2,
+  "fields": {
+    "hop_dong": "HD01",
+    "xe": "RL2FMA001TZ000002"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 3,
+  "fields": {
+    "hop_dong": "HD03",
+    "xe": "RL2FMA001TZ000003"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 4,
+  "fields": {
+    "hop_dong": "HD04",
+    "xe": "RL2FMA001TZ000004"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 5,
+  "fields": {
+    "hop_dong": "HD05",
+    "xe": "RL2FMA001TZ000005"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 6,
+  "fields": {
+    "hop_dong": "HD06",
+    "xe": "RL2FMA001TZ000006"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 7,
+  "fields": {
+    "hop_dong": "HD07",
+    "xe": "RL2FMA001TZ000021"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 8,
+  "fields": {
+    "hop_dong": "HD08",
+    "xe": "RL2FMA001TZ000022"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 9,
+  "fields": {
+    "hop_dong": "HD09",
+    "xe": "RL2FMA001TZ000031"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 10,
+  "fields": {
+    "hop_dong": "HD10",
+    "xe": "RL2FMA001TZ000033"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 11,
+  "fields": {
+    "hop_dong": "HD11",
+    "xe": "RL2FMA001TZ000007"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 12,
+  "fields": {
+    "hop_dong": "HD12",
+    "xe": "RL2FMA001TZ000024"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 13,
+  "fields": {
+    "hop_dong": "HD13",
+    "xe": "RL2FMA001TZ000034"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 14,
+  "fields": {
+    "hop_dong": "HD14",
+    "xe": "RL2FMA001TZ000035"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 15,
+  "fields": {
+    "hop_dong": "HD15",
+    "xe": "RL2FMA001TZ000023"
+  }
+},
+{
+  "model": "database.chitiethopdong",
+  "pk": 16,
+  "fields": {
+    "hop_dong": "HD16",
+    "xe": "RL2FMA001TZ000032"
+  }
+},
+{
+  "model": "database.phieuxuatkho",
+  "pk": "PXK01",
+  "fields": {
+    "chi_tiet_hop_dong": 1,
+    "kho": "KHO01",
+    "ngay_lap": "2026-07-15T01:00:00Z",
+    "ngay_xuat": "2026-07-15T01:30:00Z",
+    "nguoi_lap": null,
+    "nguoi_duyet": null,
+    "ngay_duyet": null,
+    "nguoi_nhan": "",
+    "ghi_chu": null,
+    "trang_thai": "CHO_DUYET"
+  }
+},
+{
+  "model": "database.phieuxuatkho",
+  "pk": "PXK02",
+  "fields": {
+    "chi_tiet_hop_dong": 2,
+    "kho": "KHO01",
+    "ngay_lap": "2026-07-15T01:30:00Z",
+    "ngay_xuat": "2026-07-15T02:00:00Z",
+    "nguoi_lap": null,
+    "nguoi_duyet": null,
+    "ngay_duyet": null,
+    "nguoi_nhan": "",
+    "ghi_chu": null,
+    "trang_thai": "CHO_DUYET"
+  }
+},
+{
+  "model": "database.phieuxuatkho",
+  "pk": "PXK03",
+  "fields": {
+    "chi_tiet_hop_dong": 3,
+    "kho": "KHO01",
+    "ngay_lap": "2026-07-18T01:00:00Z",
+    "ngay_xuat": "2026-07-18T01:45:00Z",
+    "nguoi_lap": null,
+    "nguoi_duyet": null,
+    "ngay_duyet": null,
+    "nguoi_nhan": "",
+    "ghi_chu": null,
+    "trang_thai": "CHO_DUYET"
+  }
+},
+{
+  "model": "database.phieuxuatkho",
+  "pk": "PXK04",
+  "fields": {
+    "chi_tiet_hop_dong": 4,
+    "kho": "KHO01",
+    "ngay_lap": "2026-07-25T06:00:00Z",
+    "ngay_xuat": "2026-07-25T06:30:00Z",
+    "nguoi_lap": null,
+    "nguoi_duyet": null,
+    "ngay_duyet": null,
+    "nguoi_nhan": "",
+    "ghi_chu": null,
+    "trang_thai": "CHO_DUYET"
+  }
+},
+{
+  "model": "database.phieuxuatkho",
+  "pk": "PXK05",
+  "fields": {
+    "chi_tiet_hop_dong": 5,
+    "kho": "KHO01",
+    "ngay_lap": "2026-08-02T01:00:00Z",
+    "ngay_xuat": "2026-08-02T01:15:00Z",
+    "nguoi_lap": null,
+    "nguoi_duyet": null,
+    "ngay_duyet": null,
+    "nguoi_nhan": "",
+    "ghi_chu": null,
+    "trang_thai": "CHO_DUYET"
+  }
+},
+{
+  "model": "database.phieuxuatkho",
+  "pk": "PXK06",
+  "fields": {
+    "chi_tiet_hop_dong": 6,
+    "kho": "KHO01",
+    "ngay_lap": "2026-08-10T01:30:00Z",
+    "ngay_xuat": "2026-08-10T02:00:00Z",
+    "nguoi_lap": null,
+    "nguoi_duyet": null,
+    "ngay_duyet": null,
+    "nguoi_nhan": "",
+    "ghi_chu": null,
+    "trang_thai": "CHO_DUYET"
+  }
+},
+{
+  "model": "database.phieuxuatkho",
+  "pk": "PXK07",
+  "fields": {
+    "chi_tiet_hop_dong": 7,
+    "kho": "KHO02",
+    "ngay_lap": "2026-07-22T06:00:00Z",
+    "ngay_xuat": "2026-07-22T06:30:00Z",
+    "nguoi_lap": null,
+    "nguoi_duyet": null,
+    "ngay_duyet": null,
+    "nguoi_nhan": "",
+    "ghi_chu": null,
+    "trang_thai": "CHO_DUYET"
+  }
+},
+{
+  "model": "database.phieuxuatkho",
+  "pk": "PXK08",
+  "fields": {
+    "chi_tiet_hop_dong": 8,
+    "kho": "KHO02",
+    "ngay_lap": "2026-07-28T01:00:00Z",
+    "ngay_xuat": "2026-07-28T01:30:00Z",
+    "nguoi_lap": null,
+    "nguoi_duyet": null,
+    "ngay_duyet": null,
+    "nguoi_nhan": "",
+    "ghi_chu": null,
+    "trang_thai": "CHO_DUYET"
+  }
+},
+{
+  "model": "database.phieuxuatkho",
+  "pk": "PXK09",
+  "fields": {
+    "chi_tiet_hop_dong": 9,
+    "kho": "KHO03",
+    "ngay_lap": "2026-07-29T01:00:00Z",
+    "ngay_xuat": "2026-07-29T01:15:00Z",
+    "nguoi_lap": null,
+    "nguoi_duyet": null,
+    "ngay_duyet": null,
+    "nguoi_nhan": "",
+    "ghi_chu": null,
+    "trang_thai": "CHO_DUYET"
+  }
+},
+{
+  "model": "database.phieuxuatkho",
+  "pk": "PXK10",
+  "fields": {
+    "chi_tiet_hop_dong": 10,
+    "kho": "KHO03",
+    "ngay_lap": "2026-08-12T06:30:00Z",
+    "ngay_xuat": "2026-08-12T07:00:00Z",
+    "nguoi_lap": null,
+    "nguoi_duyet": null,
+    "ngay_duyet": null,
+    "nguoi_nhan": "",
+    "ghi_chu": null,
+    "trang_thai": "CHO_DUYET"
+  }
+},
+{
+  "model": "database.phieuxuatkho",
+  "pk": "PXK11",
+  "fields": {
+    "chi_tiet_hop_dong": 15,
+    "kho": "KHO02",
+    "ngay_lap": "2026-08-05T01:00:00Z",
+    "ngay_xuat": "2026-08-05T01:30:00Z",
+    "nguoi_lap": null,
+    "nguoi_duyet": null,
+    "ngay_duyet": null,
+    "nguoi_nhan": "",
+    "ghi_chu": null,
+    "trang_thai": "CHO_DUYET"
+  }
+},
+{
+  "model": "database.phieuxuatkho",
+  "pk": "PXK12",
+  "fields": {
+    "chi_tiet_hop_dong": 16,
+    "kho": "KHO03",
+    "ngay_lap": "2026-07-29T01:00:00Z",
+    "ngay_xuat": "2026-07-29T01:45:00Z",
+    "nguoi_lap": null,
+    "nguoi_duyet": null,
+    "ngay_duyet": null,
+    "nguoi_nhan": "",
+    "ghi_chu": null,
+    "trang_thai": "CHO_DUYET"
+  }
+},
+{
+  "model": "database.phieuxuatkho",
+  "pk": "PXK14",
+  "fields": {
+    "chi_tiet_hop_dong": 14,
+    "kho": "KHO03",
+    "ngay_lap": "2026-11-04T05:10:55.392Z",
+    "ngay_xuat": null,
+    "nguoi_lap": "NV08",
+    "nguoi_duyet": null,
+    "ngay_duyet": null,
+    "nguoi_nhan": "Nguyễn Văn Đại",
+    "ghi_chu": "Phiếu xuất kho chờ duyệt giao xe theo HĐ14",
+    "trang_thai": "CHO_DUYET"
+  }
+},
+{
+  "model": "database.phieukiemke",
+  "pk": "PKK01",
+  "fields": {
+    "kho": "KHO01",
+    "nhan_vien": "NV02",
+    "ngay_kiem_ke": "2026-09-25T09:00:00Z",
+    "ky_kiem_ke": "Tháng 09/2026",
+    "pham_vi": "Toàn kho",
+    "ghi_chu": "Kiểm kê định kỳ kho Đà Nẵng đợt 1 quý 3/2026",
+    "trang_thai": "DANG_KIEM_KE",
+    "nguoi_duyet": null,
+    "ngay_duyet": null
+  }
+},
+{
+  "model": "database.phieukiemke",
+  "pk": "PKK02",
+  "fields": {
+    "kho": "KHO01",
+    "nhan_vien": "NV03",
+    "ngay_kiem_ke": "2026-10-10T09:00:00Z",
+    "ky_kiem_ke": "Tháng 10/2026",
+    "pham_vi": "Toàn kho",
+    "ghi_chu": "Kiểm kê định kỳ kho Đà Nẵng đầu quý 4/2026",
+    "trang_thai": "DANG_KIEM_KE",
+    "nguoi_duyet": null,
+    "ngay_duyet": null
+  }
+},
+{
+  "model": "database.phieukiemke",
+  "pk": "PKK03",
+  "fields": {
+    "kho": "KHO02",
+    "nhan_vien": "NV05",
+    "ngay_kiem_ke": "2026-10-10T09:30:00Z",
+    "ky_kiem_ke": "Tháng 10/2026",
+    "pham_vi": "Toàn kho",
+    "ghi_chu": "Kiểm kê định kỳ kho Bình Định đầu quý 4/2026",
+    "trang_thai": "DANG_KIEM_KE",
+    "nguoi_duyet": null,
+    "ngay_duyet": null
+  }
+},
+{
+  "model": "database.phieukiemke",
+  "pk": "PKK04",
+  "fields": {
+    "kho": "KHO03",
+    "nhan_vien": "NV08",
+    "ngay_kiem_ke": "2026-10-12T09:00:00Z",
+    "ky_kiem_ke": "Tháng 10/2026",
+    "pham_vi": "Toàn kho",
+    "ghi_chu": "Kiểm kê định kỳ kho Gia Lai đầu quý 4/2026",
+    "trang_thai": "DANG_KIEM_KE",
+    "nguoi_duyet": null,
+    "ngay_duyet": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 1,
+  "fields": {
+    "phieu_kiem_ke": "PKK01",
+    "xe": "RL2FMA001TZ000007",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đủ phụ kiện",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 2,
+  "fields": {
+    "phieu_kiem_ke": "PKK01",
+    "xe": "RL2FMA001TZ000008",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đủ phụ kiện",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 3,
+  "fields": {
+    "phieu_kiem_ke": "PKK01",
+    "xe": "RL2FMA001TZ000009",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đủ phụ kiện",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 4,
+  "fields": {
+    "phieu_kiem_ke": "PKK01",
+    "xe": "RL2FMA001TZ000010",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đang trưng bày showroom",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 5,
+  "fields": {
+    "phieu_kiem_ke": "PKK01",
+    "xe": "RL2FMA001TZ000011",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đủ phụ kiện",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 6,
+  "fields": {
+    "phieu_kiem_ke": "PKK02",
+    "xe": "RL2FMA001TZ000012",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đủ phụ kiện",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 7,
+  "fields": {
+    "phieu_kiem_ke": "PKK02",
+    "xe": "RL2FMA001TZ000013",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đủ phụ kiện",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 8,
+  "fields": {
+    "phieu_kiem_ke": "PKK02",
+    "xe": "RL2FMA001TZ000014",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đủ phụ kiện",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 9,
+  "fields": {
+    "phieu_kiem_ke": "PKK02",
+    "xe": "RL2FMA001TZ000015",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đủ phụ kiện",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 10,
+  "fields": {
+    "phieu_kiem_ke": "PKK02",
+    "xe": "RL2FMA001TZ000019",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 0,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Không có tại kho, đang chuyển xưởng đồng sơn xử lý PDI",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 11,
+  "fields": {
+    "phieu_kiem_ke": "PKK03",
+    "xe": "RL2FMA001TZ000024",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đã có khách đặt cọc",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 12,
+  "fields": {
+    "phieu_kiem_ke": "PKK03",
+    "xe": "RL2FMA001TZ000025",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đủ phụ kiện",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 13,
+  "fields": {
+    "phieu_kiem_ke": "PKK03",
+    "xe": "RL2FMA001TZ000026",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đang trưng bày showroom",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 14,
+  "fields": {
+    "phieu_kiem_ke": "PKK03",
+    "xe": "RL2FMA001TZ000027",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đủ phụ kiện",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 15,
+  "fields": {
+    "phieu_kiem_ke": "PKK03",
+    "xe": "RL2FMA001TZ000030",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 0,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Thiếu tại bãi kho, đang đối chiếu biên bản bàn giao vận chuyển",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 16,
+  "fields": {
+    "phieu_kiem_ke": "PKK04",
+    "xe": "RL2FMA001TZ000034",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đã có khách đặt cọc",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 17,
+  "fields": {
+    "phieu_kiem_ke": "PKK04",
+    "xe": "RL2FMA001TZ000035",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đủ phụ kiện",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 18,
+  "fields": {
+    "phieu_kiem_ke": "PKK04",
+    "xe": "RL2FMA001TZ000036",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đủ phụ kiện",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 19,
+  "fields": {
+    "phieu_kiem_ke": "PKK04",
+    "xe": "RL2FMA001TZ000037",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 1,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Bình thường, đủ phụ kiện",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.chitietkiemke",
+  "pk": 20,
+  "fields": {
+    "phieu_kiem_ke": "PKK04",
+    "xe": "RL2FMA001TZ000040",
+    "ton_he_thong": 1,
+    "ton_thuc_te": 0,
+    "vi_tri_he_thong": "A01",
+    "vi_tri_thuc_te": null,
+    "tinh_trang": "Vắng mặt tại kho do điều chuyển nội bộ chưa cập nhật phiếu",
+    "phan_loai": "KHOP",
+    "nguyen_nhan": null,
+    "phuong_an_xu_ly": null
+  }
+},
+{
+  "model": "database.lichsuxuatkho",
+  "pk": 1,
+  "fields": {
+    "phieu_xuat": "PXK14",
+    "xe": "RL2FMA001TZ000035",
+    "kho": "KHO03",
+    "thoi_gian": "2026-11-04T05:10:55.401Z",
+    "hanh_dong": "TAO_PHIEU_CHO_DUYET",
+    "nguoi_thuc_hien": "NV08",
+    "ghi_chu": "Lập phiếu xuất cho HĐ HD14, giữ chỗ xe VIN RL2FMA001TZ000035"
+  }
+},
+{
+  "model": "alerts.nguongcanhbao",
+  "pk": 1,
+  "fields": {
+    "kho": "KHO01",
+    "ten_xe": "Ford Ranger XLS 2.0L 4x2 AT",
+    "mau_sac": "Trắng",
+    "ton_toi_thieu": 3,
+    "dang_theo_doi": true
+  }
+},
+{
+  "model": "alerts.nguongcanhbao",
+  "pk": 2,
+  "fields": {
+    "kho": "KHO01",
+    "ten_xe": "Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT",
+    "mau_sac": "Trắng Tuyết",
+    "ton_toi_thieu": 2,
+    "dang_theo_doi": true
+  }
+},
+{
+  "model": "alerts.nguongcanhbao",
+  "pk": 3,
+  "fields": {
+    "kho": "KHO01",
+    "ten_xe": "Ford Explorer Limited 2.3L EcoBoost",
+    "mau_sac": "Trắng Tuyết",
+    "ton_toi_thieu": 2,
+    "dang_theo_doi": true
+  }
+},
+{
+  "model": "alerts.nguongcanhbao",
+  "pk": 4,
+  "fields": {
+    "kho": "KHO02",
+    "ten_xe": "Ford Ranger Sport 2.0L 4x4 AT",
+    "mau_sac": "Đỏ Cam",
+    "ton_toi_thieu": 2,
+    "dang_theo_doi": true
+  }
+},
+{
+  "model": "alerts.nguongcanhbao",
+  "pk": 5,
+  "fields": {
+    "kho": "KHO02",
+    "ten_xe": "Ford Territory Titanium 1.5L EcoBoost",
+    "mau_sac": "Trắng",
+    "ton_toi_thieu": 2,
+    "dang_theo_doi": true
+  }
+},
+{
+  "model": "alerts.nguongcanhbao",
+  "pk": 6,
+  "fields": {
+    "kho": "KHO03",
+    "ten_xe": "Ford Territory Trend 1.5L EcoBoost",
+    "mau_sac": "Trắng",
+    "ton_toi_thieu": 3,
+    "dang_theo_doi": true
+  }
+},
+{
+  "model": "alerts.nguongcanhbao",
+  "pk": 7,
+  "fields": {
+    "kho": "KHO03",
+    "ten_xe": "Ford Transit Trend 16 chỗ 2.3L",
+    "mau_sac": "Trắng",
+    "ton_toi_thieu": 2,
+    "dang_theo_doi": true
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 37,
+  "fields": {
+    "kho": "KHO01",
+    "loai": "HET_HANG",
+    "nguong": 1,
+    "xe": null,
+    "so_luong_hien_tai": 0,
+    "so_ngay_ton": null,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.463Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.701Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 38,
+  "fields": {
+    "kho": "KHO01",
+    "loai": "HET_HANG",
+    "nguong": 2,
+    "xe": null,
+    "so_luong_hien_tai": 0,
+    "so_ngay_ton": null,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.476Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.710Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 39,
+  "fields": {
+    "kho": "KHO01",
+    "loai": "HET_HANG",
+    "nguong": 3,
+    "xe": null,
+    "so_luong_hien_tai": 0,
+    "so_ngay_ton": null,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.486Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.716Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 40,
+  "fields": {
+    "kho": "KHO02",
+    "loai": "HET_HANG",
+    "nguong": 4,
+    "xe": null,
+    "so_luong_hien_tai": 0,
+    "so_ngay_ton": null,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.496Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.722Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 41,
+  "fields": {
+    "kho": "KHO02",
+    "loai": "HET_HANG",
+    "nguong": 5,
+    "xe": null,
+    "so_luong_hien_tai": 0,
+    "so_ngay_ton": null,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.504Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.729Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 42,
+  "fields": {
+    "kho": "KHO03",
+    "loai": "HET_HANG",
+    "nguong": 6,
+    "xe": null,
+    "so_luong_hien_tai": 0,
+    "so_ngay_ton": null,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.514Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.735Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 43,
+  "fields": {
+    "kho": "KHO03",
+    "loai": "HET_HANG",
+    "nguong": 7,
+    "xe": null,
+    "so_luong_hien_tai": 0,
+    "so_ngay_ton": null,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.522Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.740Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 44,
+  "fields": {
+    "kho": "KHO01",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000007",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 107,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.583Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.745Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 45,
+  "fields": {
+    "kho": "KHO01",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000008",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 107,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.587Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.748Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 46,
+  "fields": {
+    "kho": "KHO01",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000009",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 107,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.597Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.751Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 47,
+  "fields": {
+    "kho": "KHO01",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000010",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 107,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.602Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.753Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 48,
+  "fields": {
+    "kho": "KHO01",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000011",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 81,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.610Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.757Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 49,
+  "fields": {
+    "kho": "KHO01",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000012",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 81,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.616Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.761Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 50,
+  "fields": {
+    "kho": "KHO01",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000013",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 81,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.621Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.763Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 51,
+  "fields": {
+    "kho": "KHO01",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000014",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 81,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.628Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.765Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 52,
+  "fields": {
+    "kho": "KHO01",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000015",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 81,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.635Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.768Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 53,
+  "fields": {
+    "kho": "KHO02",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000024",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 115,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.641Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.770Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 54,
+  "fields": {
+    "kho": "KHO02",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000025",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 115,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.647Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.772Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 55,
+  "fields": {
+    "kho": "KHO02",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000026",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 74,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.651Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.776Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 56,
+  "fields": {
+    "kho": "KHO02",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000027",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 74,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.655Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.780Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 57,
+  "fields": {
+    "kho": "KHO02",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000028",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 74,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.661Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.782Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 58,
+  "fields": {
+    "kho": "KHO02",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000029",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 74,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.666Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.785Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 59,
+  "fields": {
+    "kho": "KHO03",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000034",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 109,
+    "con_hieu_luc": true,
+    "trang_thai": "CHUA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.671Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.787Z",
+    "nguoi_xu_ly": null,
+    "thoi_diem_xu_ly": null
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 60,
+  "fields": {
+    "kho": "KHO03",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000035",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 109,
+    "con_hieu_luc": true,
+    "trang_thai": "DA_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.675Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.791Z",
+    "nguoi_xu_ly": 6,
+    "thoi_diem_xu_ly": "2026-11-03T05:10:55.694Z"
+  }
+},
+{
+  "model": "alerts.canhbao",
+  "pk": 61,
+  "fields": {
+    "kho": "KHO02",
+    "loai": "TON_LAU",
+    "nguong": null,
+    "xe": "RL2FMA001TZ000030",
+    "so_luong_hien_tai": null,
+    "so_ngay_ton": 74,
+    "con_hieu_luc": true,
+    "trang_thai": "DANG_XU_LY",
+    "ngay_phat_sinh": "2026-11-04T05:10:55.681Z",
+    "ngay_cap_nhat": "2026-11-04T05:10:56.794Z",
+    "nguoi_xu_ly": 7,
+    "thoi_diem_xu_ly": "2026-11-04T02:10:55.688Z"
+  }
+},
+{
+  "model": "orders.allocation",
+  "pk": 1,
+  "fields": {
+    "order_number": "FVL-AL2610-01",
+    "vehicle_code": "RANGER-WILDTRAK",
+    "description": "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT",
+    "vin": "RL2FMA001TZ000051",
+    "color_code": "OR1",
+    "exterior_color": "Cam Luxe",
+    "engine_number": "YN2S-0051",
+    "expected_ship_date": "2026-11-15",
+    "contractual_delivery_date": "2026-11-25",
+    "allocation_month": "2026-11-01",
+    "quantity": 2
+  }
+},
+{
+  "model": "orders.allocation",
+  "pk": 2,
+  "fields": {
+    "order_number": "FVL-AL2610-02",
+    "vehicle_code": "EVEREST-TITANIUM+",
+    "description": "Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT",
+    "vin": "RL2FMA001TZ000052",
+    "color_code": "WH1",
+    "exterior_color": "Trắng Tuyết",
+    "engine_number": "YN2S-0052",
+    "expected_ship_date": "2026-11-20",
+    "contractual_delivery_date": "2026-11-30",
+    "allocation_month": "2026-11-01",
+    "quantity": 3
+  }
+},
+{
+  "model": "orders.allocation",
+  "pk": 3,
+  "fields": {
+    "order_number": "FVL-AL2610-03",
+    "vehicle_code": "TERRITORY-TITANIUM-X",
+    "description": "Ford Territory Titanium X 1.5L EcoBoost",
+    "vin": "RL2FMA001TZ000053",
+    "color_code": "BK1",
+    "exterior_color": "Đen Ánh Kim",
+    "engine_number": "YN2S-0053",
+    "expected_ship_date": "2026-11-10",
+    "contractual_delivery_date": "2026-11-18",
+    "allocation_month": "2026-11-01",
+    "quantity": 4
+  }
+},
+{
+  "model": "orders.allocation",
+  "pk": 4,
+  "fields": {
+    "order_number": "FVL-AL2610-04",
+    "vehicle_code": "EXPLORER-LIMITED",
+    "description": "Ford Explorer Limited 2.3L EcoBoost",
+    "vin": "RL2FMA001TZ000054",
+    "color_code": "BL1",
+    "exterior_color": "Xanh Dương",
+    "engine_number": "YN2S-0054",
+    "expected_ship_date": "2026-12-05",
+    "contractual_delivery_date": "2026-12-15",
+    "allocation_month": "2026-12-01",
+    "quantity": 1
+  }
+},
+{
+  "model": "orders.allocation",
+  "pk": 5,
+  "fields": {
+    "order_number": "FVL-AL2610-05",
+    "vehicle_code": "TRANSIT-16",
+    "description": "Ford Transit Trend 16 chỗ 2.3L",
+    "vin": "RL2FMA001TZ000055",
+    "color_code": "SL1",
+    "exterior_color": "Bạc Ánh Kim",
+    "engine_number": "YN2S-0055",
+    "expected_ship_date": "2026-11-25",
+    "contractual_delivery_date": "2026-12-05",
+    "allocation_month": "2026-11-01",
+    "quantity": 2
+  }
+},
+{
+  "model": "orders.allocation",
+  "pk": 6,
+  "fields": {
+    "order_number": "FVL-AL2610-06",
+    "vehicle_code": "RANGER-SPORT",
+    "description": "Ford Ranger Sport 2.0L 4x4 AT",
+    "vin": "RL2FMA001TZ000056",
+    "color_code": "RD1",
+    "exterior_color": "Đỏ Cam",
+    "engine_number": "YN2S-0056",
+    "expected_ship_date": "2026-12-10",
+    "contractual_delivery_date": "2026-12-20",
+    "allocation_month": "2026-12-01",
+    "quantity": 3
+  }
+},
+{
+  "model": "orders.allocation",
+  "pk": 7,
+  "fields": {
+    "order_number": "FVL-AL2610-07",
+    "vehicle_code": "EVEREST-SPORT",
+    "description": "Ford Everest Sport 2.0L 4x2 AT",
+    "vin": "RL2FMA001TZ000057",
+    "color_code": "GR1",
+    "exterior_color": "Xám Meteor",
+    "engine_number": "YN2S-0057",
+    "expected_ship_date": "2026-12-15",
+    "contractual_delivery_date": "2026-12-25",
+    "allocation_month": "2026-12-01",
+    "quantity": 2
+  }
+},
+{
+  "model": "orders.allocation",
+  "pk": 8,
+  "fields": {
+    "order_number": "FVL-AL2610-08",
+    "vehicle_code": "TERRITORY-TREND",
+    "description": "Ford Territory Trend 1.5L EcoBoost",
+    "vin": "RL2FMA001TZ000058",
+    "color_code": "WH1",
+    "exterior_color": "Trắng Tuyết",
+    "engine_number": "YN2S-0058",
+    "expected_ship_date": "2026-11-12",
+    "contractual_delivery_date": "2026-11-20",
+    "allocation_month": "2026-11-01",
+    "quantity": 5
+  }
+},
+{
+  "model": "orders.vehiclerequest",
+  "pk": 1,
+  "fields": {
+    "created_by": 7,
+    "created_at": "2026-11-04T05:10:55.420Z",
+    "sent_at": "2026-10-20T05:10:55.419Z",
+    "status": "ACCEPTED"
+  }
+},
+{
+  "model": "orders.vehiclerequest",
+  "pk": 2,
+  "fields": {
+    "created_by": 7,
+    "created_at": "2026-11-04T05:10:55.427Z",
+    "sent_at": "2026-11-02T05:10:55.427Z",
+    "status": "PENDING"
+  }
+},
+{
+  "model": "orders.vehiclerequest",
+  "pk": 3,
+  "fields": {
+    "created_by": 8,
+    "created_at": "2026-11-04T05:10:55.431Z",
+    "sent_at": null,
+    "status": "DRAFT"
+  }
+},
+{
+  "model": "orders.vehiclerequestitem",
+  "pk": 1,
+  "fields": {
+    "vehicle_request": 1,
+    "allocation": 1,
+    "quantity": 2
+  }
+},
+{
+  "model": "orders.vehiclerequestitem",
+  "pk": 2,
+  "fields": {
+    "vehicle_request": 1,
+    "allocation": 3,
+    "quantity": 2
+  }
+},
+{
+  "model": "orders.vehiclerequestitem",
+  "pk": 3,
+  "fields": {
+    "vehicle_request": 2,
+    "allocation": 2,
+    "quantity": 2
+  }
+},
+{
+  "model": "orders.vehiclerequestitem",
+  "pk": 4,
+  "fields": {
+    "vehicle_request": 2,
+    "allocation": 8,
+    "quantity": 3
+  }
+},
+{
+  "model": "orders.vehiclerequestitem",
+  "pk": 5,
+  "fields": {
+    "vehicle_request": 3,
+    "allocation": 4,
+    "quantity": 1
+  }
+},
+{
+  "model": "orders.vehiclerequestitem",
+  "pk": 6,
+  "fields": {
+    "vehicle_request": 3,
+    "allocation": 6,
+    "quantity": 2
+  }
+},
+{
+  "model": "analytics.phiendubao",
+  "pk": 1,
+  "fields": {
+    "nam": 2026,
+    "thang": 12,
+    "nguoi_tao": 1,
+    "tao_luc": "2026-11-04T04:12:14.978Z",
+    "het_han_luc": "2026-11-11T04:12:14.978Z",
+    "trang_thai": "Hoàn tất",
+    "trang_thai_de_xuat": "Tự động",
+    "canh_bao": "Dữ liệu bán hàng bị gián đoạn ở các tháng: 09/2026, 10/2026, 11/2026. Đã điền khuyết bằng trung bình trượt; độ tin cậy dự báo có thể giảm sút.\nChỉ có 5 tháng lịch sử (khuyến nghị 24-36 tháng).\nFord Ranger Raptor 2.0L Bi-Turbo 4x4 AT: Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “Bán tải” - Sale Admin cần kiểm tra.\nFord Everest Sport 2.0L 4x2 AT: Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “SUV 7 chỗ” - Sale Admin cần kiểm tra.\nFord Territory Trend 1.5L EcoBoost: Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “CUV 5 chỗ” - Sale Admin cần kiểm tra.\nFord Explorer Limited 2.3L EcoBoost: Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “SUV 7 chỗ” - Sale Admin cần kiểm tra.\nFord Everest Ambiente 2.0L 4x2 AT: Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “SUV 7 chỗ” - Sale Admin cần kiểm tra.\nFord Everest Titanium 2.0L 4x2 AT: Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “SUV 7 chỗ” - Sale Admin cần kiểm tra.\nFord Transit Limousine 10 chỗ 2.3L: Dòng xe mới và phân khúc chưa có lịch sử: chưa thể ước tính - Sale Admin cần kiểm tra.\nFord Ranger Sport 2.0L 4x4 AT: Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “Bán tải” - Sale Admin cần kiểm tra.\nFord Everest Platinum 3.0L V6 4x4 AT: Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “SUV 7 chỗ” - Sale Admin cần kiểm tra.",
+    "ly_do_ngoai_le": ""
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 1,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Ranger Raptor 2.0L Bi-Turbo 4x4 AT",
+    "loai_xe": "Bán tải",
+    "ma_dong_xe": "RANGER-RAPTOR-2.0L-BI-TURBO-4X4-AT",
+    "ten_ngan": "Ford Ranger",
+    "phien_ban": "Raptor 2.0L Bi-Turbo 4x4 AT",
+    "du_bao_sarima": 0.8,
+    "phuong_phap": "Ước tính theo dòng xe tương đương",
+    "ky_truoc": 0,
+    "ton_kho": 3,
+    "hop_dong_cho_giao": 1,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 0,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "1160000000.00",
+    "ghi_chu": "Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “Bán tải” - Sale Admin cần kiểm tra."
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 2,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Ranger Sport 2.0L 4x4 AT",
+    "loai_xe": "Bán tải",
+    "ma_dong_xe": "RANGER-SPORT-2.0L-4X4-AT",
+    "ten_ngan": "Ford Ranger",
+    "phien_ban": "Sport 2.0L 4x4 AT",
+    "du_bao_sarima": 0.8,
+    "phuong_phap": "Ước tính theo dòng xe tương đương",
+    "ky_truoc": 0,
+    "ton_kho": 2,
+    "hop_dong_cho_giao": 0,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 0,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "760000000.00",
+    "ghi_chu": "Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “Bán tải” - Sale Admin cần kiểm tra."
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 3,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT",
+    "loai_xe": "Bán tải",
+    "ma_dong_xe": "RANGER-WILDTRAK-2.0L-BI-TURBO-4X4-AT",
+    "ten_ngan": "Ford Ranger",
+    "phien_ban": "Wildtrak 2.0L Bi-Turbo 4x4 AT",
+    "du_bao_sarima": 1.3,
+    "phuong_phap": "Trung bình trượt (thiếu dữ liệu mùa vụ)",
+    "ky_truoc": 0,
+    "ton_kho": 1,
+    "hop_dong_cho_giao": 3,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 4,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "860000000.00",
+    "ghi_chu": ""
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 4,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Ranger XLS 2.0L 4x2 AT",
+    "loai_xe": "Bán tải",
+    "ma_dong_xe": "RANGER-XLS-2.0L-4X2-AT",
+    "ten_ngan": "Ford Ranger",
+    "phien_ban": "XLS 2.0L 4x2 AT",
+    "du_bao_sarima": 0.8,
+    "phuong_phap": "Trung bình trượt (thiếu dữ liệu mùa vụ)",
+    "ky_truoc": 0,
+    "ton_kho": 3,
+    "hop_dong_cho_giao": 3,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 1,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "600000000.00",
+    "ghi_chu": ""
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 5,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Ranger XLS 2.0L 4x4 AT",
+    "loai_xe": "Bán tải",
+    "ma_dong_xe": "RANGER-XLS-2.0L-4X4-AT",
+    "ten_ngan": "Ford Ranger",
+    "phien_ban": "XLS 2.0L 4x4 AT",
+    "du_bao_sarima": 0.4,
+    "phuong_phap": "Trung bình trượt (thiếu dữ liệu mùa vụ)",
+    "ky_truoc": 0,
+    "ton_kho": 1,
+    "hop_dong_cho_giao": 1,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 1,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "660000000.00",
+    "ghi_chu": ""
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 6,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Territory Titanium 1.5L EcoBoost",
+    "loai_xe": "CUV 5 chỗ",
+    "ma_dong_xe": "TERRITORY-TITANIUM-1.5L-ECOBOOST",
+    "ten_ngan": "Ford Territory",
+    "phien_ban": "Titanium 1.5L EcoBoost",
+    "du_bao_sarima": 0.6,
+    "phuong_phap": "Trung bình trượt (thiếu dữ liệu mùa vụ)",
+    "ky_truoc": 0,
+    "ton_kho": 2,
+    "hop_dong_cho_giao": 1,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 0,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "780000000.00",
+    "ghi_chu": ""
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 7,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Territory Titanium X 1.5L EcoBoost",
+    "loai_xe": "CUV 5 chỗ",
+    "ma_dong_xe": "TERRITORY-TITANIUM-X-1.5L-ECOBOOST",
+    "ten_ngan": "Ford Territory",
+    "phien_ban": "Titanium X 1.5L EcoBoost",
+    "du_bao_sarima": 0.6,
+    "phuong_phap": "Trung bình trượt (thiếu dữ liệu mùa vụ)",
+    "ky_truoc": 0,
+    "ton_kho": 2,
+    "hop_dong_cho_giao": 2,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 1,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "820000000.00",
+    "ghi_chu": ""
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 8,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Territory Trend 1.5L EcoBoost",
+    "loai_xe": "CUV 5 chỗ",
+    "ma_dong_xe": "TERRITORY-TREND-1.5L-ECOBOOST",
+    "ten_ngan": "Ford Territory",
+    "phien_ban": "Trend 1.5L EcoBoost",
+    "du_bao_sarima": 0.6,
+    "phuong_phap": "Ước tính theo dòng xe tương đương",
+    "ky_truoc": 0,
+    "ton_kho": 2,
+    "hop_dong_cho_giao": 0,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 0,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "720000000.00",
+    "ghi_chu": "Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “CUV 5 chỗ” - Sale Admin cần kiểm tra."
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 9,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Everest Ambiente 2.0L 4x2 AT",
+    "loai_xe": "SUV 7 chỗ",
+    "ma_dong_xe": "EVEREST-AMBIENTE-2.0L-4X2-AT",
+    "ten_ngan": "Ford Everest",
+    "phien_ban": "Ambiente 2.0L 4x2 AT",
+    "du_bao_sarima": 0.8,
+    "phuong_phap": "Ước tính theo dòng xe tương đương",
+    "ky_truoc": 0,
+    "ton_kho": 2,
+    "hop_dong_cho_giao": 0,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 0,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "980000000.00",
+    "ghi_chu": "Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “SUV 7 chỗ” - Sale Admin cần kiểm tra."
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 10,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Everest Platinum 3.0L V6 4x4 AT",
+    "loai_xe": "SUV 7 chỗ",
+    "ma_dong_xe": "EVEREST-PLATINUM-3.0L-V6-4X4-AT",
+    "ten_ngan": "Ford Everest",
+    "phien_ban": "Platinum 3.0L V6 4x4 AT",
+    "du_bao_sarima": 0.8,
+    "phuong_phap": "Ước tính theo dòng xe tương đương",
+    "ky_truoc": 0,
+    "ton_kho": 1,
+    "hop_dong_cho_giao": 0,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 0,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "1420000000.00",
+    "ghi_chu": "Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “SUV 7 chỗ” - Sale Admin cần kiểm tra."
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 11,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Everest Sport 2.0L 4x2 AT",
+    "loai_xe": "SUV 7 chỗ",
+    "ma_dong_xe": "EVEREST-SPORT-2.0L-4X2-AT",
+    "ten_ngan": "Ford Everest",
+    "phien_ban": "Sport 2.0L 4x2 AT",
+    "du_bao_sarima": 0.8,
+    "phuong_phap": "Ước tính theo dòng xe tương đương",
+    "ky_truoc": 0,
+    "ton_kho": 2,
+    "hop_dong_cho_giao": 0,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 0,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "1050000000.00",
+    "ghi_chu": "Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “SUV 7 chỗ” - Sale Admin cần kiểm tra."
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 12,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Everest Titanium 2.0L 4x2 AT",
+    "loai_xe": "SUV 7 chỗ",
+    "ma_dong_xe": "EVEREST-TITANIUM-2.0L-4X2-AT",
+    "ten_ngan": "Ford Everest",
+    "phien_ban": "Titanium 2.0L 4x2 AT",
+    "du_bao_sarima": 0.8,
+    "phuong_phap": "Ước tính theo dòng xe tương đương",
+    "ky_truoc": 0,
+    "ton_kho": 2,
+    "hop_dong_cho_giao": 0,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 0,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "1150000000.00",
+    "ghi_chu": "Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “SUV 7 chỗ” - Sale Admin cần kiểm tra."
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 13,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT",
+    "loai_xe": "SUV 7 chỗ",
+    "ma_dong_xe": "EVEREST-TITANIUM+-2.0L-BI-TURBO-4X4-AT",
+    "ten_ngan": "Ford Everest",
+    "phien_ban": "Titanium+ 2.0L Bi-Turbo 4x4 AT",
+    "du_bao_sarima": 0.8,
+    "phuong_phap": "Trung bình trượt (thiếu dữ liệu mùa vụ)",
+    "ky_truoc": 0,
+    "ton_kho": 1,
+    "hop_dong_cho_giao": 3,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 3,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "1320000000.00",
+    "ghi_chu": ""
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 14,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Explorer Limited 2.3L EcoBoost",
+    "loai_xe": "SUV 7 chỗ",
+    "ma_dong_xe": "EXPLORER-LIMITED-2.3L-ECOBOOST",
+    "ten_ngan": "Ford Explorer",
+    "phien_ban": "Limited 2.3L EcoBoost",
+    "du_bao_sarima": 0.8,
+    "phuong_phap": "Ước tính theo dòng xe tương đương",
+    "ky_truoc": 0,
+    "ton_kho": 2,
+    "hop_dong_cho_giao": 0,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 0,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "1820000000.00",
+    "ghi_chu": "Dòng xe mới, chưa có lịch sử: ước tính theo trung bình các dòng cùng phân khúc “SUV 7 chỗ” - Sale Admin cần kiểm tra."
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 15,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Transit Limousine 10 chỗ 2.3L",
+    "loai_xe": "Thương mại 10 chỗ",
+    "ma_dong_xe": "TRANSIT-LIMOUSINE-10-CHỖ-2.3L",
+    "ten_ngan": "Ford Transit",
+    "phien_ban": "Limousine 10 chỗ 2.3L",
+    "du_bao_sarima": 0.0,
+    "phuong_phap": "Ước tính theo dòng xe tương đương",
+    "ky_truoc": 0,
+    "ton_kho": 1,
+    "hop_dong_cho_giao": 0,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 0,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "1180000000.00",
+    "ghi_chu": "Dòng xe mới và phân khúc chưa có lịch sử: chưa thể ước tính - Sale Admin cần kiểm tra."
+  }
+},
+{
+  "model": "analytics.dongdubao",
+  "pk": 16,
+  "fields": {
+    "phien": 1,
+    "ten_xe": "Ford Transit Trend 16 chỗ 2.3L",
+    "loai_xe": "Thương mại 16 chỗ",
+    "ma_dong_xe": "TRANSIT-TREND-16-CHỖ-2.3L",
+    "ten_ngan": "Ford Transit",
+    "phien_ban": "Trend 16 chỗ 2.3L",
+    "du_bao_sarima": 1.1,
+    "phuong_phap": "Trung bình trượt (thiếu dữ liệu mùa vụ)",
+    "ky_truoc": 0,
+    "ton_kho": 1,
+    "hop_dong_cho_giao": 2,
+    "dang_van_chuyen": 0,
+    "chi_tieu": null,
+    "de_xuat_poq": 3,
+    "so_luong_dieu_chinh": null,
+    "ly_do_dieu_chinh": "",
+    "don_gia_von": "800000000.00",
+    "ghi_chu": ""
+  }
+},
+{
+  "model": "incidents.dvvclienhe",
+  "pk": 1,
+  "fields": {
+    "dvvc": "DVVC01",
+    "email": "van.chuyen.hanoilogistics@gmail.com"
+  }
+},
+{
+  "model": "incidents.dvvclienhe",
+  "pk": 2,
+  "fields": {
+    "dvvc": "DVVC02",
+    "email": "contact@saigonlogistics.vn"
+  }
+},
+{
+  "model": "incidents.dvvclienhe",
+  "pk": 3,
+  "fields": {
+    "dvvc": "DVVC03",
+    "email": "dieuhanh@mientrungexpress.vn"
+  }
+},
+{
+  "model": "incidents.dvvclienhe",
+  "pk": 4,
+  "fields": {
+    "dvvc": "DVVC04",
+    "email": "info@danangtrans.com.vn"
+  }
+},
+{
+  "model": "incidents.hososuco",
+  "pk": 1,
+  "fields": {
+    "bien_ban": "PDI01",
+    "han_phan_hoi": "2026-08-15",
+    "hinh_thuc_khac_phuc": "TIEN",
+    "so_tien_boi_thuong": "15000000.00",
+    "ngay_xac_nhan": "2026-08-20",
+    "bien_ban_thoa_thuan": ""
+  }
+},
+{
+  "model": "incidents.hososuco",
+  "pk": 2,
+  "fields": {
+    "bien_ban": "PDI02",
+    "han_phan_hoi": "2026-11-12",
+    "hinh_thuc_khac_phuc": "SUA",
+    "so_tien_boi_thuong": null,
+    "ngay_xac_nhan": null,
+    "bien_ban_thoa_thuan": ""
+  }
+},
+{
+  "model": "incidents.lichsuphanhoi",
+  "pk": 1,
+  "fields": {
+    "bien_ban": "PDI01",
+    "thoi_gian": "2026-11-04T05:10:55.730Z",
+    "nguoi_thuc_hien": 6,
+    "hanh_dong": "Đóng hồ sơ",
+    "noi_dung": "ĐVVC đã bồi thường 15,000,000 đ theo thỏa thuận."
+  }
+},
+{
+  "model": "incidents.lichsuphanhoi",
+  "pk": 2,
+  "fields": {
+    "bien_ban": "PDI02",
+    "thoi_gian": "2026-11-04T05:10:55.736Z",
+    "nguoi_thuc_hien": 7,
+    "hanh_dong": "Gửi yêu cầu bồi thường",
+    "noi_dung": "Đã gửi biên bản và hình ảnh hư hỏng cho ĐVVC."
+  }
+}
 ]

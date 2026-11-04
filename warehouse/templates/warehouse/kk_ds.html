@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
+{% block content %}
+{% include "warehouse/_messages.html" %}
+<form method="get" class="card"><div class="actions">
+  <label>Kho <select name="kho" class="inp" onchange="this.form.submit()">{% for k in ds_kho %}<option value="{{ k.ma_kho }}" {% if k.ma_kho == ma_kho %}selected{% endif %}>{{ k.ma_kho }} - {{ k.chi_nhanh.ten_cn }}</option>{% endfor %}</select></label>
+  <a class="btn" href="{% url 'warehouse:ton_kho' %}?kho={{ ma_kho }}">Về tồn kho</a>
+</div></form>
+<form method="post" action="{% url 'warehouse:kk_tao' %}" class="card form">
+  {% csrf_token %}<input type="hidden" name="kho" value="{{ ma_kho }}">
+  <h3>Tạo phiếu kiểm kê mới (kho {{ ma_kho }})</h3>
+  <div class="field"><label>Kỳ kiểm kê</label><input class="inp" name="ky_kiem_ke" placeholder="VD: Tháng 11/2026" required></div>
+  <div class="field"><label>Phạm vi</label><input class="inp" name="pham_vi" value="Toàn kho"></div>
+  <div class="field"><label>Ghi chú</label><input class="inp" name="ghi_chu"></div>
+  {% include "warehouse/_chon_nv.html" %}
+  <div class="actions"><button class="btn btn--primary" type="submit">Tạo phiếu và chụp số liệu tồn kho</button></div>
+</form>
+<div class="card">
+  <h3>Các phiếu kiểm kê</h3>
+  <table class="tbl">
+    <thead><tr><th>Mã phiếu</th><th>Kỳ</th><th>Phạm vi</th><th>Ngày</th><th>Người lập</th><th>Người duyệt</th><th>Trạng thái</th></tr></thead>
+    <tbody>
+    {% for p in ds %}
+      <tr>
+        <td><a href="{% url 'warehouse:kk_chi_tiet' p.ma_pkk %}"><strong>{{ p.ma_pkk }}</strong></a></td>
+        <td>{{ p.ky_kiem_ke }}</td><td>{{ p.pham_vi }}</td><td>{{ p.ngay_kiem_ke|date:"d/m/Y" }}</td>
+        <td>{{ p.nhan_vien.ten_nv }}</td><td>{{ p.nguoi_duyet.ten_nv|default:"—" }}</td>
+        <td><span class="badge {% if p.trang_thai == 'HOAN_TAT' %}badge--ok{% elif p.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">{{ p.get_trang_thai_display }}</span></td>
+      </tr>
+    {% empty %}<tr><td colspan="7" class="none">Chưa có phiếu kiểm kê nào ở kho này</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .chi-tiet-canh-bao table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 16px 0;
+        font-size: 14px;
+    }
+
+    .chi-tiet-canh-bao th,
+    .chi-tiet-canh-bao td {
+        padding: 14px;
+        border-bottom: 1px solid #e5e7eb;
+        text-align: left;
+        vertical-align: top;
+    }
+
+    .chi-tiet-canh-bao th {
+        width: 230px;
+        background: #f4f7fb;
+    }
+
+    .chi-tiet-canh-bao .thong-bao {
+        padding: 12px;
+        background: #fff3cd;
+        border-radius: 6px;
+    }
+
+    .chi-tiet-canh-bao .thanh-cong {
+        padding: 12px;
+        background: #e8f5e9;
+        border-radius: 6px;
+    }
+
+    .chi-tiet-canh-bao .errorlist {
+        color: #b42318;
+    }
+
+    .chi-tiet-canh-bao select {
+        padding: 10px;
+        border: 1px solid #dce3eb;
+        border-radius: 6px;
+        font: inherit;
+    }
+
+    .chi-tiet-canh-bao button,
+    .chi-tiet-canh-bao .quay-lai {
+        display: inline-block;
+        padding: 10px 20px;
+        color: white;
+        background: #0b66c3;
+        border: 0;
+        border-radius: 6px;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .chi-tiet-canh-bao .thao-tac {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 16px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card chi-tiet-canh-bao">
+    <h2>CB{{ canh_bao.pk }}</h2>
+
+    {% for message in messages %}
+        <p class="thanh-cong">{{ message }}</p>
+    {% endfor %}
+
+    {% if not canh_bao.con_hieu_luc %}
+        <p class="thong-bao">Cảnh báo này đã hết hiệu lực.</p>
+    {% endif %}
+
+    <table>
+        <tbody>
+            <tr>
+                <th>Loại cảnh báo</th>
+                <td>{{ canh_bao.get_loai_display }}</td>
+            </tr>
+            <tr>
+                <th>Kho</th>
+                <td>{{ canh_bao.kho }}</td>
+            </tr>
+
+            {% if canh_bao.xe %}
+                <tr>
+                    <th>VIN</th>
+                    <td>{{ canh_bao.xe.vin }}</td>
+                </tr>
+                <tr>
+                    <th>Tên xe</th>
+                    <td>{{ canh_bao.xe.ten_xe }}</td>
+                </tr>
+                <tr>
+                    <th>Màu sắc</th>
+                    <td>
+                        {{ canh_bao.xe.mau_sac|default:"Chưa có màu" }}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Ngày vào kho hiện tại</th>
+                    <td>
+                        {% if ngay_vao_kho %}
+                            {{ ngay_vao_kho|date:"d/m/Y" }}
+                        {% else %}
+                            Xe không còn trong tồn kho hiện tại.
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Tuổi tồn tại lần kiểm tra</th>
+                    <td>{{ canh_bao.so_ngay_ton }} ngày</td>
+                </tr>
+                <tr>
+                    <th>Nguyên nhân</th>
+                    <td>Tuổi tồn vượt 60 ngày tại lần kiểm tra phát hiện cảnh báo.</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <th>Tên xe</th>
+                    <td>{{ canh_bao.nguong.ten_xe }}</td>
+                </tr>
+                <tr>
+                    <th>Màu sắc</th>
+                    <td>
+                        {{ canh_bao.nguong.mau_sac|default:"Chưa có màu" }}
+                    </td>
+                </tr>
+                <tr>
+                    <th>Số tồn tại lần kiểm tra</th>
+                    <td>{{ canh_bao.so_luong_hien_tai }} xe</td>
+                </tr>
+                <tr>
+                    <th>Ngưỡng tối thiểu đang áp dụng</th>
+                    <td>{{ canh_bao.nguong.ton_toi_thieu }} xe</td>
+                </tr>
+                <tr>
+                    <th>Nguyên nhân</th>
+                    <td>
+                        {% if canh_bao.loai == "HET_HANG" %}
+                            Nhóm xe không còn hàng tại lần kiểm tra phát hiện cảnh báo.
+                        {% else %}
+                            Số tồn thấp hơn ngưỡng tối thiểu tại lần kiểm tra phát hiện cảnh báo.
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endif %}
+
+            <tr>
+                <th>Hiệu lực</th>
+                <td>
+                    {% if canh_bao.con_hieu_luc %}
+                        Còn hiệu lực
+                    {% else %}
+                        Hết hiệu lực
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th>Trạng thái xử lý</th>
+                <td>{{ canh_bao.get_trang_thai_display }}</td>
+            </tr>
+            <tr>
+                <th>Ngày phát sinh</th>
+                <td>{{ canh_bao.ngay_phat_sinh|date:"d/m/Y H:i" }}</td>
+            </tr>
+            <tr>
+                <th>Lần cập nhật gần nhất</th>
+                <td>{{ canh_bao.ngay_cap_nhat|date:"d/m/Y H:i" }}</td>
+            </tr>
+            <tr>
+                <th>Người cập nhật trạng thái</th>
+                <td>{{ canh_bao.nguoi_xu_ly|default:"Chưa có" }}</td>
+            </tr>
+            <tr>
+                <th>Thời điểm cập nhật trạng thái</th>
+                <td>
+                    {{ canh_bao.thoi_diem_xu_ly|date:"d/m/Y H:i"|default:"Chưa có" }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    {{ form.non_field_errors }}
+
+    {% if co_the_cap_nhat %}
+        <h3>Cập nhật trạng thái xử lý</h3>
+
+        <form method="post" id="form-trang-thai">
+            {% csrf_token %}
+            {{ form.as_p }}
+
+            <div class="thao-tac">
+                <button type="submit">Lưu</button>
+                <a href="{{ quay_lai }}" data-roi-trang>Hủy</a>
+            </div>
+        </form>
+    {% endif %}
+
+    <p>
+        <a href="{{ quay_lai }}" class="quay-lai" data-roi-trang>
+            Quay lại
+        </a>
+    </p>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const formTrangThai = document.getElementById("form-trang-thai");
+    let coThayDoi = false;
+
+    if (formTrangThai) {
+        formTrangThai.addEventListener("change", function () {
+            coThayDoi = true;
+        });
+
+        formTrangThai.addEventListener("submit", function () {
+            coThayDoi = false;
+        });
+
+        document.querySelectorAll("[data-roi-trang]").forEach(function (link) {
+            link.addEventListener("click", function (event) {
+                if (
+                    coThayDoi &&
+                    !confirm("Thay đổi chưa được lưu. Bạn có muốn rời trang?")
+                ) {
+                    event.preventDefault();
+                } else {
+                    coThayDoi = false;
+                }
+            });
+        });
+
+        window.addEventListener("beforeunload", function (event) {
+            if (coThayDoi) {
+                event.preventDefault();
+                event.returnValue = "";
+            }
+        });
+    }
+</script>
+{% endblock %}

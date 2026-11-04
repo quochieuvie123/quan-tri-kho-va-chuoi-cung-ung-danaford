@@ -1,0 +1,73 @@
+
+{% extends "ql_dat_xe.html" %}
+
+{% block booking_content %}
+
+<h2>Chi tiết xe</h2>
+
+<table class="vehicle-table">
+    <tbody>
+        <tr>
+            <th>Mã dòng xe</th>
+            <td>{{ xe.vehicle_code }}</td>
+        </tr>
+        <tr>
+            <th>Mô tả</th>
+            <td>{{ xe.description }}</td>
+        </tr>
+        <tr>
+            <th>VIN</th>
+            <td>{{ xe.vin }}</td>
+        </tr>
+        <tr>
+            <th>Mã màu</th>
+            <td>{{ xe.color_code }}</td>
+        </tr>
+        <tr>
+            <th>Màu ngoại thất</th>
+            <td>{{ xe.exterior_color }}</td>
+        </tr>
+        <tr>
+            <th>Số máy</th>
+            <td>{{ xe.engine_number }}</td>
+        </tr>
+        <tr>
+            <th>Số lượng phân bổ</th>
+            <td>{{ xe.quantity }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>Nhập số lượng xe muốn đặt</h3>
+
+{% for message in messages %}
+    <p>{{ message }}</p>
+{% endfor %}
+
+<form method="POST">
+    {% csrf_token %}
+
+    <label for="quantity">Số lượng:</label>
+
+    <input
+        type="number"
+        id="quantity"
+        name="quantity"
+        min="1"
+        max="{{ xe.quantity }}"
+        value="1"
+        required
+    >
+
+    <div class="request-actions">
+        <a href="{% url 'orders:vehicle_orders' %}">
+            Quay lại
+        </a>
+
+        <button type="submit">
+            Thêm vào danh sách
+        </button>
+    </div>
+</form>
+
+{% endblock %}

@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-cxr94=05cjc5srb-fmx&i%97k9cn80^hym(z$@zzod8sl+!^*p
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*", "localhost", "127.0.0.1", "testserver"]
 
 
 # Application definition
@@ -138,12 +138,23 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
+import os
 MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+    "default": {
+        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+        "OPTIONS": {
+            "host": "smtp.gmail.com",
+            "port": 587,
+            "username": os.environ.get("EMAIL_HOST_USER", ""),
+            "password": os.environ.get("EMAIL_HOST_PASSWORD", ""),
+            "use_tls": True,
+        },
     },
 }
-
+DEFAULT_FROM_EMAIL = os.environ.get(
+    "EMAIL_HOST_USER",
+    "webmaster@localhost"
+)
 AUTH_USER_MODEL = "accounts.User"
 
 LOGIN_URL = "login"
@@ -151,4 +162,6 @@ LOGIN_REDIRECT_URL = "/"
 
 LANGUAGE_CODE = "vi"
 TIME_ZONE = "Asia/Ho_Chi_Minh"
+
+
 

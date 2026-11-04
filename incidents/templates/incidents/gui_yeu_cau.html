@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'incidents/incidents.css' %}">{% endblock %}
+{% block content %}
+{% include "incidents/_messages.html" %}
+<form method="post" class="card form">
+  {% csrf_token %}
+  <p>Gửi tới: <strong>{{ dvvc.ten_dvvc }}</strong> &lt;{{ email }}&gt; (kèm {{ bb.anh_su_co.count }} ảnh hư hại)</p>
+  <div class="field"><label>Tiêu đề</label><div class="mailbox">{{ tieu_de_mail }}</div></div>
+  <div class="field"><label>Bản xem trước nội dung</label><pre class="mailbox">{{ noi_dung_mail }}</pre></div>
+  <div class="field">
+    <label for="{{ form.ghi_chu.id_for_label }}">{{ form.ghi_chu.label }}</label>
+    {{ form.ghi_chu }}
+    <small class="muted">Nhập ghi chú rồi bấm “Xác nhận gửi”; ghi chú sẽ được thêm vào cuối thư.</small>
+  </div>
+  <div class="actions">
+    <button class="btn btn--primary" type="submit">Xác nhận gửi</button>
+    <a class="btn" href="{% url 'incidents:chi_tiet' bb.ma_pdi %}">Hủy</a>
+  </div>
+</form>
+{% endblock %}

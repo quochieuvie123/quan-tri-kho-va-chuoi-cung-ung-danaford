@@ -1,0 +1,10 @@
+{% if can_chon_nv %}
+<div class="field">
+  <label for="ma_nv">Nhân viên thực hiện</label>
+  <select class="inp" name="ma_nv" id="ma_nv" required>
+    <option value="">-- chọn nhân viên --</option>
+    {% for n in ds_nv %}<option value="{{ n.ma_nv }}">{{ n.ma_nv }} - {{ n.ten_nv }}</option>{% endfor %}
+  </select>
+  <small class="muted">Tài khoản này chưa liên kết với nhân viên nào.</small>
+</div>
+{% endif %}

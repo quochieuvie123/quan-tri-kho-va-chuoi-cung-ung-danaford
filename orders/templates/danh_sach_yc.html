@@ -1,0 +1,53 @@
+
+{% extends "ql_dat_xe.html" %}
+
+{% block booking_content %}
+
+<h2>Danh sách phiếu yêu cầu đặt xe</h2>
+
+<table class="request-table">
+    <thead>
+        <tr>
+            <th>STT</th>
+            <th>Mã phiếu</th>
+            <th>Ngày tạo</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for phieu in phieu_yeu_cau %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ phieu.request_number }}</td>
+            <td>{{ phieu.created_at|date:"d/m/Y H:i" }}</td>
+
+            <td>
+                {% if phieu.status == "DRAFT" %}
+                    <span class="status-draft">Bản nháp</span>
+                {% elif phieu.status == "PENDING" %}
+                    <span class="status-pending">Đã gửi</span>
+                {% elif phieu.status == "ACCEPTED" %}
+                    <span class="status-accepted">Đã xác nhận</span>
+                {% endif %}
+            </td>
+
+            <td>
+                <a href="{% url 'orders:phieu_yeu_cau' phieu.id %}">
+                    Xem chi tiết
+                </a>
+            </td>
+        </tr>
+
+        {% empty %}
+        <tr>
+            <td colspan="5">
+                Chưa có phiếu yêu cầu nào.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "reports/khung.html" %}
+
+{% block noi_dung_bao_cao %}
+<section class="bc">
+    <a
+        class="nut phu"
+        href="{% url 'dashboard:index' %}?{{ tham_so }}"
+    >
+        Quay lại tổng quan
+    </a>
+
+    <p>
+        <strong>
+            Tổng: {{ chi_tiet.tong }}
+            {{ chi_tiet.don_vi }}
+        </strong>
+    </p>
+
+    <div class="cuon">
+        <table>
+            <thead>
+                <tr>
+                    {% for column in chi_tiet.cot %}
+                    <th>{{ column }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for row in chi_tiet.dong %}
+                <tr>
+                    {% for cell in row %}
+                    <td>{{ cell }}</td>
+                    {% endfor %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{{ chi_tiet.cot|length }}">
+                        Không có dữ liệu phù hợp.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

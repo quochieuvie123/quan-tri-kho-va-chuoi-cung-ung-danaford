@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
+{% block content %}
+{% include "warehouse/_messages.html" %}
+<div class="actions"><a class="btn" href="{% url 'warehouse:ton_kho' %}?kho={{ d.kho }}"><i class="bi bi-arrow-left"></i> Tồn kho</a></div>
+<div class="card">
+  <h3>{{ d.ten_xe }}</h3>
+  <dl class="kv">
+    <dt>VIN</dt><dd>{{ d.vin }}</dd><dt>Số máy</dt><dd>{{ d.so_may }}</dd>
+    <dt>Loại xe</dt><dd>{{ d.loai_xe }}</dd><dt>Màu / Năm SX</dt><dd>{{ d.mau_sac|default:"—" }} / {{ d.nam_sx|default:"—" }}</dd>
+    <dt>Kho / Vị trí</dt><dd>{{ d.kho }} / {{ d.vi_tri }}</dd><dt>Ngày vào kho</dt><dd>{{ d.ngay_vao_kho }}</dd>
+    <dt>Tuổi tồn</dt><dd>{{ d.so_ngay_ton }} ngày ({{ d.nhom_tuoi_ton }})</dd>
+    <dt>Trạng thái xe</dt><dd>{{ d.trang_thai_display }}</dd>
+  </dl>
+</div>
+<div class="card">
+  <h3>Sự cố vận chuyển / PDI</h3>
+  {% for s in su_co %}
+    <p><a href="{% url 'incidents:chi_tiet' s.ma_pdi %}">{{ s.ma_pdi }}</a> · {{ s.loai_su_co }} · {{ s.ngay_ghi_nhan|date:"d/m/Y" }} · {{ s.trang_thai_claim }}</p>
+  {% empty %}<p class="muted">Chưa có sự cố nào.</p>{% endfor %}
+</div>
+<div class="card">
+  <h3>Lịch sử xuất kho</h3>
+  <ul class="timeline">
+    {% for l in lich_su %}<li><strong>{{ l.hanh_dong }}</strong> <small class="muted">{{ l.thoi_gian|date:"d/m/Y H:i" }} · {{ l.nguoi_thuc_hien.ten_nv }}</small>{% if l.ghi_chu %}<div>{{ l.ghi_chu }}</div>{% endif %}</li>
+    {% empty %}<li class="muted">Chưa có lịch sử.</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

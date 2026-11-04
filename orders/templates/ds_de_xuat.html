@@ -1,0 +1,49 @@
+
+{% extends "ql_dat_xe.html" %}
+
+{% block booking_content %}
+
+<h2>DANH SÁCH ĐỀ XUẤT NHẬP XE</h2>
+
+<table class="request-table">
+    <thead>
+        <tr>
+            <th>STT</th>
+            <th>Dòng xe</th>
+            <th>Đã bán trong tháng</th>
+            <th>Tồn kho</th>
+            <th>Phân bổ</th>
+            <th>Đề xuất nhập</th>
+            <th>Thao tác</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for item in danh_sach %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ item.ten_xe }}</td>
+            <td>{{ item.so_ban }}</td>
+            <td>{{ item.so_ton }}</td>
+            <td>{{ item.so_phan_bo }}</td>
+            <td>
+                <strong>{{ item.de_xuat_nhap }}</strong>
+            </td>
+            <td>
+                <a href="{% url 'orders:proposal_detail' item.allocation_id %}">
+                    Xem chi tiết
+                </a>
+            </td>
+        </tr>
+
+        {% empty %}
+        <tr>
+            <td colspan="7">
+                Chưa có dữ liệu đề xuất nhập xe.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
