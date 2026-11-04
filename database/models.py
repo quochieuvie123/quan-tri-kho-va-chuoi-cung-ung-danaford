@@ -4,6 +4,38 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
+
+class TrangThaiXe(models.TextChoices):
+    SAN_SANG = "SAN_SANG", "Sẵn sàng"
+    GIU_CHO_XUAT = "GIU_CHO_XUAT", "Giữ chỗ xuất kho"
+    DANG_LUU_CHUYEN = "DANG_LUU_CHUYEN", "Đang lưu chuyển"
+    SU_CO_PDI = "SU_CO_PDI", "Sự cố PDI - Khóa xuất"
+    DA_XUAT = "DA_XUAT", "Đã xuất kho"
+
+class TrangThaiHopDong(models.TextChoices):
+    CHO_XU_LY = "CHO_XU_LY", "Chờ xử lý"
+    DU_DIEU_KIEN_XUAT = "DU_DIEU_KIEN_XUAT", "Đủ điều kiện xuất kho"
+    DANG_XUAT_KHO = "DANG_XUAT_KHO", "Đang xuất kho"
+    HOAN_TAT = "HOAN_TAT", "Hoàn tất"
+
+class TrangThaiPhieuXuat(models.TextChoices):
+    CHO_DUYET = "CHO_DUYET", "Chờ duyệt"
+    DA_DUYET = "DA_DUYET", "Đã duyệt"
+    DA_HUY = "DA_HUY", "Đã hủy"
+
+class TrangThaiKiemKe(models.TextChoices):
+    DANG_KIEM_KE = "DANG_KIEM_KE", "Đang kiểm kê"
+    CHO_XU_LY = "CHO_XU_LY", "Chờ xử lý chênh lệch"
+    HOAN_TAT = "HOAN_TAT", "Hoàn tất"
+    DA_HUY = "DA_HUY", "Đã hủy"
+
+class PhanLoaiKiemKe(models.TextChoices):
+    KHOP = "KHOP", "Khớp"
+    THIEU = "THIEU", "Thiếu"
+    THUA = "THUA", "Thừa"
+    SAI_VI_TRI = "SAI_VI_TRI", "Sai vị trí"
+    DANG_XU_LY_NGHIEP_VU = "DANG_XU_LY_NGHIEP_VU", "Đang xử lý nghiệp vụ"
+
 # SĐT phải gồm đúng 10 chữ số (len = 10 theo tài liệu thiết kế).
 # Dùng [0-9] thay vì \d vì \d trong Python còn khớp cả chữ số Unicode (vd: chữ số Ả Rập).
 sdt_validator = RegexValidator(r"^[0-9]{10}\Z", "Số điện thoại phải gồm đúng 10 chữ số.")
@@ -109,6 +141,8 @@ class Xe(models.Model):
     nhien_lieu = models.CharField(max_length=50, null=True, blank=True)
     dung_tich = models.IntegerField(null=True, blank=True, validators=[MinValueValidator(1)])
 
+    trang_thai = models.CharField(max_length=30, choices=TrangThaiXe.choices, default=TrangThaiXe.SAN_SANG,
+                                  db_index=True)
     class Meta:
         verbose_name = verbose_name_plural = "Xe"
     def __str__(self):
@@ -156,6 +190,7 @@ class TonKho(models.Model):
     xe = models.ForeignKey(Xe, on_delete=models.PROTECT, db_column="MaSP")
     ngay_vao_kho = models.DateField()
     so_luong_ton = models.IntegerField(default=1, validators=[MinValueValidator(0)])
+    vi_tri = models.CharField(max_length=50, default="A01", blank=True, help_text="Vị trí đỗ trong bãi")
 
     class Meta:
         constraints = [
@@ -299,6 +334,8 @@ class HopDong(models.Model):
     khach_hang = models.ForeignKey(KhachHang, on_delete=models.CASCADE, db_column="MaKH")
     ngay_ky = models.DateTimeField()
     so_tien_coc = models.DecimalField(default=0, **tien())   # tiền cọc của cả hợp đồng
+    trang_thai = models.CharField(max_length=30, choices=TrangThaiHopDong.choices, default=TrangThaiHopDong.CHO_XU_LY,
+                                  db_index=True)
     class Meta:
         verbose_name = verbose_name_plural = "Hợp đồng"
     # ĐÃ BỎ trường xe
@@ -320,12 +357,31 @@ class PhieuXuatKho(models.Model):
     # mỗi dòng chi tiết hợp đồng (1 xe trong 1 hợp đồng) có đúng 1 phiếu xuất
     chi_tiet_hop_dong = models.OneToOneField(ChiTietHopDong, on_delete=models.CASCADE)
     kho = models.ForeignKey(Kho, on_delete=models.CASCADE, db_column="MaKho")
-    ngay_xuat = models.DateTimeField()
+    ngay_lap = models.DateTimeField(auto_now_add=True)
+    ngay_xuat = models.DateTimeField(null=True, blank=True)
+    nguoi_lap = models.ForeignKey(NhanVien, on_delete=models.PROTECT, null=True, blank=True,
+                                  related_name="phieu_xuat_da_lap", db_column="MaNVLap")
+    nguoi_duyet = models.ForeignKey(NhanVien, on_delete=models.PROTECT, null=True, blank=True,
+                                    related_name="phieu_xuat_da_duyet", db_column="MaNVDuyet")
+    ngay_duyet = models.DateTimeField(null=True, blank=True)
+    nguoi_nhan = models.CharField(max_length=255, default="", blank=True)
+    ghi_chu = models.TextField(null=True, blank=True)
+    trang_thai = models.CharField(max_length=30, choices=TrangThaiPhieuXuat.choices,
+                                  default=TrangThaiPhieuXuat.CHO_DUYET, db_index=True)
 
+    @property
+    def hop_dong(self):
+        return self.chi_tiet_hop_dong.hop_dong if hasattr(self,
+                                                          'chi_tiet_hop_dong') and self.chi_tiet_hop_dong else None
+
+    @property
+    def xe(self):
+        return self.chi_tiet_hop_dong.xe if hasattr(self, 'chi_tiet_hop_dong') and self.chi_tiet_hop_dong else None
     class Meta:
         verbose_name = verbose_name_plural = "Phiếu Xuất Kho"
+        ordering = ["-ngay_lap"]
     def __str__(self):
-        return self.ma_pxk
+        return f"{self.ma_pxk} ({self.get_trang_thai_display()})"
 
 
 class PhieuKiemKe(models.Model):
@@ -333,12 +389,25 @@ class PhieuKiemKe(models.Model):
     kho = models.ForeignKey(Kho, on_delete=models.PROTECT, db_column="MaKho")
     nhan_vien = models.ForeignKey(NhanVien, on_delete=models.PROTECT, db_column="MaNV")
     ngay_kiem_ke = models.DateTimeField()
-    ghi_chu = models.CharField(max_length=255, null=True, blank=True)
-
+    ky_kiem_ke = models.CharField(max_length=50, help_text="VD: Tháng 10/2026")
+    pham_vi = models.CharField(max_length=100, default="Toàn kho")
+    ghi_chu = models.TextField(null=True, blank=True)
+    trang_thai = models.CharField(
+        max_length=30,
+        choices=TrangThaiKiemKe.choices,
+        default=TrangThaiKiemKe.DANG_KIEM_KE,
+        db_index=True
+    )
+    nguoi_duyet = models.ForeignKey(
+        NhanVien, on_delete=models.PROTECT, null=True, blank=True,
+        related_name="phieu_kiem_ke_da_duyet"
+    )
+    ngay_duyet = models.DateTimeField(null=True, blank=True)
     class Meta:
         verbose_name = verbose_name_plural = "Phiếu Kiểm Kê Hàng Hóa"
+        ordering = ["-ngay_kiem_ke"]
     def __str__(self):
-        return self.ma_pkk
+        return f"{self.ma_pkk} - {self.kho_id} ({self.get_trang_thai_display()})"
 
 
 class ChiTietKiemKe(models.Model):
@@ -350,7 +419,16 @@ class ChiTietKiemKe(models.Model):
     xe = models.ForeignKey(Xe, on_delete=models.PROTECT, db_column="MaSP")
     ton_he_thong = models.IntegerField(default=1, validators=[MinValueValidator(0)])
     ton_thuc_te = models.IntegerField(choices=TonThucTe.choices, default=TonThucTe.CON)  # 1: còn, 0: mất
-    tinh_trang = models.CharField(max_length=100, null=True, blank=True)
+    vi_tri_he_thong = models.CharField(max_length=50, default="A01", blank=True)
+    vi_tri_thuc_te = models.CharField(max_length=50, null=True, blank=True)
+    tinh_trang = models.CharField(max_length=100, null=True, blank=True, default="Bình thường")
+    phan_loai = models.CharField(
+        max_length=30,
+        choices=PhanLoaiKiemKe.choices,
+        default=PhanLoaiKiemKe.KHOP
+    )
+    nguyen_nhan = models.TextField(null=True, blank=True)
+    phuong_an_xu_ly = models.TextField(null=True, blank=True)
 
     class Meta:
         constraints = [
@@ -361,4 +439,18 @@ class ChiTietKiemKe(models.Model):
         verbose_name = verbose_name_plural = "Chi Tiết Kiểm Kê"
 
     def __str__(self):
-        return f"{self.phieu_kiem_ke_id} - {self.xe_id}"
+        return f"{self.phieu_kiem_ke_id} - {self.xe_id} ({self.phan_loai})"
+
+
+class LichSuXuatKho(models.Model):
+    phieu_xuat = models.ForeignKey(PhieuXuatKho, on_delete=models.CASCADE, related_name="lich_su")
+    xe = models.ForeignKey(Xe, on_delete=models.PROTECT)
+    kho = models.ForeignKey(Kho, on_delete=models.PROTECT)
+    thoi_gian = models.DateTimeField(auto_now_add=True)
+    hanh_dong = models.CharField(max_length=50) # TAO_PHIEU, DUYET_XUAT, HUY_PHIEU
+    nguoi_thuc_hien = models.ForeignKey(NhanVien, on_delete=models.PROTECT)
+    ghi_chu = models.TextField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = verbose_name_plural = "Lịch sử xuất kho"
+        ordering = ["-thoi_gian"]
