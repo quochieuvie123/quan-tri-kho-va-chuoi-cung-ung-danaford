@@ -79,7 +79,7 @@ class XuatKhoService:
         }
 
     @staticmethod
-    def lay_danh_sach_xe_kha_dung(ma_hd: str, ma_kho: str = "KHO_DN"):
+    def lay_danh_sach_xe_kha_dung(ma_hd: str, ma_kho: str = "KHO01"):
         """
         Nghiệp vụ UC-LPXK-03:
         Tra cứu xe tồn kho Đà Nẵng phù hợp tiêu chí hợp đồng và CHƯA BỊ KHÓA BỞI BẤT KỲ NGHIỆP VỤ NÀO.
@@ -103,7 +103,7 @@ class XuatKhoService:
 
         # Lọc bỏ những xe đang vướng sự cố PDI chưa đóng (UC-10 / PDI conflict prevention)
         xe_su_co_ids = BienBanPDI.objects.exclude(
-            trang_thai_claim="Đã xử lý / Đóng"
+            trang_thai_claim="Đã xử lý"
         ).values_list('xe_id', flat=True)
         qs = qs.exclude(xe__vin__in=xe_su_co_ids)
 
@@ -165,7 +165,7 @@ class XuatKhoService:
                 raise XuatKhoError(f"Xe {vin} không tồn tại trong dữ liệu kho {ma_kho}.")
 
             # 4. Kiểm tra sự cố PDI
-            if BienBanPDI.objects.filter(xe=xe).exclude(trang_thai_claim="Đã xử lý / Đóng").exists():
+            if BienBanPDI.objects.filter(xe=xe).exclude(trang_thai_claim="Đã xử lý").exists():
                 raise XuatKhoError(f"Xe {vin} đang có biên bản sự cố PDI chưa được xử lý xong. Không được phép lập phiếu xuất.")
 
             # 5. Sinh mã phiếu xuất tự động

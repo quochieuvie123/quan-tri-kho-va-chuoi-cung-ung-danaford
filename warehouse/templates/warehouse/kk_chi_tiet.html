@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
+{% block content %}
+{% include "warehouse/_messages.html" %}
+<div class="actions">
+  <a class="btn" href="{% url 'warehouse:kk_ds' %}?kho={{ phieu.kho_id }}"><i class="bi bi-arrow-left"></i> Danh sách kiểm kê</a>
+  <span class="badge {% if phieu.trang_thai == 'HOAN_TAT' %}badge--ok{% elif phieu.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">{{ phieu.get_trang_thai_display }}</span>
+</div>
+<div class="card">
+  <dl class="kv">
+    <dt>Mã phiếu</dt><dd>{{ phieu.ma_pkk }} · kho {{ phieu.kho_id }}</dd>
+    <dt>Kỳ / Phạm vi</dt><dd>{{ phieu.ky_kiem_ke }} · {{ phieu.pham_vi }}</dd>
+    <dt>Người lập</dt><dd>{{ phieu.nhan_vien.ten_nv }}</dd>
+    <dt>Người duyệt</dt><dd>{{ phieu.nguoi_duyet.ten_nv|default:"—" }}</dd>
+  </dl>
+</div>
+
+{% if dang_kiem %}
+<form method="post" action="{% url 'warehouse:kk_kiem_dem' phieu.ma_pkk %}" class="card form">
+  {% csrf_token %}
+  <h3>Ghi nhận kiểm đếm thực tế</h3>
+  <p class="muted">Mỗi dòng một VIN xe thực sự thấy trong bãi. Danh sách đã điền sẵn theo hệ thống, hãy xóa các VIN không thấy.</p>
+  <textarea class="inp" name="danh_sach_vin" rows="10">{{ vin_he_thong }}</textarea>
+  <div class="actions"><button class="btn btn--primary" type="submit">Ghi nhận kiểm đếm</button></div>
+</form>
+{% endif %}
+
+<form method="post" action="{% url 'warehouse:kk_xu_ly' phieu.ma_pkk %}" class="card">
+  {% csrf_token %}
+  <h3>Chi tiết kiểm kê <small class="muted">({{ dong|length }} xe, {{ so_chenh_lech }} chênh lệch)</small></h3>
+  <div class="scroll">
+  <table class="tbl tbl--sm">
+    <thead><tr><th>VIN</th><th>Tên xe</th><th>Hệ thống</th><th>Thực tế</th><th>Vị trí HT → TT</th><th>Phân loại</th><th>Nguyên nhân</th><th>Phương án xử lý</th></tr></thead>
+    <tbody>
+    {% for d in dong %}
+      <tr>
+        <td>{{ d.xe.vin }}{% if cho_xu_ly and d.la_chenh_lech %}<input type="hidden" name="vin" value="{{ d.xe.vin }}">{% endif %}</td>
+        <td>{{ d.xe.ten_xe }}</td><td>{{ d.ton_he_thong }}</td><td>{{ d.ton_thuc_te }}</td>
+        <td>{{ d.vi_tri_he_thong }} → {{ d.vi_tri_thuc_te|default:"—" }}</td>
+        <td><span class="badge {% if d.phan_loai == 'KHOP' %}badge--ok{% elif d.la_chenh_lech %}badge--bad{% else %}badge--wait{% endif %}">{{ d.get_phan_loai_display }}</span></td>
+        {% if cho_xu_ly and d.la_chenh_lech %}
+          <td><input class="inp" name="nguyen_nhan_{{ d.xe.vin }}" value="{{ d.nguyen_nhan|default:'' }}"></td>
+          <td><input class="inp" name="phuong_an_{{ d.xe.vin }}" value="{{ d.phuong_an_xu_ly|default:'' }}"></td>
+        {% else %}
+          <td>{{ d.nguyen_nhan|default:"—" }}</td><td>{{ d.phuong_an_xu_ly|default:"—" }}</td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if cho_xu_ly %}
+  <div class="actions">
+    {% if so_chenh_lech %}<button class="btn" type="submit">Lưu nguyên nhân và phương án</button>{% endif %}
+    {% include "warehouse/_chon_nv.html" %}
+    <button class="btn btn--primary" type="submit" formaction="{% url 'warehouse:kk_duyet' phieu.ma_pkk %}" onclick="return confirm('Duyệt và điều chỉnh tồn kho theo thực tế?')"><i class="bi bi-check2-circle"></i> Duyệt phiếu kiểm kê</button>
+  </div>
+  {% endif %}
+</form>
+{% endblock %}

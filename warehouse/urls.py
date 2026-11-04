@@ -1,5 +1,4 @@
 from django.urls import path
-from django.views.generic import RedirectView
 from core.views import PlaceholderView
 from .views import (
     DanhSachPhieuXuatView,
@@ -18,13 +17,29 @@ from .views import (
     LichSuKiemKeView,
 
 )
+from . import giao_dien
+
 app_name = "warehouse"
 
 urlpatterns = [
     # 0. Tên URL mà menu sidebar (core/context_processors.py) đang gọi - KHÔNG xóa
     path("nhap/", PlaceholderView.as_view(title="Quản lý nhập kho"), name="nhap"),
-    path("xuat/", RedirectView.as_view(pattern_name="warehouse:ds_phieu_xuat"), name="xuat"),
-    path("ton-kho/", RedirectView.as_view(pattern_name="warehouse:ds_ton_kho"), name="ton_kho"),
+    path("xuat/", giao_dien.xuat_ds, name="xuat"),
+    path("ton-kho/", giao_dien.ton_ds, name="ton_kho"),
+
+    # 0b. Giao diện HTML (kế thừa base.html). Các đường dẫn JSON bên dưới giữ nguyên.
+    path("xuat/lap-phieu/", giao_dien.xuat_lap, name="xuat_lap"),
+    path("xuat/<str:ma_pxk>/", giao_dien.xuat_chi_tiet, name="xuat_chi_tiet"),
+    path("xuat/<str:ma_pxk>/duyet/", giao_dien.xuat_duyet, name="xuat_duyet"),
+    path("xuat/<str:ma_pxk>/huy/", giao_dien.xuat_huy, name="xuat_huy"),
+    path("xuat/<str:ma_pxk>/in/", giao_dien.xuat_in, name="xuat_in"),
+    path("ton-kho/xe/<str:vin>/", giao_dien.ton_chi_tiet, name="ton_chi_tiet"),
+    path("kiem-ke/", giao_dien.kk_ds, name="kk_ds"),
+    path("kiem-ke/tao/", giao_dien.kk_tao, name="kk_tao"),
+    path("kiem-ke/phieu/<str:ma_pkk>/", giao_dien.kk_chi_tiet, name="kk_chi_tiet"),
+    path("kiem-ke/phieu/<str:ma_pkk>/kiem-dem/", giao_dien.kk_kiem_dem, name="kk_kiem_dem"),
+    path("kiem-ke/phieu/<str:ma_pkk>/xu-ly/", giao_dien.kk_xu_ly, name="kk_xu_ly"),
+    path("kiem-ke/phieu/<str:ma_pkk>/duyet/", giao_dien.kk_duyet, name="kk_duyet"),
 
     # 1. Quản lý Xuất kho
     path("xuat-kho/danh-sach/", DanhSachPhieuXuatView.as_view(), name="ds_phieu_xuat"),

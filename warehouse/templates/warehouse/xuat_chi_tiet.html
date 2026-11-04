@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
+{% block content %}
+{% include "warehouse/_messages.html" %}
+<div class="actions">
+  <a class="btn" href="{% url 'warehouse:xuat' %}?kho={{ phieu.kho_id }}"><i class="bi bi-arrow-left"></i> Danh sách</a>
+  <span class="badge {% if phieu.trang_thai == 'DA_DUYET' %}badge--ok{% elif phieu.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">{{ phieu.get_trang_thai_display }}</span>
+  <span class="spacer"></span>
+  {% if co_the_in %}<a class="btn" href="{% url 'warehouse:xuat_in' phieu.ma_pxk %}" target="_blank"><i class="bi bi-printer"></i> In / xuất file</a>{% endif %}
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h3>Thông tin phiếu</h3>
+    <dl class="kv">
+      <dt>Mã phiếu</dt><dd>{{ phieu.ma_pxk }}</dd>
+      <dt>Kho xuất</dt><dd>{{ phieu.kho_id }}</dd>
+      <dt>Ngày lập</dt><dd>{{ phieu.ngay_lap|date:"d/m/Y H:i" }}</dd>
+      <dt>Người lập</dt><dd>{{ phieu.nguoi_lap.ten_nv|default:"—" }}</dd>
+      <dt>Người nhận xe</dt><dd>{{ phieu.nguoi_nhan|default:"—" }}</dd>
+      <dt>Ngày xuất</dt><dd>{{ phieu.ngay_xuat|date:"d/m/Y H:i"|default:"—" }}</dd>
+      <dt>Người duyệt</dt><dd>{{ phieu.nguoi_duyet.ten_nv|default:"—" }}</dd>
+      <dt>Ghi chú</dt><dd>{{ phieu.ghi_chu|default:"—" }}</dd>
+    </dl>
+  </div>
+  <div class="card">
+    <h3>Hợp đồng và xe</h3>
+    <dl class="kv">
+      <dt>Hợp đồng</dt><dd>{{ hd.ma_hd }}</dd>
+      <dt>Khách hàng</dt><dd>{{ hd.khach_hang.ten_kh }} · {{ hd.khach_hang.sdt_kh }}</dd>
+      <dt>VIN</dt><dd>{{ xe.vin }}</dd>
+      <dt>Tên xe</dt><dd>{{ xe.ten_xe }}</dd>
+      <dt>Màu / Số máy</dt><dd>{{ xe.mau_sac|default:"—" }} / {{ xe.so_may }}</dd>
+      <dt>Trạng thái xe</dt><dd>{{ xe.get_trang_thai_display }}</dd>
+    </dl>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Đối chiếu hợp đồng và hóa đơn bán</h3>
+  {% if doi_chieu.hop_le %}
+    <p><span class="badge badge--ok">Khớp</span> Hóa đơn {{ doi_chieu.ma_hdb }} · số HĐ {{ doi_chieu.so_hoa_don }} · {{ doi_chieu.so_tien|floatformat:"0g" }} đ</p>
+  {% else %}
+    <p><span class="badge badge--bad">Chưa khớp</span> {{ doi_chieu.canh_bao }}</p>
+  {% endif %}
+  {% if co_the_duyet or co_the_huy %}
+  <form method="post" class="actions">
+    {% csrf_token %}
+    {% include "warehouse/_chon_nv.html" %}
+    {% if co_the_duyet %}<button class="btn btn--primary" type="submit" formaction="{% url 'warehouse:xuat_duyet' phieu.ma_pxk %}"><i class="bi bi-check2-circle"></i> Duyệt xuất kho</button>{% endif %}
+    {% if co_the_huy %}
+      <input class="inp" name="ly_do" placeholder="Lý do hủy phiếu (nếu hủy)">
+      <button class="btn" type="submit" formaction="{% url 'warehouse:xuat_huy' phieu.ma_pxk %}" onclick="return confirm('Hủy phiếu xuất kho này?')"><i class="bi bi-x-circle"></i> Hủy phiếu</button>
+    {% endif %}
+  </form>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3>Lịch sử</h3>
+  <ul class="timeline">
+    {% for l in lich_su %}<li><strong>{{ l.hanh_dong }}</strong> <small class="muted">{{ l.thoi_gian|date:"d/m/Y H:i" }} · {{ l.nguoi_thuc_hien.ten_nv }}</small>{% if l.ghi_chu %}<div>{{ l.ghi_chu }}</div>{% endif %}</li>
+    {% empty %}<li class="muted">Chưa có lịch sử.</li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

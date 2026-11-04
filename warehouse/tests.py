@@ -19,7 +19,7 @@ class XuatKhoConflictPreventionTests(TestCase):
     def setUp(self):
         # 1. Tạo chi nhánh & kho Đà Nẵng
         self.cn = ChiNhanh.objects.create(ma_cn="DANA_DN", ten_cn="Dana Ford Đà Nẵng")
-        self.kho = Kho.objects.create(ma_kho="KHO_DN", chi_nhanh=self.cn)
+        self.kho = Kho.objects.create(ma_kho="KHO01", chi_nhanh=self.cn)
 
         # 2. Tạo nhân viên (chỉ gồm các trường thực tế của bảng NhanVien)
         self.nv = NhanVien.objects.create(
@@ -173,7 +173,7 @@ class XuatKhoConflictPreventionTests(TestCase):
 class InventoryConflictPreventionTests(TestCase):
     def setUp(self):
         self.cn = ChiNhanh.objects.create(ma_cn="DANA_DN", ten_cn="Dana Ford Đà Nẵng")
-        self.kho = Kho.objects.create(ma_kho="KHO_DN", chi_nhanh=self.cn)
+        self.kho = Kho.objects.create(ma_kho="KHO01", chi_nhanh=self.cn)
         self.nv = NhanVien.objects.create(ma_nv="NV002", chi_nhanh=self.cn, ten_nv="Trần Kho", sdt_nv="0905999888")
         # Tạo xe có tuổi tồn 45 ngày (nhóm Cần theo dõi)
         self.xe = Xe.objects.create(

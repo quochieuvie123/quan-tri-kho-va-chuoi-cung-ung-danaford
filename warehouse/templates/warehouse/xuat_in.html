@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
+{% block content %}
+<div class="actions no-print"><button class="btn btn--primary" onclick="window.print()"><i class="bi bi-printer"></i> In / lưu PDF</button></div>
+<div class="card print-sheet">
+  <h2 style="text-align:center">PHIẾU XUẤT KHO - DANA FORD</h2>
+  <p style="text-align:center">Số phiếu: <strong>{{ d.ma_pxk }}</strong> · Ngày xuất: {{ d.ngay_xuat }}</p>
+  <dl class="kv">
+    <dt>Kho xuất</dt><dd>{{ d.kho_xuat }}</dd>
+    <dt>Hợp đồng</dt><dd>{{ d.hop_dong.ma_hd }}</dd>
+    <dt>Khách hàng</dt><dd>{{ d.hop_dong.khach_hang }} · {{ d.hop_dong.sdt_khach_hang }}</dd>
+    <dt>Người nhận xe</dt><dd>{{ d.nguoi_nhan }}</dd>
+    <dt>Xe</dt><dd>{{ d.xe.ten_xe }} ({{ d.xe.loai_xe }})</dd>
+    <dt>VIN / Số máy</dt><dd>{{ d.xe.vin }} / {{ d.xe.so_may }}</dd>
+    <dt>Màu / Năm SX</dt><dd>{{ d.xe.mau_sac }} / {{ d.xe.nam_sx }}</dd>
+    <dt>Ghi chú</dt><dd>{{ d.ghi_chu }}</dd>
+  </dl>
+  <div class="grid2" style="margin-top:40px; text-align:center">
+    <div><strong>Người lập phiếu</strong><br><br><br>{{ d.nguoi_lap }}</div>
+    <div><strong>Người duyệt</strong><br><br><br>{{ d.nguoi_duyet }}</div>
+  </div>
+</div>
+{% endblock %}

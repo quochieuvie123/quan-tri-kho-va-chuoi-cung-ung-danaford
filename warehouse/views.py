@@ -15,7 +15,7 @@ class DanhSachPhieuXuatView(LoginRequiredMixin, View):
     """UC-PXK-01: Xem danh sách phiếu xuất kho"""
     def get(self, request, *args, **kwargs):
         trang_thai = request.GET.get('trang_thai')
-        ma_kho = request.GET.get('kho', 'KHO_DN')
+        ma_kho = request.GET.get('kho', 'KHO01')
         tu_khoa = request.GET.get('q', '').strip()
 
         qs = PhieuXuatKho.objects.select_related(
@@ -112,7 +112,7 @@ class TraCuuXeKhaDungView(LoginRequiredMixin, View):
     """UC-LPXK-03: Tra cứu xe sẵn sàng trong kho Đà Nẵng"""
     def get(self, request, *args, **kwargs):
         ma_hd = request.GET.get('ma_hd')
-        ma_kho = request.GET.get('kho', 'KHO_DN')
+        ma_kho = request.GET.get('kho', 'KHO01')
         if not ma_hd:
             return JsonResponse({"status": "error", "message": "Vui lòng cung cấp mã hợp đồng."}, status=400)
         try:
@@ -137,7 +137,7 @@ class LapPhieuXuatKhoActionView(LoginRequiredMixin, View):
             payload = json.loads(request.body)
             ma_hd = payload.get("ma_hd")
             vin = payload.get("vin")
-            ma_kho = payload.get("kho", "KHO_DN")
+            ma_kho = payload.get("kho", "KHO01")
             nguoi_nhan = payload.get("nguoi_nhan")
             ghi_chu = payload.get("ghi_chu", "")
 
@@ -224,7 +224,7 @@ class XuatFilePhieuXuatView(LoginRequiredMixin, View):
 class DanhSachTonKhoView(LoginRequiredMixin, View):
     """UC-TK-01 & UC-TK-03: Xem danh sách và lọc xe tồn kho"""
     def get(self, request, *args, **kwargs):
-        ma_kho = request.GET.get('kho', 'KHO_DN')
+        ma_kho = request.GET.get('kho', 'KHO01')
         bo_loc = {
             "loai_xe": request.GET.get('loai_xe'),
             "mau_sac": request.GET.get('mau_sac'),
@@ -236,7 +236,7 @@ class DanhSachTonKhoView(LoginRequiredMixin, View):
 class ChiTietXeTonKhoView(LoginRequiredMixin, View):
     """UC-TK-02: Xem chi tiết xe tồn kho & tuổi tồn"""
     def get(self, request, vin, *args, **kwargs):
-        ma_kho = request.GET.get('kho', 'KHO_DN')
+        ma_kho = request.GET.get('kho', 'KHO01')
         try:
             data = InventoryService.lay_chi_tiet_xe_ton(vin=vin, ma_kho=ma_kho)
             return JsonResponse({"status": "success", "data": data})
@@ -247,7 +247,7 @@ class TaoPhieuKiemKeView(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         try:
             payload = json.loads(request.body)
-            ma_kho = payload.get("kho", "KHO_DN")
+            ma_kho = payload.get("kho", "KHO01")
             ky = payload.get("ky_kiem_ke")
             pham_vi = payload.get("pham_vi", "Toàn kho")
             ghi_chu = payload.get("ghi_chu", "")
@@ -303,7 +303,7 @@ class DuyetPhieuKiemKeView(LoginRequiredMixin, View):
 class LichSuKiemKeView(LoginRequiredMixin, View):
     """UC-KK-08: Xem lịch sử kiểm kê"""
     def get(self, request, *args, **kwargs):
-        ma_kho = request.GET.get('kho', 'KHO_DN')
+        ma_kho = request.GET.get('kho', 'KHO01')
         qs = PhieuKiemKe.objects.filter(kho_id=ma_kho, trang_thai=TrangThaiKiemKe.HOAN_TAT).select_related('nhan_vien', 'nguoi_duyet')
         data = [{
             "ma_pkk": p.ma_pkk,

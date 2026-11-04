@@ -44,7 +44,7 @@ class InventoryService:
         return {"so_ngay_ton": so_ngay, "nhom_tuoi_ton": nhom}
 
     @classmethod
-    def lay_danh_sach_ton_kho(cls, ma_kho: str = "KHO_DN", bo_loc: dict = None) -> list:
+    def lay_danh_sach_ton_kho(cls, ma_kho: str = "KHO01", bo_loc: dict = None) -> list:
         """
         Nghiệp vụ UC-TK-01 & UC-TK-03: Xem danh sách & tra cứu xe tồn kho
         """
@@ -80,7 +80,7 @@ class InventoryService:
         return ket_qua
 
     @classmethod
-    def lay_chi_tiet_xe_ton(cls, vin: str, ma_kho: str = "KHO_DN") -> dict:
+    def lay_chi_tiet_xe_ton(cls, vin: str, ma_kho: str = "KHO01") -> dict:
         """
         Nghiệp vụ UC-TK-02: Xem chi tiết xe tồn kho và lịch sử
         """
@@ -194,7 +194,7 @@ class InventoryService:
 
             # 2. Xe đang gặp sự cố PDI chưa đóng
             vin_dang_pdi = set(BienBanPDI.objects.exclude(
-                trang_thai_claim="Đã xử lý / Đóng"
+                trang_thai_claim="Đã xử lý"
             ).values_list('xe__vin', flat=True))
 
             vin_dang_nghiep_vu = vin_dang_xuat.union(vin_dang_pdi)
