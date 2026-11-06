@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ page_title|default:"Dana Ford" }} | Dana Ford</title>
+  <title>{{ page_title|default:"Dana Ford" }} | Quản trị Kho & Chuỗi Cung Ứng</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -18,7 +18,19 @@
     <div class="app__main">
       {% include "includes/header.html" %}
       <main class="app__content">
-        <h1 class="page-title">{% block page_title %}{{ page_title }}{% endblock %}</h1>
+        {% if messages %}
+          <div class="messages-container" style="margin-bottom: 20px;">
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags|default:'info' }}" style="padding: 12px 18px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; display: flex; align-items: center; justify-content: space-between; {% if message.tags == 'success' %}background:#ecfdf5; color:#065f46; border: 1px solid #a7f3d0;{% elif message.tags == 'error' or message.tags == 'danger' %}background:#fef2f2; color:#991b1b; border: 1px solid #fecaca;{% elif message.tags == 'warning' %}background:#fffbeb; color:#92400e; border: 1px solid #fde68a;{% else %}background:#eff6ff; color:#1e40af; border: 1px solid #bfdbfe;{% endif %}">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <i class="bi {% if message.tags == 'success' %}bi-check-circle-fill{% elif message.tags == 'error' %}bi-x-circle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
+                  <span>{{ message }}</span>
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="background:none; border:none; cursor:pointer; color:inherit; font-size:18px; line-height:1;">&times;</button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
         {% block content %}{% endblock %}
       </main>
     </div>
