@@ -14,7 +14,9 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+from dotenv import load_dotenv
 
+load_dotenv(BASE_DIR / ".env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
@@ -152,3 +154,26 @@ LOGIN_REDIRECT_URL = "/"
 LANGUAGE_CODE = "vi"
 TIME_ZONE = "Asia/Ho_Chi_Minh"
 
+import os
+
+MAILERS = {
+    "default": {
+        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+        "OPTIONS": {
+            "host": "smtp.gmail.com",
+            "port": 587,
+            "use_tls": True,
+            "username": os.getenv("EMAIL_HOST_USER", ""),
+            "password": os.getenv("EMAIL_HOST_PASSWORD", ""),
+            "timeout": 20,
+        },
+    },
+}
+
+DEFAULT_FROM_EMAIL = os.getenv("EMAIL_HOST_USER", "")
+
+TRANSFER_RECEIVER_EMAILS = [
+    email.strip()
+    for email in os.getenv("TRANSFER_RECEIVER_EMAILS", "").split(",")
+    if email.strip()
+]

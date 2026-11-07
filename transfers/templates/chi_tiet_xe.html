@@ -1,0 +1,133 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Chi tiết xe lưu chuyển</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 14px;
+        }
+
+        th {
+            width: 35%;
+            background: #eef2f6;
+            text-align: left;
+        }
+
+        input, select {
+            padding: 10px;
+            margin: 10px 0;
+            width: 300px;
+        }
+
+        .btn {
+            background: #0866c2;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2>Chi tiết xe</h2>
+
+<table class="table-xe">
+    <thead>
+        <tr>
+            <th>VIN</th>
+            <th>Số máy</th>
+            <th>Tên xe</th>
+            <th>Loại xe</th>
+            <th>Màu sắc</th>
+            <th>Mã kho</th>
+            <th>Tên kho</th>
+            <th>Số lượng tồn</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        <tr>
+            <td>{{ ton_kho.xe.vin }}</td>
+            <td>{{ ton_kho.xe.so_may }}</td>
+            <td>{{ ton_kho.xe.ten_xe }}</td>
+            <td>{{ ton_kho.xe.loai_xe }}</td>
+            <td>{{ ton_kho.xe.mau_sac|default:"Chưa cập nhật" }}</td>
+            <td>{{ ton_kho.kho.ma_kho }}</td>
+            <td>{{ ton_kho.kho.chi_nhanh }}</td>
+            <td>{{ ton_kho.so_luong_ton }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Thông tin lưu chuyển</h2>
+{% if messages %}
+    {% for message in messages %}
+        <p>{{ message }}</p>
+    {% endfor %}
+{% endif %}
+<form method="POST">
+    {% csrf_token %}
+
+    <label>Kho xuất:</label>
+    <input
+    type="text"
+    value="{{ ton_kho.kho.chi_nhanh }}"
+    readonly
+    >
+
+    <br>
+
+    <label>Số lượng lưu chuyển:</label>
+    <input
+        type="number"
+        name="so_luong"
+        min="1"
+        max="{{ ton_kho.so_luong_ton }}"
+        value="1"
+        required
+    >
+
+    <br>
+
+    <label>Kho nhập:</label>
+    <select name="kho_nhan" required>
+        <option value="">-- Chọn kho nhận --</option>
+
+        {% for kho in ds_kho_nhan %}
+        <option value="{{ kho.pk }}">
+            {{ kho.ma_kho }} - {{ kho.chi_nhanh }}
+        </option>
+        {% endfor %}
+    </select>
+
+    <br><br>
+
+    <button class="btn" type="submit" >
+        Thêm vào danh sách
+    </button>
+
+    <a href="{% url 'transfers:index' %}">
+        Quay lại
+    </a>
+</form>
+
+</body>
+</html>
