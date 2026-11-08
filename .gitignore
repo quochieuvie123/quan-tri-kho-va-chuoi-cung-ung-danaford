@@ -223,3 +223,6 @@ __marimo__/
 # PyCharm / cơ sở dữ liệu cục bộ
 .idea/
 *.sqlite3
+
+*.bak
+*.bundle

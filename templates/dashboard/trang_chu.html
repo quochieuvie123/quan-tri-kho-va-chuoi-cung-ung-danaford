@@ -1,0 +1,1030 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+  .dashboard-portal {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-bottom: 40px;
+  }
+
+  /* Welcome Banner */
+  .welcome-banner {
+    background: linear-gradient(135deg, #0b2a4a 0%, #0d447a 50%, #0b66c3 100%);
+    border-radius: 14px;
+    padding: 28px 32px;
+    color: #ffffff;
+    box-shadow: 0 8px 24px rgba(11, 42, 74, 0.15);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .welcome-banner::after {
+    content: "";
+    position: absolute;
+    right: -40px;
+    top: -40px;
+    width: 220px;
+    height: 220px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .welcome-banner__info h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.5px;
+  }
+
+  .welcome-banner__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    opacity: 0.95;
+  }
+
+  .role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .role-badge--admin { background: #fee2e2; color: #991b1b; }
+  .role-badge--ba { background: #e0f2fe; color: #0369a1; }
+  .role-badge--warehouse { background: #fef3c7; color: #92400e; }
+  .role-badge--transport { background: #e0e7ff; color: #3730a3; }
+  .role-badge--general { background: #f3f4f6; color: #374151; }
+
+  .welcome-stats {
+    display: flex;
+    gap: 16px;
+  }
+
+  .stat-card-mini {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 12px 20px;
+    text-align: center;
+    min-width: 105px;
+  }
+
+  .stat-card-mini__num {
+    font-size: 22px;
+    font-weight: 700;
+    display: block;
+    line-height: 1.1;
+  }
+
+  .stat-card-mini__lbl {
+    font-size: 11px;
+    opacity: 0.85;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  /* Grid Layout: 2 Columns (Main Content & Side Activity) */
+  .portal-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  @media (max-width: 1100px) {
+    .portal-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Section Cards */
+  .portal-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  }
+
+  .portal-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .portal-card__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0b2a4a;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+  }
+
+  .portal-card__title i {
+    color: #0b66c3;
+    font-size: 18px;
+  }
+
+  .btn-action-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #0b66c3;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    text-decoration: none;
+  }
+
+  .btn-action-primary:hover {
+    background: #0955a3;
+  }
+
+  /* Events List */
+  .event-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .event-item {
+    background: #fafbfc;
+    border: 1px solid #eef2f6;
+    border-left: 4px solid #0b66c3;
+    border-radius: 8px;
+    padding: 16px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    position: relative;
+  }
+
+  .event-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+
+  .event-item--khan_cap {
+    border-left-color: #ef4444;
+    background: #fef2f2;
+  }
+
+  .event-item--kiem_ke {
+    border-left-color: #f59e0b;
+  }
+
+  .event-item--van_chuyen {
+    border-left-color: #0b66c3;
+  }
+
+  .event-item--hop_giao_ban {
+    border-left-color: #8b5cf6;
+  }
+
+  .event-item__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    gap: 10px;
+  }
+
+  .event-item__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+  }
+
+  .event-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .event-tag--khan_cap { background: #fee2e2; color: #dc2626; }
+  .event-tag--kiem_ke { background: #fef3c7; color: #d97706; }
+  .event-tag--van_chuyen { background: #dbeafe; color: #1d4ed8; }
+  .event-tag--hop_giao_ban { background: #ede9fe; color: #6d28d9; }
+  .event-tag--thong_bao { background: #e5e7eb; color: #4b5563; }
+
+  .event-item__body {
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+
+  .event-item__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  .event-item__meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .event-item__meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .btn-delete-icon {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px;
+    border-radius: 4px;
+    transition: color 0.15s;
+  }
+
+  .btn-delete-icon:hover {
+    color: #ef4444;
+    background: #fee2e2;
+  }
+
+  /* Module Hub Cards */
+  .modules-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .module-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .module-card:hover {
+    border-color: #0b66c3;
+    box-shadow: 0 6px 16px rgba(11, 102, 195, 0.1);
+    transform: translateY(-2px);
+  }
+
+  .module-card--locked {
+    opacity: 0.65;
+    background: #f9fafb;
+    border-style: dashed;
+    cursor: not-allowed;
+  }
+
+  .module-card--locked:hover {
+    border-color: #d1d5db;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .module-card__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .module-card__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #0b66c3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+  }
+
+  .module-card--locked .module-card__icon {
+    background: #e5e7eb;
+    color: #6b7280;
+  }
+
+  .module-card__badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: #f3f4f6;
+    color: #4b5563;
+  }
+
+  .module-card__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0b2a4a;
+    margin: 0 0 6px 0;
+  }
+
+  .module-card__desc {
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.45;
+    margin: 0 0 16px 0;
+    flex-grow: 1;
+  }
+
+  .module-card__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0b66c3;
+    padding-top: 10px;
+    border-top: 1px solid #f3f4f6;
+  }
+
+  .module-card--locked .module-card__footer {
+    color: #9ca3af;
+  }
+
+  /* Activity Updates Feed (Right Column) */
+  .activity-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .activity-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #f3f4f6;
+    position: relative;
+  }
+
+  .activity-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .activity-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #e0f2fe;
+    color: #0284c7;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .activity-content {
+    flex-grow: 1;
+    font-size: 13px;
+  }
+
+  .activity-actor {
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .activity-role {
+    font-size: 11px;
+    color: #6b7280;
+    margin-left: 4px;
+  }
+
+  .activity-action {
+    color: #374151;
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+
+  .activity-detail {
+    font-size: 12px;
+    color: #6b7280;
+    background: #f9fafb;
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin-top: 4px;
+    border-left: 2px solid #0b66c3;
+  }
+
+  .activity-time {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Team Roster / Quick Switcher Table */
+  .team-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .team-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .team-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+  }
+
+  .team-table tr:hover {
+    background: #f8fafc;
+  }
+
+  /* Modal Form */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(11, 42, 74, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-backdrop.is-active {
+    display: flex;
+  }
+
+  .modal-card {
+    background: #ffffff;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 540px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    animation: modalSlide 0.2s ease-out;
+  }
+
+  @keyframes modalSlide {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .modal-header {
+    background: #f8fafc;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #0b2a4a;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #94a3b8;
+    cursor: pointer;
+  }
+
+  .modal-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+  }
+
+  .form-control {
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+
+  .form-control:focus {
+    outline: none;
+    border-color: #0b66c3;
+    box-shadow: 0 0 0 2px rgba(11, 102, 195, 0.15);
+  }
+
+  .modal-footer {
+    padding: 14px 20px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  .btn-secondary {
+    background: #e2e8f0;
+    color: #475569;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Tab switcher */
+  .hub-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 2px;
+  }
+
+  .hub-tab-btn {
+    background: none;
+    border: none;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -4px;
+    transition: all 0.15s ease;
+  }
+
+  .hub-tab-btn.is-active {
+    color: #0b66c3;
+    border-bottom-color: #0b66c3;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-portal">
+
+  <!-- 1. HEADER & LỜI CHÀO MỪNG THEO TÊN NHÂN VIÊN & PHÂN QUYỀN -->
+  <section class="welcome-banner">
+    <div class="welcome-banner__info">
+      <h2>{{ loi_chao }}, {{ ten_nhan_vien }}!</h2>
+      <div class="welcome-banner__meta">
+        <span class="role-badge role-badge--{% if role_info.code == 'ADMIN' %}admin{% elif role_info.code == 'BA' %}ba{% elif role_info.code == 'KIEM_TRA_TON_KHO' %}warehouse{% else %}transport{% endif %}">
+          <i class="bi bi-shield-check"></i> {{ role_info.title }}
+        </span>
+        <span><i class="bi bi-geo-alt"></i> {{ role_info.department }}</span>
+        {% if role_info.is_read_only %}
+          <span style="background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 4px; font-size: 11px;">
+            <i class="bi bi-eye"></i> Chế độ Giám sát & Phân tích
+          </span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="welcome-stats">
+      <div class="stat-card-mini">
+        <span class="stat-card-mini__num">{{ total_modules }}</span>
+        <span class="stat-card-mini__lbl">Module quyền hạn</span>
+      </div>
+      <div class="stat-card-mini">
+        <span class="stat-card-mini__num">{{ total_events }}</span>
+        <span class="stat-card-mini__lbl">Sự kiện nổi bật</span>
+      </div>
+      <div class="stat-card-mini">
+        <span class="stat-card-mini__num">{{ total_activities }}</span>
+        <span class="stat-card-mini__lbl">Cập nhật mới</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. NỘI DUNG CHÍNH: LƯỚI 2 CỘT -->
+  <div class="portal-grid">
+
+    <!-- CỘT TRÁI: SỰ KIỆN NỔI BẬT & KHÔNG GIAN LÀM VIỆC (MODULES) -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+
+      <!-- KHỐI 1: SỰ KIỆN NỔI BẬT (CÓ CHỨC NĂNG THÊM TRỰC TIẾP TRÊN WEB) -->
+      <section class="portal-card">
+        <div class="portal-card__header">
+          <h3 class="portal-card__title">
+            <i class="bi bi-calendar-event"></i> Sự kiện & Thông báo nổi bật
+          </h3>
+          {% if user_display.can_manage_events %}
+            <button type="button" class="btn-action-primary" onclick="openModal('modalEvent')">
+              <i class="bi bi-plus-circle"></i> Thêm sự kiện mới
+            </button>
+          {% endif %}
+        </div>
+
+        <div class="event-list">
+          {% for ev in events %}
+            <div class="event-item event-item--{{ ev.loai_su_kien }}">
+              <div class="event-item__header">
+                <h4 class="event-item__title">{{ ev.tieu_de }}</h4>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="event-tag event-tag--{{ ev.loai_su_kien }}">
+                    {{ ev.get_loai_su_kien_display }}
+                  </span>
+                  {% if user_display.can_manage_events %}
+                    <form method="post" action="{% url 'dashboard:xoa_su_kien' ev.id %}" onsubmit="return confirm('Bạn có chắc chắn muốn xóa sự kiện này?');" style="margin: 0;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn-delete-icon" title="Xóa sự kiện">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="event-item__body">
+                {{ ev.noi_dung }}
+              </div>
+              <div class="event-item__footer">
+                <div class="event-item__meta">
+                  <span><i class="bi bi-clock"></i> {{ ev.thoi_gian_dien_ra|date:"d/m/Y H:i" }}</span>
+                  {% if ev.dia_diem %}
+                    <span><i class="bi bi-geo-alt"></i> {{ ev.dia_diem }}</span>
+                  {% endif %}
+                </div>
+                <span>Đăng bởi: <strong>{{ ev.nguoi_tao.get_full_name|default:ev.nguoi_tao.username }}</strong></span>
+              </div>
+            </div>
+          {% empty %}
+            <div style="text-align: center; padding: 24px; color: #9ca3af;">
+              <i class="bi bi-calendar-x" style="font-size: 32px; display: block; margin-bottom: 8px;"></i>
+              Chưa có sự kiện nổi bật nào.
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- KHỐI 2: KHÔNG GIAN LÀM VIỆC & CÁC MODULE ĐƯỢC PHÂN QUYỀN -->
+      <section class="portal-card">
+        <div class="portal-card__header">
+          <div>
+            <h3 class="portal-card__title">
+              <i class="bi bi-grid-fill"></i> Không gian làm việc & Module phụ trách
+            </h3>
+            <p style="margin: 4px 0 0 0; font-size: 12px; color: #6b7280;">
+              {% if role_info.code == 'ADMIN' or role_info.code == 'BA' %}
+                Tài khoản cấp cao có quyền truy cập toàn bộ 10 phân hệ của hệ thống Dana Ford.
+              {% else %}
+                Hiển thị các phân hệ bạn được phân công tác nghiệp theo chức vụ <strong>{{ role_info.title }}</strong>.
+              {% endif %}
+            </p>
+          </div>
+        </div>
+
+        {% if role_info.code == 'ADMIN' or role_info.code == 'BA' %}
+          <!-- Tab chuyển đổi cho Admin / BA -->
+          <div class="hub-tabs">
+            <button type="button" class="hub-tab-btn is-active" onclick="switchModuleTab('all')">
+              Toàn bộ 10 Module (Hệ sinh thái Dana Ford)
+            </button>
+            <button type="button" class="hub-tab-btn" onclick="switchModuleTab('role-list')">
+              Danh sách Nhân viên & Phân quyền
+            </button>
+          </div>
+        {% endif %}
+
+        <!-- Danh sách module được phép truy cập -->
+        <div id="tabContentModules" class="modules-grid">
+          {% for m in allowed_modules %}
+            <a href="{% url m.url_name %}" class="module-card">
+              <div class="module-card__top">
+                <div class="module-card__icon">
+                  <i class="bi {{ m.icon }}"></i>
+                </div>
+                <span class="module-card__badge">{{ m.badge }}</span>
+              </div>
+              <h4 class="module-card__title">{{ m.label }}</h4>
+              <p class="module-card__desc">{{ m.description }}</p>
+              <div class="module-card__footer">
+                <span>Vào làm việc</span>
+                <i class="bi bi-arrow-right"></i>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+
+        <!-- Bảng danh sách 5 nhân sự và phân quyền (dành cho Admin / BA xem) -->
+        <div id="tabContentRoles" style="display: none; margin-top: 10px;">
+          <table class="team-table">
+            <thead>
+              <tr>
+                <th>Tên nhân viên</th>
+                <th>Tên đăng nhập</th>
+                <th>Mật khẩu</th>
+                <th>Chức quyền</th>
+                <th>Phạm vi được truy cập</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Phan Quốc Hiếu</strong></td>
+                <td><code>phanquochieu</code></td>
+                <td><code>hieuduanlon</code></td>
+                <td><span class="role-badge role-badge--admin">Admin</span></td>
+                <td>Toàn bộ 10 module, theo dõi hoạt động toàn bộ cấp dưới, quản trị toàn quyền</td>
+              </tr>
+              <tr>
+                <td><strong>Nguyễn Vũ Mỹ Dung</strong></td>
+                <td><code>mydung</code></td>
+                <td><code>dungduanlon</code></td>
+                <td><span class="role-badge role-badge--ba">BA</span></td>
+                <td>Toàn bộ 10 module, theo dõi hoạt động cấp dưới, xem & phân tích dữ liệu (View-only)</td>
+              </tr>
+              <tr>
+                <td><strong>Đỗ Nguyễn Cẩm Tú</strong></td>
+                <td><code>tu</code></td>
+                <td><code>tuduanlon</code></td>
+                <td><span class="role-badge role-badge--warehouse">Kiểm tra tồn kho</span></td>
+                <td>Module Kho (Xuất, Nhập, Tồn kho) và Luân chuyển xe</td>
+              </tr>
+              <tr>
+                <td><strong>Nguyễn Thị Yên Giang</strong></td>
+                <td><code>ygiang</code></td>
+                <td><code>ygiangduanlon</code></td>
+                <td><span class="role-badge role-badge--warehouse">Kiểm tra tồn kho</span></td>
+                <td>Module Kho (Xuất, Nhập, Tồn kho) và Luân chuyển xe</td>
+              </tr>
+              <tr>
+                <td><strong>Nguyễn Linh Giang</strong></td>
+                <td><code>lgiang</code></td>
+                <td><code>lgiangduanlon</code></td>
+                <td><span class="role-badge role-badge--transport">Điều phối & Dự báo</span></td>
+                <td>Module Sự cố vận chuyển và Dự báo nhu cầu nhập xe</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </section>
+
+    </div>
+
+    <!-- CỘT PHẢI: NHẬT KÝ CẬP NHẬT & THEO DÕI HÀNH ĐỘNG NHÂN VIÊN -->
+    <div id="khu-vuc-thong-bao">
+      <section class="portal-card" style="position: sticky; top: 80px;">
+        <div class="portal-card__header">
+          <h3 class="portal-card__title">
+            <i class="bi bi-bell-fill" style="color: #f59e0b;"></i> Hoạt động & Cập nhật
+          </h3>
+          {% if user_display.can_manage_notifications %}
+            <button type="button" class="btn-action-primary" style="padding: 5px 10px; font-size: 12px;" onclick="openModal('modalNotif')">
+              <i class="bi bi-plus-lg"></i> Cập nhật
+            </button>
+          {% endif %}
+        </div>
+
+        <p style="font-size: 12px; color: #6b7280; margin: -10px 0 16px 0;">
+          {% if user_display.can_monitor_subordinates %}
+            <i class="bi bi-shield-lock" style="color:#0b66c3;"></i> Giám sát nhật ký tác nghiệp của <strong>thành viên cấp dưới</strong>
+          {% else %}
+            Thông báo cập nhật mới nhất cho bộ phận của bạn
+          {% endif %}
+        </p>
+
+        <div class="activity-feed">
+          {% for act in activities %}
+            <div class="activity-item">
+              <div class="activity-avatar">
+                {{ act.ten_nhan_vien|slice:":1" }}
+              </div>
+              <div class="activity-content">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                  <div>
+                    <span class="activity-actor">{{ act.ten_nhan_vien }}</span>
+                    {% if act.chuc_vu %}
+                      <span class="activity-role">({{ act.chuc_vu }})</span>
+                    {% endif %}
+                  </div>
+                  {% if user_display.can_manage_notifications %}
+                    <form method="post" action="{% url 'dashboard:xoa_thong_bao' act.id %}" onsubmit="return confirm('Xóa thông báo này?');" style="margin: 0;">
+                      {% csrf_token %}
+                      <button type="submit" class="btn-delete-icon" title="Xóa thông báo">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
+                <div class="activity-action">{{ act.hanh_dong }}</div>
+                {% if act.chi_tiet %}
+                  <div class="activity-detail">{{ act.chi_tiet }}</div>
+                {% endif %}
+                <div class="activity-time">
+                  <i class="bi bi-clock-history"></i> {{ act.thoi_gian|timesince }} trước
+                  <span style="margin-left: 6px; font-weight: 500; color: #0b66c3;">[{{ act.get_module_display }}]</span>
+                </div>
+              </div>
+            </div>
+          {% empty %}
+            <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 13px;">
+              Chưa có hoạt động cập nhật nào gần đây.
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- MODAL THÊM SỰ KIỆN NỔI BẬT TRỰC TIẾP TRÊN WEB -->
+<div id="modalEvent" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3><i class="bi bi-calendar-plus" style="color:#0b66c3; margin-right:6px;"></i> Thêm sự kiện nổi bật mới</h3>
+      <button type="button" class="modal-close" onclick="closeModal('modalEvent')">&times;</button>
+    </div>
+    <form method="post" action="{% url 'dashboard:them_su_kien' %}">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Tiêu đề sự kiện / Thông báo *</label>
+          <input type="text" name="tieu_de" class="form-control" required placeholder="Ví dụ: Lịch kiểm kê tổng kho tháng 12">
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label>Loại sự kiện</label>
+            <select name="loai_su_kien" class="form-control">
+              <option value="thong_bao">Thông báo nội bộ</option>
+              <option value="kiem_ke">Lịch kiểm kê kho</option>
+              <option value="van_chuyen">Kế hoạch vận chuyển</option>
+              <option value="hop_giao_ban">Họp giao ban</option>
+              <option value="khan_cap">Khẩn cấp / Lưu ý</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Địa điểm / Phạm vi áp dụng</label>
+            <input type="text" name="dia_diem" class="form-control" placeholder="Ví dụ: Kho Đà Nẵng, Bình Định...">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Thời gian diễn ra</label>
+          <input type="datetime-local" name="thoi_gian_dien_ra" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Nội dung chi tiết *</label>
+          <textarea name="noi_dung" rows="4" class="form-control" required placeholder="Nhập nội dung thông báo hoặc hướng dẫn chi tiết..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('modalEvent')">Hủy bỏ</button>
+        <button type="submit" class="btn-action-primary">
+          <i class="bi bi-check2-circle"></i> Đăng sự kiện ngay
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL THÊM CẬP NHẬT HOẠT ĐỘNG THỦ CÔNG -->
+<div id="modalNotif" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3><i class="bi bi-bell" style="color:#0b66c3; margin-right:6px;"></i> Phát hành thông báo cập nhật mới</h3>
+      <button type="button" class="modal-close" onclick="closeModal('modalNotif')">&times;</button>
+    </div>
+    <form method="post" action="{% url 'dashboard:them_thong_bao' %}">
+      {% csrf_token %}
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Tiêu đề cập nhật / Hành động *</label>
+          <input type="text" name="hanh_dong" class="form-control" required placeholder="Ví dụ: Đã import bảng luân chuyển xe tháng 11">
+        </div>
+        <div class="form-group">
+          <label>Phân hệ / Module liên quan</label>
+          <select name="module" class="form-control">
+            <option value="he_thong">Hệ thống chung</option>
+            <option value="warehouse">Quản lý Kho (Xuất/Nhập/Tồn)</option>
+            <option value="transfers">Lưu chuyển xe</option>
+            <option value="contracts">Hợp đồng xe bán</option>
+            <option value="orders">Đặt xe & Phân bổ</option>
+            <option value="incidents">Sự cố vận chuyển</option>
+            <option value="analytics">Dự báo nhu cầu</option>
+            <option value="reports">Báo cáo thống kê</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Chi tiết ghi chú (nếu có)</label>
+          <textarea name="chi_tiet" rows="3" class="form-control" placeholder="Mô tả cụ thể hành động hoặc lưu ý cho nhân viên..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeModal('modalNotif')">Hủy bỏ</button>
+        <button type="submit" class="btn-action-primary">
+          <i class="bi bi-send"></i> Phát hành thông báo
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function openModal(modalId) {
+    var modal = document.getElementById(modalId);
+    if (modal) modal.classList.add('is-active');
+  }
+
+  function closeModal(modalId) {
+    var modal = document.getElementById(modalId);
+    if (modal) modal.classList.remove('is-active');
+  }
+
+  // Đóng modal khi bấm phím Escape
+  window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-backdrop.is-active').forEach(function(m) {
+        m.classList.remove('is-active');
+      });
+    }
+  });
+
+  // Chuyển đổi tab Module vs Bảng phân quyền (Admin / BA)
+  function switchModuleTab(tab) {
+    var modulesDiv = document.getElementById('tabContentModules');
+    var rolesDiv = document.getElementById('tabContentRoles');
+    var buttons = document.querySelectorAll('.hub-tab-btn');
+
+    if (tab === 'all') {
+      if (modulesDiv) modulesDiv.style.display = 'grid';
+      if (rolesDiv) rolesDiv.style.display = 'none';
+      if (buttons[0]) buttons[0].classList.add('is-active');
+      if (buttons[1]) buttons[1].classList.remove('is-active');
+    } else {
+      if (modulesDiv) modulesDiv.style.display = 'none';
+      if (rolesDiv) rolesDiv.style.display = 'block';
+      if (buttons[0]) buttons[0].classList.remove('is-active');
+      if (buttons[1]) buttons[1].classList.add('is-active');
+    }
+  }
+</script>
+{% endblock %}
