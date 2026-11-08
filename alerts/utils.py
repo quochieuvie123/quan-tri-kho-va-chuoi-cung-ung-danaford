@@ -4,7 +4,9 @@ from django.utils import timezone
 
 from database.models import TonKho
 from .models import CanhBao, NguongCanhBao
+import logging
 
+logger = logging.getLogger(__name__)
 
 @transaction.atomic
 def cap_nhat_canh_bao_thieu_hang():
@@ -70,16 +72,22 @@ def cap_nhat_canh_bao_ton_lau():
     hom_nay = timezone.localdate()
     danh_sach_ton = TonKho.objects.filter(so_luong_ton__gt=0)
     tuoi_ton_theo_xe = {}
+    doi_tuong_co_ngay_loi = set()
 
     for ton in danh_sach_ton:
+        doi_tuong = (ton.kho_id, ton.xe_id)
+
         if ton.ngay_vao_kho is None or ton.ngay_vao_kho > hom_nay:
-            raise ValueError(
-                f"Ngày vào kho không hợp lệ: xe {ton.xe_id}, "
-                f"kho {ton.kho_id}."
+            doi_tuong_co_ngay_loi.add(doi_tuong)
+            logger.warning(
+                "Bỏ qua tính cảnh báo tồn lâu do ngày vào kho "
+                "không hợp lệ: xe %s, kho %s.",
+                ton.xe_id,
+                ton.kho_id,
             )
+            continue
 
         so_ngay = (hom_nay - ton.ngay_vao_kho).days
-        doi_tuong = (ton.kho_id, ton.xe_id)
         tuoi_ton_theo_xe[doi_tuong] = so_ngay
 
         if so_ngay > 60:
@@ -100,6 +108,10 @@ def cap_nhat_canh_bao_ton_lau():
 
     for canh_bao in canh_bao_hien_tai:
         doi_tuong = (canh_bao.kho_id, canh_bao.xe_id)
+
+        if doi_tuong in doi_tuong_co_ngay_loi:
+            continue
+
         so_ngay = tuoi_ton_theo_xe.get(doi_tuong)
 
         if so_ngay is None or so_ngay <= 60:
