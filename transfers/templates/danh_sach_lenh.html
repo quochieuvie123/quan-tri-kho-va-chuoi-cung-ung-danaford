@@ -1,0 +1,88 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Danh sách lệnh lưu chuyển</title>
+    <link rel="stylesheet" href="{% static 'css/transfers.css' %}">
+</head>
+<body>
+
+<div class="transfer-list-page">
+
+    <div class="transfer-list-heading">
+        <h2>DANH SÁCH LỆNH LƯU CHUYỂN</h2>
+        <p>Quản lý và theo dõi các lệnh lưu chuyển xe</p>
+    </div>
+
+    <div class="transfer-list-card">
+        <div class="transfer-list-table-wrap">
+            <table class="transfer-list-table">
+                <thead>
+                    <tr>
+                        <th>STT</th>
+                        <th>Mã lệnh</th>
+                        <th>Ngày lập</th>
+                        <th>Kho xuất</th>
+                        <th>Kho nhập</th>
+                        <th>Người lập</th>
+                        <th>Trạng thái</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for lenh in ds_lenh %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td class="transfer-code">{{ lenh.ma_lenh }}</td>
+                        <td>{{ lenh.ngay_lap|date:"d/m/Y H:i" }}</td>
+                        <td>{{ lenh.kho_xuat.ma_kho }}</td>
+                        <td>{{ lenh.kho_nhap.ma_kho }}</td>
+                        <td>{{ lenh.nguoi_lap.username }}</td>
+
+                        <td>
+                            {% if lenh.trang_thai == "NHAP" %}
+                                <span class="transfer-status draft">
+                                    Bản nháp
+                                </span>
+                            {% elif lenh.trang_thai == "DA_GUI" %}
+                                <span class="transfer-status sent">
+                                    Đã gửi
+                                </span>
+                            {% elif lenh.trang_thai == "DA_XAC_NHAN" %}
+                                <span class="transfer-status confirmed">
+                                    Đã xác nhận
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <a class="transfer-detail-btn"
+                               href="{% url 'transfers:chi_tiet_lenh' lenh.id %}">
+                                Xem chi tiết
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="transfer-empty">
+                            Chưa có lệnh lưu chuyển nào.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+<!-- NÚT QUAY LẠI NẰM DƯỚI BẢNG -->
+    <div class="transfer-list-actions">
+        <a href="{% url 'transfers:index' %}"
+           class="transfer-back-btn">
+            Quay lại
+        </a>
+</div>
+
+</body>
+</html>

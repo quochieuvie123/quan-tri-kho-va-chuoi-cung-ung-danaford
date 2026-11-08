@@ -1,0 +1,3 @@
+{% extends 'base.html' %}{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/operations.css' %}">{% endblock %}
+{% block content %}<div class="stack"><a class="btn btn--light" href="{% url 'warehouse:receipt_detail' pk %}">Quay lại phiếu nhập</a><div class="card"><table class="data-table"><thead><tr><th>VIN</th><th>Kho</th><th>Người thực hiện</th><th>Thời điểm</th></tr></thead><tbody>{% for row in rows %}<tr><td>{{ row.xe_id }}</td><td>{{ row.kho.chi_nhanh.ten_cn }}</td><td>{{ row.nguoi_thuc_hien }}</td><td>{{ row.thoi_gian|date:'d/m/Y H:i' }}</td></tr>{% empty %}<tr><td colspan="4">Chưa có giao dịch nhập kho hoàn tất. Phiếu Nháp/Chờ duyệt chưa làm tăng tồn.</td></tr>{% endfor %}</tbody></table></div></div>{% endblock %}

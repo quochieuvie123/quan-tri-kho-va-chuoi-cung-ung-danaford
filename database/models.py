@@ -132,6 +132,7 @@ class Kho(models.Model):
 
 class Xe(models.Model):
     vin = models.CharField(max_length=50, primary_key=True)
+    phien_ban = models.CharField(max_length=150, null=True, blank=True, help_text="Phiên bản xe (VD: XLS, Wildtrak...)")
     ten_xe = models.CharField(max_length=255)
     loai_xe = models.CharField(max_length=50)
     so_may = models.CharField(max_length=50, unique=True)
@@ -336,6 +337,10 @@ class HopDong(models.Model):
     so_tien_coc = models.DecimalField(default=0, **tien())   # tiền cọc của cả hợp đồng
     trang_thai = models.CharField(max_length=30, choices=TrangThaiHopDong.choices, default=TrangThaiHopDong.CHO_XU_LY,
                                   db_index=True)
+    dong_xe_yeu_cau = models.CharField(max_length=255, null=True, blank=True, help_text="Dòng xe yêu cầu")
+    phien_ban_yeu_cau = models.CharField(max_length=150, null=True, blank=True, help_text="Phiên bản yêu cầu")
+    mau_sac_yeu_cau = models.CharField(max_length=50, null=True, blank=True, help_text="Màu sắc yêu cầu")
+    ngay_du_kien_giao = models.DateField(null=True, blank=True, help_text="Ngày dự kiến giao xe")
     class Meta:
         verbose_name = verbose_name_plural = "Hợp đồng"
     # ĐÃ BỎ trường xe

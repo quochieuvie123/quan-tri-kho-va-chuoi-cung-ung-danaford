@@ -1,0 +1,214 @@
+.transfer-content {
+    display: none;
+}
+
+.transfer-content.active {
+    display: block;
+}
+
+
+
+/* ===== DANH SÁCH LỆNH LƯU CHUYỂN ===== */
+
+.transfer-list-page {
+    padding: 30px 24px;
+    background: #f3f6fa;
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+}
+
+.transfer-list-heading {
+    margin-bottom: 25px;
+}
+
+.transfer-list-heading h2 {
+    margin: 0 0 8px;
+    color: #102b4e;
+    font-size: 26px;
+    font-weight: 700;
+}
+
+.transfer-list-heading p {
+    margin: 0;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.transfer-list-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
+}
+
+.transfer-list-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.transfer-list-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1050px;
+    font-size: 14px;
+}
+
+.transfer-list-table thead {
+    background: #eef3f9;
+}
+
+.transfer-list-table th {
+    padding: 17px 14px;
+    color: #243b53;
+    text-align: center;
+    font-weight: 700;
+    white-space: nowrap;
+    border-bottom: 1px solid #dce5ef;
+}
+
+.transfer-list-table td {
+    padding: 18px 14px;
+    color: #334155;
+    text-align: center;
+    vertical-align: middle;
+    border-bottom: 1px solid #edf0f4;
+    white-space: nowrap;
+}
+
+.transfer-list-table tbody tr:hover {
+    background: #f7fbff;
+}
+
+.transfer-list-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.transfer-list-table .transfer-code {
+    color: #0866c2;
+    font-weight: 700;
+}
+
+/* Trạng thái */
+
+.transfer-status {
+    display: inline-block;
+    padding: 7px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.transfer-status.draft {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.transfer-status.sent {
+    background: #e7f1ff;
+    color: #0866c2;
+}
+
+.transfer-status.confirmed {
+    background: #e8f6ec;
+    color: #176534;
+}
+
+/* Nút xem chi tiết */
+
+.transfer-detail-btn {
+    display: inline-block;
+    padding: 9px 16px;
+    background: #0866c2;
+    color: #ffffff !important;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.transfer-detail-btn:hover {
+    background: #064e96;
+    text-decoration: none;
+}
+
+/* Khi chưa có lệnh */
+
+.transfer-empty {
+    padding: 35px !important;
+    color: #64748b !important;
+    text-align: center;
+}
+
+/* Trang danh sách chiếm toàn bộ chiều cao màn hình */
+.transfer-list-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+
+/* Hai nút nằm cạnh nhau */
+.transfer-detail-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 24px;
+}
+
+.transfer-detail-actions form {
+    margin: 0;
+}
+
+
+/* KHU VỰC CÁC NÚT TRONG CHI TIẾT LỆNH */
+
+.transfer-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.transfer-actions form {
+    margin: 0;
+}
+
+
+/* Đẩy nút quay lại xuống cuối trang */
+.transfer-list-actions {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: auto;
+    padding-top: 24px;
+}
+
+/* Thiết kế nút quay lại */
+.transfer-back-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 12px 24px;
+    background-color: #0866c2;
+    color: #ffffff;
+    border: none;
+    border-radius: 7px;
+
+    font-size: 16px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+
+    transition: background-color 0.2s;
+}
+
+.transfer-back-btn:hover {
+    background-color: #064e96;
+    color: #ffffff;
+    text-decoration: none;
+}

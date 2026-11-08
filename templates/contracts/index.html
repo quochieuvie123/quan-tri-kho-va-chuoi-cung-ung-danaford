@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/operations.css' %}">{% endblock %}
+{% block content %}
+<div class="card">
+  <div class="toolbar">
+    <form method="get" class="filters">
+      <div class="field"><label>Tìm hợp đồng / khách hàng</label><input class="input" name="q" value="{{ request.GET.q }}" placeholder="Nhập từ khóa"></div>
+      <div class="field"><label>Trạng thái</label><input class="input" name="trang_thai" value="{{ request.GET.trang_thai }}" placeholder="Nhập trạng thái"></div>
+      <div class="field"><label>Dòng xe</label><input class="input" name="dong_xe" value="{{ request.GET.dong_xe }}"></div>
+      <div class="field"><label>Phiên bản</label><input class="input" name="phien_ban" value="{{ request.GET.phien_ban }}"></div>
+      <div class="field"><label>Màu sắc</label><input class="input" name="mau_sac" value="{{ request.GET.mau_sac }}"></div>
+      <div class="field"><label>Ngày dự kiến giao</label><input class="input" type="date" name="ngay_du_kien_giao" value="{{ request.GET.ngay_du_kien_giao }}"></div>
+      <button class="btn btn--primary"><i class="bi bi-search"></i>Tìm kiếm</button>
+      <a class="btn btn--light" href="{% url 'contracts:index' %}">Đặt lại</a>
+    </form>
+  </div>
+  {% if message %}<div class="empty"><i class="bi bi-file-earmark-x"></i><p>{{ message }}</p></div>{% else %}
+  <div class="table-wrap"><table class="data-table"><thead><tr><th>Mã HĐ</th><th>Khách hàng</th><th>Xe yêu cầu</th><th>Ngày ký</th><th>Ngày giao dự kiến</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
+  {% for hd in hop_dong %}<tr><td><strong>{{ hd.ma_hd }}</strong></td><td>{{ hd.khach_hang__ten_kh }}</td><td>{{ hd.dong_xe_yeu_cau|default:"—" }}<br><small>{{ hd.phien_ban_yeu_cau|default:"—" }} · {{ hd.mau_sac_yeu_cau|default:"—" }}</small></td><td>{{ hd.ngay_ky|date:"d/m/Y" }}</td><td>{{ hd.ngay_du_kien_giao|date:"d/m/Y"|default:"—" }}</td><td><span class="badge">{{ hd.trang_thai|default:"Chưa cập nhật" }}</span></td><td>{% if hd.thao_tac.xem_chi_tiet %}<a class="btn btn--light" href="{% url 'contracts:detail' hd.ma_hd %}">Chi tiết</a>{% endif %}{% if hd.thao_tac.de_xuat_xe %}<a class="btn btn--primary" href="{% url 'contracts:xe_phu_hop' hd.ma_hd %}">Đề xuất xe</a>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>{% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<dialog id="criteria-dialog" class="card"><h2 class="section-title">Xác nhận tiêu chí đề xuất xe</h2><p>Thao tác chỉ tra cứu, không giữ xe và không thay đổi hợp đồng.</p><p id="criteria-summary"></p><div class="toolbar"><a id="criteria-confirm" class="btn btn--primary">Xác nhận tra cứu</a><button type="button" class="btn btn--light" onclick="this.closest('dialog').close()">Hủy</button></div></dialog>
+<script>document.querySelectorAll('a[href$="/xe-phu-hop/"]').forEach(link=>link.addEventListener('click',event=>{event.preventDefault();const row=link.closest('tr');document.getElementById('criteria-summary').textContent=row.cells[0].textContent+' · '+row.cells[2].textContent;document.getElementById('criteria-confirm').href=link.href;document.getElementById('criteria-dialog').showModal();}));</script>
+{% endblock %}

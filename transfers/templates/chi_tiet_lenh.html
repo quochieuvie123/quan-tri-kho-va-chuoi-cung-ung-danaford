@@ -1,0 +1,330 @@
+
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+    .transfer-detail {
+        max-width: 1050px;
+        margin: 30px auto;
+        padding: 35px;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        color: #222;
+    }
+
+    .transfer-detail .company-name {
+        font-size: 19px;
+        font-weight: bold;
+    }
+
+    .transfer-detail .company-info {
+        line-height: 1.7;
+    }
+
+    .transfer-detail .document-number {
+        text-align: right;
+        margin-top: 12px;
+    }
+
+    .transfer-detail .document-title {
+        text-align: center;
+        font-size: 26px;
+        font-weight: bold;
+        margin: 25px 0 10px;
+    }
+
+    .transfer-detail .document-date {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .transfer-detail .document-info {
+        line-height: 1.8;
+        margin-bottom: 25px;
+    }
+
+    .transfer-detail .vehicle-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .transfer-detail .vehicle-table th,
+    .transfer-detail .vehicle-table td {
+        border: 1px solid #333;
+        padding: 10px 8px;
+        text-align: center;
+    }
+
+    .transfer-detail .vehicle-table th {
+        background: #f3f4f6;
+    }
+
+    .transfer-actions {
+        max-width: 1050px;
+        margin: 20px auto 40px;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .transfer-actions form {
+        margin: 0;
+    }
+
+
+/* Giao diện các nút thao tác */
+.transfer-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 12px 24px;
+    background-color: #0866c2;
+    color: #ffffff;
+    border: none;
+    border-radius: 7px;
+
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.5;
+    text-decoration: none;
+
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.transfer-action-btn:hover {
+    background-color: #064e96;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.transfer-action-btn:focus-visible {
+    outline: 3px solid #93c5fd;
+    outline-offset: 2px;
+}
+
+
+    .transfer-status {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    @media print {
+        .transfer-actions {
+            display: none;
+        }
+
+        .transfer-detail {
+            border: none;
+            margin: 0;
+            padding: 0;
+        }
+    }
+</style>
+
+<div class="transfer-detail">
+
+    <!-- THÔNG TIN CÔNG TY -->
+    <div class="company-info">
+        <div class="company-name">
+            CÔNG TY CỔ PHẦN DANA
+        </div>
+
+        <div>Số 56, Đường Điện Biên Phủ,</div>
+        <div>Quận Thanh Khê, Tp Đà Nẵng.</div>
+        <div>SDT: 0799 646 555</div>
+        <div>Mã số thuế: 0400259800</div>
+    </div>
+
+    <!-- SỐ LỆNH -->
+    <div class="document-number">
+        Số: {{ lenh.ma_lenh|default:"Chưa có mã lệnh" }}
+    </div>
+
+    <!-- TIÊU ĐỀ -->
+    <h1 class="document-title">
+        LỆNH LƯU CHUYỂN
+    </h1>
+
+    <!-- NGÀY LẬP -->
+    <div class="document-date">
+        Ngày {{ lenh.ngay_lap|date:"d" }}
+        tháng {{ lenh.ngay_lap|date:"m" }}
+        năm {{ lenh.ngay_lap|date:"Y" }}
+    </div>
+
+    <!-- TRẠNG THÁI -->
+    <div class="transfer-status">
+
+        {% if lenh.trang_thai == "NHAP" %}
+            <span class="badge bg-secondary">
+                Bản nháp
+            </span>
+
+        {% elif lenh.trang_thai == "DA_GUI" %}
+            <span class="badge bg-primary">
+                Đã gửi
+            </span>
+
+        {% elif lenh.trang_thai == "DA_XAC_NHAN" %}
+            <span class="badge bg-success">
+                Đã xác nhận
+            </span>
+        {% endif %}
+
+    </div>
+
+    <!-- THÔNG TIN LỆNH -->
+    <div class="document-info">
+
+        <p>
+            <strong>Người lập:</strong>
+            {{ lenh.nguoi_lap.username }}
+        </p>
+
+        <p>
+            <strong>Nội dung:</strong>
+            Lưu chuyển sang kho chi nhánh
+        </p>
+
+        <p>
+            <strong>Kho xuất:</strong>
+            {{ lenh.kho_xuat.ma_kho }} -
+            {{ lenh.kho_xuat.chi_nhanh }}
+        </p>
+
+        <p>
+            <strong>Kho nhập:</strong>
+            {{ lenh.kho_nhap.ma_kho }} -
+            {{ lenh.kho_nhap.chi_nhanh }}
+        </p>
+
+        {% if lenh.ngay_gui %}
+        <p>
+            <strong>Ngày gửi:</strong>
+            {{ lenh.ngay_gui|date:"d/m/Y H:i" }}
+        </p>
+        {% endif %}
+
+        {% if lenh.ngay_xac_nhan %}
+        <p>
+            <strong>Ngày xác nhận:</strong>
+            {{ lenh.ngay_xac_nhan|date:"d/m/Y H:i" }}
+        </p>
+        {% endif %}
+
+    </div>
+
+    <!-- DANH SÁCH XE -->
+    <div class="table-responsive">
+        <table class="vehicle-table">
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>VIN</th>
+                    <th>Số máy</th>
+                    <th>Tên xe</th>
+                    <th>Loại xe</th>
+                    <th>Màu sắc</th>
+                    <th>Số lượng</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for item in lenh.chi_tiet.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ item.xe.vin }}</td>
+                    <td>{{ item.xe.so_may }}</td>
+                    <td>{{ item.xe.ten_xe }}</td>
+                    <td>{{ item.xe.loai_xe }}</td>
+                    <td>
+                        {{ item.xe.mau_sac|default:"Chưa cập nhật" }}
+                    </td>
+                    <td>{{ item.so_luong }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        Chưa có xe trong lệnh lưu chuyển.
+                    </td>
+                </tr>
+                {% endfor %}
+
+                <tr>
+                    <td colspan="6">
+                        <strong>Tổng số lượng</strong>
+                    </td>
+                    <td>
+                        <strong>{{ tong_so_luong }}</strong>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- CÁC NÚT THAO TÁC -->
+
+<!-- CÁC NÚT THAO TÁC -->
+
+<div class="transfer-actions">
+
+    {% if lenh.trang_thai == "NHAP" %}
+
+        <!-- QUAY LẠI VÀ CHỈNH SỬA -->
+        <a href="{% url 'transfers:chinh_sua_lenh' lenh.pk %}"
+           class="transfer-action-btn">
+            Quay lại và chỉnh sửa
+        </a>
+
+        <!-- GỬI LỆNH -->
+        <form method="POST"
+              action="{% url 'transfers:gui_lenh' lenh.pk %}"
+              onsubmit="return confirm('Bạn có chắc muốn gửi lệnh lưu chuyển này?');">
+
+            {% csrf_token %}
+
+            <button type="submit" class="transfer-action-btn">
+                Gửi lệnh
+            </button>
+        </form>
+
+    {% elif lenh.trang_thai == "DA_GUI" %}
+
+        <!-- CẬP NHẬT TRẠNG THÁI -->
+        <form method="POST"
+              action="{% url 'transfers:cap_nhat_trang_thai' lenh.pk %}"
+              onsubmit="return confirm('Bạn đã nhận được thông tin tiếp nhận xe từ kho chi nhánh?');">
+
+            {% csrf_token %}
+
+            <button type="submit" class="transfer-action-btn">
+                Cập nhật trạng thái
+            </button>
+        </form>
+
+        <!-- QUAY LẠI DANH SÁCH -->
+        <a href="{% url 'transfers:danh_sach_lenh' %}"
+           class="transfer-action-btn">
+            Quay lại danh sách lệnh lưu chuyển
+        </a>
+
+    {% elif lenh.trang_thai == "DA_XAC_NHAN" %}
+
+        <!-- QUAY LẠI DANH SÁCH -->
+        <a href="{% url 'transfers:danh_sach_lenh' %}"
+           class="transfer-action-btn">
+            Quay lại danh sách lệnh lưu chuyển
+        </a>
+
+    {% endif %}
+
+</div>
+{% endblock %}

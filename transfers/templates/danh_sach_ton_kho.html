@@ -1,0 +1,427 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Quản lý lưu chuyển xe</title>
+<link rel="stylesheet" href="{% static 'css/transfers.css' %}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        /* Hai tab */
+        /* THANH MENU QUẢN LÝ LƯU CHUYỂN */
+
+.transfer-tabs {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    padding: 10px;
+    background-color: #ffffff;
+    margin-bottom: 25px;
+}
+
+.transfer-tab {
+    flex: 1;
+    min-width: 0;
+    min-height: 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 12px 10px;
+
+    background-color: #ffffff;
+    border: 1px solid #dddddd;
+    border-radius: 10px;
+
+    color: #0866c2;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.transfer-tab:hover {
+    background-color: #eaf3ff;
+    color: #0866c2;
+    text-decoration: none;
+}
+
+/* MENU ĐANG ĐƯỢC CHỌN */
+.transfer-tab.active,
+.transfer-tab.active:hover {
+    background-color: #0866c2;
+    border-color: #0866c2;
+    color: #ffffff;
+}
+
+@media (max-width: 650px) {
+    .transfer-tabs {
+        flex-direction: column;
+    }
+}
+
+        .transfer-content {
+            display: none;
+        }
+
+        .transfer-content.active {
+            display: block;
+        }
+
+        /* Bảng */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 950px;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 14px;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        th {
+            background: #eef2f6;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Nút */
+        .btn {
+            display: inline-block;
+            background: #0866c2;
+            color: white;
+            padding: 10px 18px;
+            text-decoration: none;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background: #064e96;
+        }
+
+        .btn:disabled {
+            background: #aeb8c2;
+            cursor: not-allowed;
+        }
+
+        .search-input {
+            padding: 10px;
+            width: 300px;
+            max-width: 100%;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: #777;
+        }
+
+        .actions {
+            margin-top: 20px;
+        }
+
+        .messages {
+            margin-bottom: 20px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            background: #eaf2ff;
+        }
+
+        .message.success {
+            background: #e8f6ec;
+            color: #176534;
+        }
+
+        .message.error {
+            background: #fdeaea;
+            color: #a61b1b;
+        }
+        .actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 12px;
+    margin-top: 22px;
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 11px 18px;
+    background-color: white;
+    color: #0866c2;
+    border: 1px solid #0866c2;
+    border-radius: 6px;
+    font-size: 14px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn-back:hover {
+    background-color: #eaf3ff;
+}
+    </style>
+</head>
+
+<body>
+
+<h1>Quản lý lưu chuyển xe</h1>
+
+{% if messages %}
+<div class="messages">
+    {% for message in messages %}
+        <div class="message {{ message.tags }}">
+            {{ message }}
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Thanh tab -->
+<div class="transfer-tabs">
+
+    <button
+        type="button"
+        class="transfer-tab active"
+        data-tab="ton-kho"
+        onclick="showTransferTab('ton-kho')">
+        Danh sách tồn kho
+    </button>
+
+    <button
+        type="button"
+        class="transfer-tab"
+        data-tab="da-chon"
+        onclick="showTransferTab('da-chon')">
+        Danh sách xe đã chọn ({{ danh_sach_da_chon|length }})
+    </button>
+    <a href="{% url 'transfers:danh_sach_lenh' %}"
+   class="transfer-tab">
+    Danh sách lệnh lưu chuyển
+</a>
+</div>
+
+<!-- TAB 1: DANH SÁCH TỒN KHO -->
+<div id="ton-kho" class="transfer-content active">
+
+    <h2>Tìm kiếm xe</h2>
+
+    <form method="GET" action="{% url 'transfers:index' %}">
+        <input
+            class="search-input"
+            type="text"
+            name="q"
+            value="{{ tu_khoa }}"
+            placeholder="Nhập tên xe hoặc mã kho..."
+        >
+
+        <button class="btn" type="submit">
+            Tìm kiếm
+        </button>
+    </form>
+
+    <h2>Danh sách tồn kho</h2>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Tên xe</th>
+                    <th>Loại xe</th>
+                    <th>Màu sắc</th>
+                    <th>Mã kho</th>
+                    <th>Tên kho</th>
+                    <th>Số lượng tồn</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for item in ds_ton_kho %}
+                <tr>
+                    <td>{{ item.xe.ten_xe }}</td>
+                    <td>{{ item.xe.loai_xe }}</td>
+                    <td>
+                        {{ item.xe.mau_sac|default:"Chưa cập nhật" }}
+                    </td>
+                    <td>{{ item.kho.ma_kho }}</td>
+                    <td>{{ item.kho.chi_nhanh }}</td>
+                    <td>{{ item.so_luong_ton }}</td>
+
+                    <td>
+                        <a
+                            class="btn"
+                            href="{% url 'transfers:chi_tiet_xe' item.pk %}">
+                            Chọn xe
+                        </a>
+                    </td>
+                </tr>
+
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="empty-message">
+                        Không tìm thấy xe phù hợp.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- TAB 2: DANH SÁCH XE ĐÃ CHỌN -->
+<div id="da-chon" class="transfer-content">
+
+    <h2>Danh sách xe đã chọn</h2>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>VIN</th>
+                    <th>Số máy</th>
+                    <th>Tên xe</th>
+                    <th>Loại xe</th>
+                    <th>Màu sắc</th>
+                    <th>Kho xuất</th>
+                    <th>Kho nhập</th>
+                    <th>Số lượng</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for item in danh_sach_da_chon %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+
+                    <td>{{ item.ton_kho.xe.vin }}</td>
+                    <td>{{ item.ton_kho.xe.so_may }}</td>
+                    <td>{{ item.ton_kho.xe.ten_xe }}</td>
+
+                    <td>{{ item.ton_kho.xe.loai_xe }}</td>
+
+                    <td>
+                        {{ item.ton_kho.xe.mau_sac|default:"Chưa cập nhật" }}
+                    </td>
+
+                    <td>
+                        {{ item.ton_kho.kho.ma_kho }}
+                        - {{ item.ton_kho.kho.chi_nhanh }}
+                    </td>
+
+                    <td>
+                        {{ item.kho_nhan.ma_kho }}
+                        - {{ item.kho_nhan.chi_nhanh }}
+                    </td>
+
+                    <td>{{ item.so_luong }}</td>
+                <td>
+                    <form
+                            method="POST"
+                            action="{% url 'transfers:xoa_xe_da_chon' item.index %}"
+                            onsubmit="return confirm('Bạn có chắc muốn xóa xe này khỏi danh sách?');"
+                            style="margin: 0;"
+                    >
+                        {% csrf_token %}
+                        <button type="submit" class="btn">
+                            Xóa
+                        </button>
+                    </form>
+                </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="empty-message">
+                        Chưa có xe nào được chọn.
+                    </td>
+                </tr>
+
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="actions">
+        <a href="{% url 'transfers:index' %}?tab=ton-kho"
+           class="btn">
+            Quay lại
+        </a>
+        <a href="{% url 'transfers:tao_lenh' %}"
+           class="btn">
+            Tạo lệnh lưu chuyển
+        </a>
+    </div>
+
+<script>
+    function showTransferTab(tabName) {
+
+    // Bỏ active khỏi tất cả tab
+    document.querySelectorAll(".transfer-tab").forEach(tab => {
+        tab.classList.remove("active");
+    });
+
+    // Đặt active cho tab được chọn
+    const selectedTab = document.querySelector(
+        `.transfer-tab[data-tab="${tabName}"]`
+    );
+
+    if (selectedTab) {
+        selectedTab.classList.add("active");
+    }
+
+    // Ẩn tất cả vùng nội dung
+    document.querySelectorAll(".transfer-content").forEach(content => {
+        content.style.display = "none";
+    });
+
+    // Hiện nội dung được chọn
+    const selectedContent = document.getElementById(tabName);
+
+    if (selectedContent) {
+        selectedContent.style.display = "block";
+    }
+}
+// Tự động chọn tab dựa vào URL
+document.addEventListener("DOMContentLoaded", function () {
+
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+
+    if (tab === "da-chon") {
+        showTransferTab("da-chon");
+    } else {
+        showTransferTab("ton-kho");
+    }
+
+});
+</script>
+</body>
+</html>
