@@ -1,95 +1,73 @@
-
 {% extends "ql_dat_xe.html" %}
-{% load static %}
 
 {% block booking_content %}
-
-<div class="proposal-detail">
-
-    <h2>CHI TIẾT ĐỀ XUẤT NHẬP XE</h2>
-
-    <!-- THÔNG TIN DÒNG XE -->
-    <div class="proposal-info">
-
-        <h3>Thông tin dòng xe</h3>
-
-        <table class="proposal-table">
-            <tbody>
-                <tr>
-                    <th>Dòng xe</th>
-                    <td>{{ ten_xe }}</td>
-                </tr>
-
-                <tr>
-                    <th>Tháng đề xuất</th>
-                    <td>
-                        {{ allocation.allocation_month|date:"m/Y" }}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-
+<div class="stack" style="max-width: 800px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 class="section-title" style="margin: 0;">Chi tiết tính toán đề xuất nhập xe</h2>
+        <a href="{% url 'orders:proposal_list' %}" class="btn btn--light">
+            <i class="bi bi-arrow-left"></i> Quay lại danh sách đề xuất
+        </a>
     </div>
 
-    <!-- THÔNG TIN BÁN HÀNG VÀ TỒN KHO -->
-    <div class="proposal-info">
+    <!-- THÔNG TIN DÒNG XE -->
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px;">
+        <h3 style="margin: 0 0 12px; font-size: 15px; font-weight: 700; color: #0b2a4a; display: flex; align-items: center; gap: 8px;">
+            <i class="bi bi-info-circle-fill" style="color: #0b66c3;"></i> Thông tin dòng xe & Tháng áp dụng
+        </h3>
+        <dl class="detail-list">
+            <dt>Dòng xe đánh giá</dt>
+            <dd style="font-size: 15px; color: #0b66c3;">{{ ten_xe }}</dd>
 
-        <h3>Thông tin bán hàng và tồn kho</h3>
+            <dt>Tháng phân bổ đề xuất</dt>
+            <dd>{{ allocation.allocation_month|date:"m/Y" }}</dd>
+        </dl>
+    </div>
 
-        <table class="proposal-table">
-            <tbody>
-                <tr>
-                    <th>Số lượng bán trong tháng</th>
-                    <td>{{ so_ban }} xe</td>
-                </tr>
+    <!-- BẢNG TÍNH TOÁN CUNG CẦU -->
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px;">
+        <h3 style="margin: 0 0 14px; font-size: 15px; font-weight: 700; color: #0b2a4a; display: flex; align-items: center; gap: 8px;">
+            <i class="bi bi-bar-chart-line-fill" style="color: #0b66c3;"></i> Dữ liệu bán hàng & Hiện trạng kho xe
+        </h3>
+        <dl class="detail-list">
+            <dt>Số lượng bán trong tháng</dt>
+            <dd style="font-weight: 700;">{{ so_ban }} xe</dd>
 
-                <tr>
-                    <th>Số lượng tồn kho hiện tại</th>
-                    <td>{{ so_ton }} xe</td>
-                </tr>
+            <dt>Số lượng tồn kho thực tế</dt>
+            <dd style="font-weight: 700;">{{ so_ton }} xe</dd>
 
-                <tr>
-                    <th>Số lượng phân bổ trong tháng</th>
-                    <td>{{ so_phan_bo }} xe</td>
-                </tr>
-            </tbody>
-        </table>
-
+            <dt>Số lượng phân bổ nhà máy</dt>
+            <dd style="font-weight: 700;">{{ so_phan_bo }} xe</dd>
+        </dl>
     </div>
 
     <!-- KẾT QUẢ ĐỀ XUẤT -->
-    <div class="proposal-info">
-
-        <h3>Kết quả đề xuất nhập xe</h3>
-
-        <table class="proposal-table">
-            <tbody>
-                <tr>
-                    <th>Nhu cầu nhập xe</th>
-                    <td>{{ nhu_cau }} xe</td>
-                </tr>
-
-                <tr class="proposal-result">
-                    <th>Số lượng đề xuất cần nhập</th>
-                    <td>
-                        <strong>{{ de_xuat_nhap }} xe</strong>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-
+    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 20px;">
+        <h3 style="margin: 0 0 14px; font-size: 15px; font-weight: 700; color: #1e40af; display: flex; align-items: center; gap: 8px;">
+            <i class="bi bi-lightbulb-fill" style="color: #0b66c3;"></i> Kết luận đề xuất nhập xe
+        </h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <span style="font-size: 13px; color: #475569; display: block;">Nhu cầu thực tế ước tính:</span>
+                <strong style="font-size: 16px; color: #1e293b;">{{ nhu_cau }} xe</strong>
+            </div>
+            <div style="background: #ffffff; padding: 12px 20px; border-radius: 8px; border: 1px solid #93c5fd; text-align: right;">
+                <span style="font-size: 12px; font-weight: 600; color: #0b66c3; text-transform: uppercase; display: block;">
+                    Số lượng đề xuất nhập thêm:
+                </span>
+                <span style="font-size: 26px; font-weight: 800; color: #0b2a4a;">
+                    {{ de_xuat_nhap }} <small style="font-size: 14px; font-weight: 600;">xe</small>
+                </span>
+            </div>
+        </div>
     </div>
 
-    <!-- NÚT QUAY LẠI -->
-    <div class="proposal-actions">
-
-        <a href="{% url 'orders:proposal_list' %}"
-           class="proposal-back-btn">
-            ← Quay lại danh sách đề xuất
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <a href="{% url 'orders:proposal_list' %}" class="btn btn--light">
+            <i class="bi bi-arrow-left"></i> Quay lại danh sách đề xuất
         </a>
-
+        <a href="{% url 'orders:vehicle_orders' %}?keyword={{ ten_xe|urlencode }}" class="btn btn--primary">
+            <i class="bi bi-cart-plus"></i> Đặt xe cho dòng xe này
+        </a>
     </div>
-
 </div>
-
 {% endblock %}

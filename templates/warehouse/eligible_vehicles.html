@@ -1,3 +1,74 @@
-{% extends "base.html" %}{% load static %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/operations.css' %}">{% endblock %}
-{% block content %}<div class="stack"><div class="toolbar"><div class="alert">{{ luu_y }}</div><a class="btn btn--primary" href="{% url 'warehouse:receipt_create_page' %}"><i class="bi bi-plus-lg"></i>Lập phiếu nhập</a></div><div class="card">{% if message %}<div class="empty"><p>{{ message }}</p></div>{% else %}<div class="table-wrap"><table class="data-table"><thead><tr><th>VIN</th><th>Xe</th><th>Phiên bản</th><th>Màu</th><th>Nguồn</th><th>Trạng thái</th></tr></thead><tbody>{% for xe in xe %}<tr><td>{{ xe.vin }}</td><td>{{ xe.ten_xe }}</td><td>{{ xe.phien_ban|default:"—" }}</td><td>{{ xe.mau_sac|default:"—" }}</td><td>{{ xe.nguon_xe }}</td><td><span class="badge">{{ xe.trang_thai_hien_thi }}</span></td></tr>{% endfor %}</tbody></table></div>{% endif %}</div></div>{% endblock %}
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <div class="page-header">
+    <div>
+      <h1 class="page-header__title">Danh sách xe có thể nhập kho</h1>
+      <p class="page-header__subtitle">Các xe theo chứng từ hóa đơn nhà máy đã giao, sẵn sàng khởi tạo phiếu nhập</p>
+    </div>
+    <div>
+      <a class="btn btn--primary" href="{% url 'warehouse:receipt_create_page' %}">
+        <i class="bi bi-plus-lg"></i> Lập phiếu nhập kho
+      </a>
+    </div>
+  </div>
+
+  {% if luu_y %}
+    <div class="alert" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 12px 16px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+      <i class="bi bi-info-circle-fill" style="font-size: 18px;"></i>
+      <span>{{ luu_y }}</span>
+    </div>
+  {% endif %}
+
+  <div class="card">
+    {% if message %}
+      <div class="empty">
+        <i class="bi bi-inbox" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
+        <p style="margin: 0; color: #64748b;">{{ message }}</p>
+      </div>
+    {% else %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Số khung (VIN)</th>
+              <th>Dòng xe</th>
+              <th>Phiên bản</th>
+              <th>Màu sắc</th>
+              <th>Nguồn cung cấp</th>
+              <th style="text-align: center;">Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for x in xe %}
+            <tr>
+              <td><strong>{{ x.vin }}</strong></td>
+              <td><strong>{{ x.ten_xe }}</strong></td>
+              <td>{{ x.phien_ban|default:"—" }}</td>
+              <td>{{ x.mau_sac|default:"—" }}</td>
+              <td><span class="badge">{{ x.nguon_xe }}</span></td>
+              <td style="text-align: center;">
+                <span class="badge badge--DA_DUYET">{{ x.trang_thai_hien_thi }}</span>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="empty">
+                <i class="bi bi-inbox" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
+                <p style="margin: 0; color: #64748b;">Hiện không có xe nào đủ điều kiện nhập kho.</p>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

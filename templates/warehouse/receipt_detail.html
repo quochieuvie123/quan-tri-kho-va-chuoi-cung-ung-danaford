@@ -1,13 +1,301 @@
-{% extends "base.html" %}{% load static %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/operations.css' %}">{% endblock %}
-{% block extra_js %}<div class="card"><h2>Thông tin từ hóa đơn nhập có sẵn</h2><p>Mã hóa đơn: {{ phieu_nhap.ma_hdn }} · Số hóa đơn: {{ phieu_nhap.so_hoa_don|default:'Chưa cập nhật' }}</p><p>Đơn vị vận chuyển: {{ phieu_nhap.don_vi_van_chuyen }}</p><p>Biển số xe vận chuyển: {{ phieu_nhap.bien_so_xe|default:'Chưa cập nhật' }} · Tài xế: {{ phieu_nhap.ten_tai_xe|default:'Chưa cập nhật' }}</p></div><script>
-const main=document.querySelector('.app__content');const info=document.currentScript.previousElementSibling;if(main&&info)main.append(info);
-const bar=document.createElement('div');bar.className='toolbar';bar.innerHTML='<a class="btn btn--light" href="{% url "warehouse:receipt_history" phieu_nhap.id %}">Lịch sử nhập kho</a><button class="btn btn--light" type="button" onclick="window.print()">In phiếu</button>';main.prepend(bar);
-document.querySelectorAll('form[action]').forEach(form=>{if(!form.action.endsWith('/ghi-pdi/'))form.addEventListener('submit',event=>{if(!confirm('Xác nhận thực hiện thao tác với phiếu {{ phieu_nhap.ma_phieu|escapejs }}?'))event.preventDefault();});else form.id='pdi-edit';});
-document.querySelectorAll('table tbody tr').forEach(row=>{const cell=row.cells[0];if(cell&&/^PDI-\d+$/.test(cell.textContent.trim())){const a=document.createElement('a');a.textContent=cell.textContent;a.href='/kho/pdi/'+Number(cell.textContent.trim().replace('PDI-',''))+'/';cell.replaceChildren(a);}});
-</script>{% endblock %}
-{% block content %}<div class="stack">{% if messages %}{% for m in messages %}<div class="alert{% if m.tags == 'error' %} alert--error{% endif %}">{{ m }}</div>{% endfor %}{% endif %}<div><a class="btn btn--light" href="{% url 'warehouse:nhap' %}"><i class="bi bi-arrow-left"></i>Danh sách phiếu</a></div>
-<div class="grid"><div class="card"><h2 class="section-title">Thông tin phiếu nhập</h2><dl class="detail-list"><dt>Mã phiếu</dt><dd>{{ phieu_nhap.ma_phieu }}</dd><dt>VIN</dt><dd>{{ phieu_nhap.vin }}</dd><dt>Xe</dt><dd>{{ phieu_nhap.dong_xe }} · {{ phieu_nhap.phien_ban|default:"—" }} · {{ phieu_nhap.mau_sac|default:"—" }}</dd><dt>Nguồn xe</dt><dd>{{ phieu_nhap.nguon_xe }}</dd><dt>Kho nhập</dt><dd>{{ phieu_nhap.ten_kho }}</dd><dt>Ngày nhập</dt><dd>{{ phieu_nhap.ngay_nhap|date:"d/m/Y" }}</dd><dt>Trạng thái</dt><dd><span class="badge badge--{{ phieu_nhap.trang_thai }}">{{ phieu_nhap.trang_thai_hien_thi }}</span></dd></dl></div>
-<div class="card"><h2 class="section-title">Thao tác</h2><div class="stack">{% if phieu_nhap.thao_tac.duyet_pdi %}<form method="post" action="{% url 'warehouse:receipt_web_action' phieu_nhap.id 'duyet-pdi' %}">{% csrf_token %}<button class="btn btn--warning">Duyệt kết quả PDI</button></form>{% endif %}{% if phieu_nhap.thao_tac.gui_duyet %}<form method="post" action="{% url 'warehouse:receipt_web_action' phieu_nhap.id 'gui-duyet' %}">{% csrf_token %}<button class="btn btn--primary">Gửi Sale Admin duyệt</button></form>{% endif %}{% if phieu_nhap.thao_tac.duyet_nhap %}<form method="post" action="{% url 'warehouse:receipt_web_action' phieu_nhap.id 'duyet' %}">{% csrf_token %}<button class="btn btn--success">Duyệt nhập kho</button></form>{% endif %}{% if not phieu_nhap.thao_tac.duyet_pdi and not phieu_nhap.thao_tac.gui_duyet and not phieu_nhap.thao_tac.duyet_nhap %}<p>Chưa có thao tác phù hợp với trạng thái hiện tại.</p>{% endif %}</div></div></div>
-{% if phieu_nhap.thao_tac.cap_nhat_pdi %}<div class="card"><h2 class="section-title">Ghi nhận kết quả PDI</h2><form method="post" action="{% url 'warehouse:receipt_web_action' phieu_nhap.id 'ghi-pdi' %}" class="stack">{% csrf_token %}<div class="field"><label>Tình trạng tổng thể</label><textarea class="textarea" name="tinh_trang" required></textarea></div><div class="pdi-grid"><div class="field"><label>Hạng mục</label><strong>Ngoại thất</strong><input class="input" name="ngoai_that_tinh_trang" placeholder="Tình trạng thực tế" required><textarea class="textarea" name="ngoai_that_ghi_chu" placeholder="Ghi chú"></textarea></div><div class="field"><label>Kết quả</label><select class="select" name="ngoai_that_ket_qua"><option value="DAT">Đạt</option><option value="KHONG_DAT">Không đạt</option></select></div><div></div><div class="field"><strong>Nội thất</strong><input class="input" name="noi_that_tinh_trang" placeholder="Tình trạng thực tế" required><textarea class="textarea" name="noi_that_ghi_chu" placeholder="Ghi chú"></textarea></div><div class="field"><label>Kết quả</label><select class="select" name="noi_that_ket_qua"><option value="DAT">Đạt</option><option value="KHONG_DAT">Không đạt</option></select></div><div></div><div class="field"><strong>Vận hành</strong><input class="input" name="van_hanh_tinh_trang" placeholder="Tình trạng thực tế" required><textarea class="textarea" name="van_hanh_ghi_chu" placeholder="Ghi chú"></textarea></div><div class="field"><label>Kết quả</label><select class="select" name="van_hanh_ket_qua"><option value="DAT">Đạt</option><option value="KHONG_DAT">Không đạt</option></select></div></div><div class="field"><label>Ghi chú chung</label><textarea class="textarea" name="ghi_chu"></textarea></div><button class="btn btn--primary" type="submit">Lưu kết quả PDI</button></form></div>{% endif %}
-<div class="card"><h2 class="section-title">Lịch sử PDI</h2>{% if pdi %}<div class="table-wrap"><table class="data-table"><thead><tr><th>Mã</th><th>Kết quả</th><th>Người kiểm tra</th><th>Thời gian</th><th>Duyệt</th></tr></thead><tbody>{% for item in pdi %}<tr><td>{{ item.ma_pdi_hien_thi }}</td><td><span class="badge badge--{{ item.ket_qua }}">{{ item.ket_qua_hien_thi }}</span></td><td>{{ item.nguoi_kiem_tra }}</td><td>{{ item.thoi_gian_kiem_tra|date:"d/m/Y H:i" }}</td><td>{{ item.trang_thai_hien_thi }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty"><p>Chưa có kết quả PDI.</p></div>{% endif %}</div></div>{% endblock %}
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <!-- Thanh công cụ điều hướng -->
+  <div class="toolbar no-print">
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <a class="btn btn--light" href="{% url 'warehouse:nhap' %}">
+        <i class="bi bi-arrow-left"></i> Quay lại danh sách phiếu
+      </a>
+      <a class="btn btn--light" href="{% url 'warehouse:receipt_history' phieu_nhap.id %}">
+        <i class="bi bi-clock-history"></i> Lịch sử luân chuyển kho
+      </a>
+    </div>
+    <div>
+      <button class="btn btn--light" type="button" onclick="window.print()">
+        <i class="bi bi-printer"></i> In phiếu nhập
+      </button>
+    </div>
+  </div>
+
+  <!-- Thông tin phiếu nhập & Thao tác nghiệp vụ -->
+  <div class="grid">
+    <!-- Card thông tin phiếu -->
+    <div class="card">
+      <h2 class="section-title">Thông tin phiếu nhập kho</h2>
+      <dl class="detail-list">
+        <dt>Mã phiếu nhập</dt>
+        <dd><span style="font-size: 15px; font-weight: 700; color: #0b66c3;">{{ phieu_nhap.ma_phieu }}</span></dd>
+
+        <dt>Số khung (VIN)</dt>
+        <dd><strong>{{ phieu_nhap.vin }}</strong></dd>
+
+        <dt>Thông tin xe</dt>
+        <dd>
+          <strong>{{ phieu_nhap.dong_xe }}</strong>
+          {% if phieu_nhap.phien_ban %} · {{ phieu_nhap.phien_ban }}{% endif %}
+          {% if phieu_nhap.mau_sac %} · Màu: {{ phieu_nhap.mau_sac }}{% endif %}
+        </dd>
+
+        <dt>Nguồn xe</dt>
+        <dd>{{ phieu_nhap.nguon_xe }}</dd>
+
+        <dt>Kho nhập tiếp nhận</dt>
+        <dd><span class="badge">{{ phieu_nhap.ten_kho }}</span></dd>
+
+        <dt>Ngày nhập kho</dt>
+        <dd>{{ phieu_nhap.ngay_nhap|date:"d/m/Y" }}</dd>
+
+        <dt>Trạng thái phiếu</dt>
+        <dd>
+          <span class="badge badge--{{ phieu_nhap.trang_thai }}">{{ phieu_nhap.trang_thai_hien_thi }}</span>
+        </dd>
+      </dl>
+    </div>
+
+    <!-- Card thao tác duyệt / luồng xử lý -->
+    <div class="card">
+      <h2 class="section-title">Thao tác & Phê duyệt</h2>
+      <div class="stack">
+        {% if phieu_nhap.thao_tac.duyet_pdi %}
+          <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 14px;">
+            <p style="margin: 0 0 10px; font-size: 13px; color: #92400e;">Kết quả kiểm tra PDI đã hoàn tất, sẵn sàng xem xét phê duyệt chất lượng kỹ thuật.</p>
+            <form method="post" action="{% url 'warehouse:receipt_web_action' phieu_nhap.id 'duyet-pdi' %}">
+              {% csrf_token %}
+              <button class="btn btn--warning" style="width: 100%;">
+                <i class="bi bi-shield-check"></i> Duyệt kết quả PDI
+              </button>
+            </form>
+          </div>
+        {% endif %}
+
+        {% if phieu_nhap.thao_tac.gui_duyet %}
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 14px;">
+            <p style="margin: 0 0 10px; font-size: 13px; color: #1e40af;">Hồ sơ phiếu nhập đã sẵn sàng. Gửi Sale Admin để kiểm tra và phê duyệt chính thức.</p>
+            <form method="post" action="{% url 'warehouse:receipt_web_action' phieu_nhap.id 'gui-duyet' %}">
+              {% csrf_token %}
+              <button class="btn btn--primary" style="width: 100%;">
+                <i class="bi bi-send-check"></i> Gửi Sale Admin duyệt
+              </button>
+            </form>
+          </div>
+        {% endif %}
+
+        {% if phieu_nhap.thao_tac.duyet_nhap %}
+          <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px 14px;">
+            <p style="margin: 0 0 10px; font-size: 13px; color: #065f46;">Xác nhận hoàn tất thủ tục nhập kho và cập nhật số lượng tồn khả dụng trong hệ thống.</p>
+            <form method="post" action="{% url 'warehouse:receipt_web_action' phieu_nhap.id 'duyet' %}">
+              {% csrf_token %}
+              <button class="btn btn--success" style="width: 100%;">
+                <i class="bi bi-check-circle"></i> Duyệt nhập kho chính thức
+              </button>
+            </form>
+          </div>
+        {% endif %}
+
+        {% if not phieu_nhap.thao_tac.duyet_pdi and not phieu_nhap.thao_tac.gui_duyet and not phieu_nhap.thao_tac.duyet_nhap %}
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; text-align: center; color: #64748b; font-size: 13px;">
+            <i class="bi bi-info-circle" style="font-size: 20px; display: block; margin-bottom: 6px;"></i>
+            Chưa có thao tác xử lý nào cần thực hiện ở trạng thái hiện tại.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Thông tin chứng từ / Hóa đơn nhập -->
+  <div class="card">
+    <h2 class="section-title">Chứng từ hóa đơn nhập liên kết</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; font-size: 13px;">
+      <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Mã hóa đơn nhập</span>
+        <strong style="color: #0b66c3;">{{ phieu_nhap.ma_hdn }}</strong>
+      </div>
+      <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Số hóa đơn</span>
+        <strong>{{ phieu_nhap.so_hoa_don|default:'Chưa cập nhật' }}</strong>
+      </div>
+      <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Đơn vị vận chuyển</span>
+        <strong>{{ phieu_nhap.don_vi_van_chuyen|default:'Chưa cập nhật' }}</strong>
+      </div>
+      <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Phương tiện & Tài xế</span>
+        <strong>{{ phieu_nhap.bien_so_xe|default:'—' }}</strong> · <span>{{ phieu_nhap.ten_tai_xe|default:'—' }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Ghi nhận kết quả PDI -->
+  {% if phieu_nhap.thao_tac.cap_nhat_pdi %}
+  <div class="card" id="pdi-edit-card">
+    <h2 class="section-title">Ghi nhận / Cập nhật kết quả kiểm định PDI</h2>
+    <form method="post" action="{% url 'warehouse:receipt_web_action' phieu_nhap.id 'ghi-pdi' %}" class="stack" id="pdi-edit">
+      {% csrf_token %}
+      <div class="field">
+        <label>Tình trạng tổng thể phương tiện</label>
+        <textarea class="textarea" name="tinh_trang" placeholder="Mô tả tổng quát tình trạng xe khi bàn giao..." required></textarea>
+      </div>
+
+      <div class="pdi-grid">
+        <!-- Ngoại thất -->
+        <div style="background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #cbd5e1;">
+          <div style="font-weight: 700; color: #0b2a4a; margin-bottom: 10px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+            <i class="bi bi-car-front-fill" style="color: #0b66c3;"></i> 1. Kiểm tra Ngoại thất
+          </div>
+          <div class="field" style="margin-bottom: 10px;">
+            <label>Tình trạng thực tế</label>
+            <input class="input" name="ngoai_that_tinh_trang" placeholder="Sơn, kính, đèn, lốp..." required>
+          </div>
+          <div class="field" style="margin-bottom: 10px;">
+            <label>Ghi chú</label>
+            <textarea class="textarea" style="min-height: 60px;" name="ngoai_that_ghi_chu" placeholder="Chi tiết lỗi nếu có..."></textarea>
+          </div>
+          <div class="field">
+            <label>Kết quả đánh giá</label>
+            <select class="select" name="ngoai_that_ket_qua">
+              <option value="DAT">Đạt chất lượng</option>
+              <option value="KHONG_DAT">Không đạt</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Nội thất -->
+        <div style="background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #cbd5e1;">
+          <div style="font-weight: 700; color: #0b2a4a; margin-bottom: 10px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+            <i class="bi bi-speedometer2" style="color: #0b66c3;"></i> 2. Kiểm tra Nội thất & Khoang lái
+          </div>
+          <div class="field" style="margin-bottom: 10px;">
+            <label>Tình trạng thực tế</label>
+            <input class="input" name="noi_that_tinh_trang" placeholder="Ghế, táp-lô, màn hình..." required>
+          </div>
+          <div class="field" style="margin-bottom: 10px;">
+            <label>Ghi chú</label>
+            <textarea class="textarea" style="min-height: 60px;" name="noi_that_ghi_chu" placeholder="Chi tiết lỗi nếu có..."></textarea>
+          </div>
+          <div class="field">
+            <label>Kết quả đánh giá</label>
+            <select class="select" name="noi_that_ket_qua">
+              <option value="DAT">Đạt chất lượng</option>
+              <option value="KHONG_DAT">Không đạt</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Vận hành -->
+        <div style="background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #cbd5e1; grid-column: 1 / -1;">
+          <div style="font-weight: 700; color: #0b2a4a; margin-bottom: 10px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+            <i class="bi bi-gear-wide-connected" style="color: #0b66c3;"></i> 3. Động cơ & Khả năng vận hành cơ bản
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="field">
+              <label>Tình trạng thực tế</label>
+              <input class="input" name="van_hanh_tinh_trang" placeholder="Khởi động máy, hệ thống điện, phanh..." required>
+            </div>
+            <div class="field">
+              <label>Kết quả đánh giá</label>
+              <select class="select" name="van_hanh_ket_qua">
+                <option value="DAT">Đạt chất lượng</option>
+                <option value="KHONG_DAT">Không đạt</option>
+              </select>
+            </div>
+          </div>
+          <div class="field" style="margin-top: 10px;">
+            <label>Ghi chú vận hành</label>
+            <textarea class="textarea" style="min-height: 60px;" name="van_hanh_ghi_chu" placeholder="Ghi chú thêm..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Ghi chú chung biên bản PDI</label>
+        <textarea class="textarea" name="ghi_chu" placeholder="Ý kiến kết luận của nhân viên kiểm định..."></textarea>
+      </div>
+
+      <div>
+        <button class="btn btn--primary" type="submit">
+          <i class="bi bi-save"></i> Lưu kết quả kiểm định PDI
+        </button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- Bảng Lịch sử PDI -->
+  <div class="card">
+    <h2 class="section-title">Lịch sử kiểm định PDI</h2>
+    {% if pdi %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Mã PDI</th>
+              <th style="text-align: center;">Kết quả</th>
+              <th>Người kiểm tra</th>
+              <th>Thời gian kiểm tra</th>
+              <th style="text-align: center;">Trạng thái duyệt</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in pdi %}
+            <tr>
+              <td>
+                <strong style="color: #0b66c3;">{{ item.ma_pdi_hien_thi }}</strong>
+              </td>
+              <td style="text-align: center;">
+                <span class="badge badge--{{ item.ket_qua }}">{{ item.ket_qua_hien_thi }}</span>
+              </td>
+              <td>{{ item.nguoi_kiem_tra }}</td>
+              <td>{{ item.thoi_gian_kiem_tra|date:"d/m/Y H:i" }}</td>
+              <td style="text-align: center;">
+                <span class="badge">{{ item.trang_thai_hien_thi }}</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty">
+        <i class="bi bi-clipboard-check" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
+        <p style="margin: 0; color: #64748b;">Chưa có kết quả kiểm tra PDI nào cho xe này.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('form[action]').forEach(form => {
+  if (!form.action.endsWith('/ghi-pdi/')) {
+    form.addEventListener('submit', event => {
+      if (!confirm('Xác nhận thực hiện thao tác với phiếu {{ phieu_nhap.ma_phieu|escapejs }}?')) {
+        event.preventDefault();
+      }
+    });
+  } else {
+    form.id = 'pdi-edit';
+  }
+});
+
+document.querySelectorAll('table tbody tr').forEach(row => {
+  const cell = row.cells[0];
+  if (cell && /^PDI-\d+$/.test(cell.textContent.trim())) {
+    const a = document.createElement('a');
+    a.textContent = cell.textContent.trim();
+    a.href = '/kho/pdi/' + Number(cell.textContent.trim().replace('PDI-', '')) + '/';
+    a.style.color = '#0b66c3';
+    a.style.textDecoration = 'none';
+    a.style.fontWeight = '700';
+    cell.replaceChildren(a);
+  }
+});
+</script>
+{% endblock %}

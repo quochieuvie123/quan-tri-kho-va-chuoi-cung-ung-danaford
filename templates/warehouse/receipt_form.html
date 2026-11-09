@@ -1,3 +1,72 @@
-{% extends "base.html" %}{% load static %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/operations.css' %}">{% endblock %}
-{% block content %}{% if messages %}{% for m in messages %}<div class="alert{% if m.tags == 'error' %} alert--error{% endif %}">{{ m }}</div>{% endfor %}{% endif %}<div class="card"><form method="post" class="stack">{% csrf_token %}<div class="grid"><div class="field"><label>Mã phiếu (có thể để trống)</label><input class="input" name="ma_phieu" placeholder="Hệ thống tự sinh nếu để trống"></div><div class="field"><label>Ngày nhập kho</label><input class="input" type="date" name="ngay_nhap" required></div><div class="field"><label>Xe / VIN từ chứng từ nhập</label><select class="select" name="chi_tiet_nhap_id" required><option value="">Chọn xe</option>{% for line in xe_co_the_nhap %}<option value="{{ line.pk }}">{{ line.xe_id }} — {{ line.xe.ten_xe }} — {{ line.hoa_don_nhap.nha_cung_cap.ten_ncc }}</option>{% endfor %}</select></div><div class="field"><label>Kho nhập</label><select class="select" name="kho_id" required><option value="">Chọn kho</option>{% for item in kho %}<option value="{{ item.pk }}">{{ item.chi_nhanh.ten_cn }}</option>{% endfor %}</select></div></div><div><button class="btn btn--primary" type="submit"><i class="bi bi-save"></i>Lưu phiếu nháp</button> <a class="btn btn--light" href="{% url 'warehouse:nhap' %}">Hủy</a></div></form></div>{% endblock %}
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <div class="page-header">
+    <div>
+      <h1 class="page-header__title">Lập phiếu nhập kho mới</h1>
+      <p class="page-header__subtitle">Khởi tạo phiếu nhập xe từ chứng từ hóa đơn và phân bổ vào kho chi nhánh</p>
+    </div>
+    <div>
+      <a class="btn btn--light" href="{% url 'warehouse:nhap' %}">
+        <i class="bi bi-arrow-left"></i> Quay lại danh sách phiếu
+      </a>
+    </div>
+  </div>
+
+  <div class="card" style="max-width: 850px;">
+    <h2 class="section-title">Thông tin phiếu nhập kho</h2>
+    <form method="post" class="stack">
+      {% csrf_token %}
+      <div class="grid">
+        <div class="field">
+          <label>Mã phiếu nhập</label>
+          <input class="input" name="ma_phieu" placeholder="Hệ thống tự sinh (PNK...) nếu để trống">
+          <small style="color: #64748b; font-size: 11px;">Để trống để hệ thống tự cấp mã tự động</small>
+        </div>
+
+        <div class="field">
+          <label>Ngày tiếp nhận nhập kho *</label>
+          <input class="input" type="date" name="ngay_nhap" required>
+        </div>
+
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Xe / Số khung (VIN) từ hóa đơn nhập *</label>
+          <select class="select" name="chi_tiet_nhap_id" required>
+            <option value="">-- Chọn xe theo số khung VIN từ chứng từ --</option>
+            {% for line in xe_co_the_nhap %}
+              <option value="{{ line.pk }}">
+                {{ line.xe_id }} — {{ line.xe.ten_xe }} (NCC: {{ line.hoa_don_nhap.nha_cung_cap.ten_ncc }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Kho chi nhánh tiếp nhận *</label>
+          <select class="select" name="kho_id" required>
+            <option value="">-- Chọn kho lưu trữ --</option>
+            {% for item in kho %}
+              <option value="{{ item.pk }}">{{ item.ma_kho }} - {{ item.chi_nhanh.ten_cn }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; align-items: center; padding-top: 10px;">
+        <button class="btn btn--primary" type="submit">
+          <i class="bi bi-save"></i> Lưu phiếu nhập nháp
+        </button>
+        <a class="btn btn--light" href="{% url 'warehouse:nhap' %}">
+          Hủy bỏ
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
