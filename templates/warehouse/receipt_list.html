@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <div class="page-header">
+    <div>
+      <h1 class="page-header__title">Quản lý nhập kho & Kiểm định PDI</h1>
+      <p class="page-header__subtitle">Theo dõi quy trình tiếp nhận xe mới từ nhà máy, kiểm tra chất lượng PDI và duyệt nhập kho</p>
+    </div>
+    {% if thao_tac.lap_phieu %}
+    <div>
+      <a class="btn btn--primary" href="{% url 'warehouse:receipt_create_page' %}">
+        <i class="bi bi-plus-lg"></i> Lập phiếu nhập kho mới
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <form method="get" class="filters">
+      <div class="field">
+        <label>Mã phiếu / VIN</label>
+        <input class="input" name="q" value="{{ request.GET.q }}" placeholder="Nhập mã phiếu hoặc số khung VIN...">
+      </div>
+      <div class="field">
+        <label>Trạng thái phiếu</label>
+        <select class="select" name="trang_thai">
+          <option value="">-- Tất cả trạng thái --</option>
+          {% for value,label in trang_thai %}
+            <option value="{{ value }}"{% if request.GET.trang_thai == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label>Kho tiếp nhận</label>
+        <select class="select" name="kho_id">
+          <option value="">-- Tất cả các kho --</option>
+          {% for item in kho %}
+            <option value="{{ item.pk }}"{% if request.GET.kho_id == item.pk|stringformat:'s' %} selected{% endif %}>{{ item.chi_nhanh.ten_cn }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: flex-end; padding-bottom: 2px;">
+        <button class="btn btn--primary" type="submit">
+          <i class="bi bi-search"></i> Lọc dữ liệu
+        </button>
+        <a class="btn btn--light" href="{% url 'warehouse:nhap' %}">
+          <i class="bi bi-arrow-counterclockwise"></i> Đặt lại
+        </a>
+      </div>
+    </form>
+
+    {% if message %}
+      <div class="empty">
+        <i class="bi bi-inbox" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
+        <p style="margin: 0; color: #64748b;">{{ message }}</p>
+      </div>
+    {% else %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Mã phiếu</th>
+              <th>Số khung (VIN)</th>
+              <th>Thông tin dòng xe</th>
+              <th>Kho nhập</th>
+              <th>Ngày lập</th>
+              <th>Người lập</th>
+              <th style="text-align: center;">Trạng thái</th>
+              <th style="text-align: right;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in phieu_nhap %}
+            <tr>
+              <td>
+                <a href="{% url 'warehouse:receipt_detail' p.id %}" style="text-decoration: none; font-weight: 700; color: #0b66c3;">
+                  {{ p.ma_phieu }}
+                </a>
+              </td>
+              <td><strong>{{ p.vin }}</strong></td>
+              <td>
+                <div style="font-weight: 600; color: #0b2a4a;">{{ p.dong_xe }}</div>
+                <small style="color: #64748b;">{{ p.phien_ban|default:"—" }} · {{ p.mau_sac|default:"—" }}</small>
+              </td>
+              <td><span class="badge">{{ p.ten_kho }}</span></td>
+              <td>{{ p.ngay_lap|date:"d/m/Y H:i" }}</td>
+              <td>{{ p.nguoi_lap }}</td>
+              <td style="text-align: center;">
+                <span class="badge badge--{{ p.trang_thai }}">{{ p.trang_thai_hien_thi }}</span>
+              </td>
+              <td style="text-align: right;">
+                <a class="btn btn--light" href="{% url 'warehouse:receipt_detail' p.id %}">
+                  <i class="bi bi-eye"></i> Chi tiết
+                </a>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="8" class="empty">
+                <i class="bi bi-inbox" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
+                <p style="margin: 0; color: #64748b;">Chưa có phiếu nhập kho nào.</p>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

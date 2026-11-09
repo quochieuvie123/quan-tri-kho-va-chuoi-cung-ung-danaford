@@ -1,82 +1,90 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý đặt xe</title>
-    <link rel="stylesheet" href="{% static 'css/order.css' %}">
-    <style>
-        .menu {
-            display: flex;
-            gap: 10px;
-            width: 100%;
-            box-sizing: border-box;
-        }
 
-        .menu a {
-            flex: 1;
-            padding: 17px 10px;
-            text-align: center;
-            text-decoration: none;
-            color: #2563d9;
-            background-color: #ffffff;
-            border: 1px solid #dddddd;
-            border-radius: 11px;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            font-weight: 600;
-            box-sizing: border-box;
-        }
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
+<link rel="stylesheet" href="{% static 'css/transfers.css' %}">
+<style>
+    .order-page-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
 
-        .menu a:hover {
-            background-color: #eaf3ff;
-        }
+    .order-page-tab {
+        flex: 1;
+        min-width: 170px;
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background-color: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        color: #475569;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        transition: all 0.2s ease;
+    }
 
-        .menu a.active {
-            background-color: #0865bd;
-            color: white;
-            border-color: #0865bd;
-        }
+    .order-page-tab:hover {
+        background-color: #f8fafc;
+        color: #0b66c3;
+        border-color: #93c5fd;
+        text-decoration: none;
+    }
 
-        .menu a.active:hover {
-            background-color: #0755a0;
-        }
-    </style>
-</head>
+    .order-page-tab.active {
+        background-color: #0b66c3;
+        border-color: #0b66c3;
+        color: #ffffff;
+        box-shadow: 0 4px 10px rgba(11, 102, 195, 0.2);
+    }
+</style>
+{% endblock %}
 
-<body>
+{% block content %}
+<div class="stack">
+    <!-- Tiêu đề trang dùng chung -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-header__title">Quản lý phân bổ & Đặt xe</h1>
+            <p class="page-header__subtitle">Theo dõi phân bổ từ nhà máy, tính toán đề xuất nhập xe và lập phiếu yêu cầu đặt xe</p>
+        </div>
+    </div>
 
-    <nav class="menu">
+    <!-- Hệ thống 4 Tab điều hướng nhất quán -->
+    <div class="order-page-tabs">
+        <a href="{% url 'orders:allocation_list' %}"
+           class="order-page-tab {% if request.resolver_match.url_name == 'allocation_list' %}active{% endif %}">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Tải & Xem phân bổ
+        </a>
+        <a href="{% url 'orders:proposal_list' %}"
+           class="order-page-tab {% if request.resolver_match.url_name == 'proposal_list' or request.resolver_match.url_name == 'proposal_detail' %}active{% endif %}">
+            <i class="bi bi-graph-up-arrow"></i> Đề xuất nhập xe
+        </a>
         <a href="{% url 'orders:vehicle_orders' %}"
-           class="{% if request.resolver_match.url_name == 'vehicle_orders' %}active{% endif %}">
-            Đặt xe
+           class="order-page-tab {% if request.resolver_match.url_name == 'vehicle_orders' or request.resolver_match.url_name == 'chi_tiet_xe' %}active{% endif %}">
+            <i class="bi bi-car-front"></i> Đặt xe
         </a>
-        <a href="{% url 'orders:danh_sach_yeu_cau' %}">
-            Danh sách yêu cầu
+        <a href="{% url 'orders:danh_sach_yeu_cau' %}"
+           class="order-page-tab {% if request.resolver_match.url_name == 'danh_sach_yeu_cau' %}active{% endif %}">
+            <i class="bi bi-card-checklist"></i> Danh sách yêu cầu
         </a>
-    </nav>
+    </div>
 
-    <!-- Nội dung của các trang con sẽ xuất hiện ở đây -->
-    <main class="booking-content">
+    <!-- Nội dung của các trang con -->
+    <div class="card">
         {% block booking_content %}
         {% endblock %}
-    </main>
-    <footer class="booking-footer">
-    <a href="/phan-bo/"
-       style="
-           display: inline-block;
-           padding: 12px 24px;
-           background-color: #0865bd;
-           color: white;
-           border-radius: 8px;
-           text-decoration: none;
-           font-family: Arial, sans-serif;
-           font-size: 14px;
-           font-weight: bold;
-       ">
-        Quay lại
-    </a>
-    </footer>
-</body>
-</html>
+    </div>
+</div>
+{% endblock %}

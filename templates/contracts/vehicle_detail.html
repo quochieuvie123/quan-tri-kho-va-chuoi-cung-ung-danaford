@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <div class="toolbar">
+    <a class="btn btn--light" href="{% url 'contracts:xe_phu_hop' ma_hd %}">
+      <i class="bi bi-arrow-left"></i> Quay lại kết quả đề xuất xe
+    </a>
+  </div>
+
+  <div class="card" style="max-width: 750px;">
+    <h2 class="section-title">Thông tin chi tiết xe được đề xuất</h2>
+    <dl class="detail-list">
+      <dt>Số khung (VIN)</dt>
+      <dd><span style="font-size: 15px; font-weight: 700; color: #0b66c3;">{{ xe.vin }}</span></dd>
+
+      <dt>Dòng xe</dt>
+      <dd><strong>{{ xe.xe__ten_xe }}</strong></dd>
+
+      <dt>Phiên bản</dt>
+      <dd>{{ xe.xe__phien_ban|default:"—" }}</dd>
+
+      <dt>Màu sắc</dt>
+      <dd>{{ xe.xe__mau_sac|default:"—" }}</dd>
+
+      <dt>Vị trí lưu kho</dt>
+      <dd><span class="badge">{{ xe.vi_tri_kho }}</span></dd>
+
+      <dt>Trạng thái xe</dt>
+      <dd><span class="badge badge--DA_DUYET">{{ xe.trang_thai_hien_thi }}</span></dd>
+
+      <dt>Phương án đề xuất</dt>
+      <dd style="color: #0b2a4a; font-weight: 600;">{{ xe.phuong_an }}</dd>
+    </dl>
+  </div>
+</div>
+{% endblock %}

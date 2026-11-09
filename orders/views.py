@@ -25,8 +25,13 @@ from .models import Allocation, VehicleRequest, VehicleRequestItem
 import os
 from django.contrib.staticfiles import finders
 
+MONTH_EN_MAP = {
+    'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+    'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+}
+
 def chuyen_ngay(value):
-    if value is None or value == "":
+    if value is None or value == "" or value == 0 or value == "0":
         return None
 
     if isinstance(value, datetime):
@@ -36,37 +41,59 @@ def chuyen_ngay(value):
         return value
 
     if isinstance(value, str):
-        value = value.strip()
+        val_str = value.strip()
+        if not val_str or val_str.startswith("1899-12-31") or val_str == "0":
+            return None
 
-        for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%Y/%m/%d", "%d-%m-%Y"):
             try:
-                return datetime.strptime(value, fmt).date()
+                return datetime.strptime(val_str, fmt).date()
             except ValueError:
                 continue
 
-    raise ValueError(f"Ngày không hợp lệ: {value}")
+    return None
+
 import re
 
-def chuyen_thang(value):
+def chuyen_thang(value, default_date=None):
+    if value is None or value == "":
+        return default_date
+
     if isinstance(value, datetime):
-        value = value.date()
+        return value.date().replace(day=1)
 
     if isinstance(value, date):
         return value.replace(day=1)
 
     if isinstance(value, str):
-        match = re.fullmatch(
-            r"Tháng\s+(\d{1,2})\s+năm\s+(\d{4})",
-            value.strip(),
-            flags=re.IGNORECASE
-        )
+        val_str = value.strip()
 
-        if match:
-            thang = int(match.group(1))
-            nam = int(match.group(2))
+        # Tiếng Việt: "Tháng 10 năm 2026"
+        m_vn = re.search(r"Tháng\s+(\d{1,2})\s+năm\s+(\d{4})", val_str, flags=re.IGNORECASE)
+        if m_vn:
+            return date(int(m_vn.group(2)), int(m_vn.group(1)), 1)
+
+        # Dạng MM/YYYY hoặc MM-YYYY
+        m_slash = re.search(r"(\d{1,2})[/.-](\d{4})", val_str)
+        if m_slash:
+            return date(int(m_slash.group(2)), int(m_slash.group(1)), 1)
+
+        # Dạng YYYY-MM
+        m_dash = re.search(r"(\d{4})[/.-](\d{1,2})", val_str)
+        if m_dash:
+            return date(int(m_dash.group(1)), int(m_dash.group(2)), 1)
+
+        # Tiếng Anh: "Oct 2026 Allocation", "OCT 26 DEFER FROM SEP", "Sep 2026"
+        m_en = re.search(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\s_-]+(?:20)?(\d{2,4})", val_str, flags=re.IGNORECASE)
+        if m_en:
+            thang = MONTH_EN_MAP.get(m_en.group(1).lower()[:3], 1)
+            nam = int(m_en.group(2))
+            if nam < 100:
+                nam += 2000
             return date(nam, thang, 1)
 
-    raise ValueError(f"Tháng phân bổ không hợp lệ: {value}")
+    return default_date
+
 def chuyen_chuoi(value):
     if value is None:
         return ""
@@ -74,27 +101,30 @@ def chuyen_chuoi(value):
     if isinstance(value, str):
         return value.strip()
 
-    if isinstance(value, (int, float)):
+    if isinstance(value, float):
+        if value.is_integer():
+            return str(int(value))
         return str(value)
 
-    raise ValueError(
-        f"Kiểu dữ liệu Excel không hợp lệ: {type(value).__name__}"
-    )
-def chuyen_so_luong(value):
+    if isinstance(value, (int, date, datetime)):
+        return str(value)
+
+    return str(value).strip()
+
+def chuyen_so_luong(value, default=1):
     if value is None or isinstance(value, bool):
-        raise ValueError("Số lượng không hợp lệ")
+        return default
 
     try:
         so_luong = int(str(value).strip())
+        return so_luong if so_luong > 0 else default
     except (ValueError, TypeError, OverflowError):
-        raise ValueError("Số lượng phải là số nguyên")
+        return default
 
-    if so_luong <= 0:
-        raise ValueError("Số lượng phải lớn hơn 0")
-
-    return so_luong
 @login_required
 def allocation_list(request):
+    today = timezone.localdate()
+
     if request.method == "POST":
         form = AllocationUploadForm(request.POST, request.FILES)
 
@@ -102,7 +132,7 @@ def allocation_list(request):
             file = form.cleaned_data["file"]
 
             if not file.name.lower().endswith(".xlsx"):
-                messages.error(request, "Chỉ chấp nhận file .xlsx")
+                messages.error(request, "Chỉ chấp nhận file định dạng Excel (.xlsx)")
             else:
                 workbook = None
 
@@ -116,72 +146,123 @@ def allocation_list(request):
                     sheet = workbook.active
 
                     if sheet is None:
-                        raise ValueError(
-                            "File Excel không có sheet hợp lệ"
-                        )
+                        raise ValueError("File Excel không có sheet dữ liệu hợp lệ")
 
-                    rows = list(sheet.iter_rows(
-                        min_row=2,
-                        values_only=True
-                    ))
+                    all_rows = list(sheet.iter_rows(values_only=True))
+                    if not all_rows:
+                        raise ValueError("File Excel hoàn toàn trống dữ liệu")
 
-                    # Kiểm tra toàn bộ dữ liệu trước khi lưu
+                    # ==============================================================
+                    # TỰ ĐỘNG NHẬN DIỆN TIÊU ĐỀ CỘT (HEADER MAPPING TỰ ĐỘNG)
+                    # ==============================================================
+                    header_row_idx = None
+                    col_map = {}
+
+                    # Duyệt qua tối đa 10 dòng đầu để tìm dòng chứa tiêu đề 'VIN'
+                    for idx, r in enumerate(all_rows[:10]):
+                        if r and any(isinstance(c, str) and c.strip().upper() in ("VIN", "SỐ KHUNG", "VIN/CHASSIS") for c in r if c is not None):
+                            header_row_idx = idx
+                            break
+
+                    if header_row_idx is not None:
+                        # Ánh xạ theo tên cột thực tế trong file
+                        for c_idx, cell_val in enumerate(all_rows[header_row_idx]):
+                            if cell_val is None:
+                                continue
+                            c_name = str(cell_val).strip().upper()
+
+                            if c_name in ("VIN", "SỐ KHUNG", "CHASSIS NUMBER", "CHASSIS_NO") and "vin" not in col_map:
+                                col_map["vin"] = c_idx
+                            elif c_name in ("ORDER_NO", "ORDER NO", "ORDER NUMBER", "ORDER_NUMBER", "SỐ ĐƠN ĐẶT HÀNG", "SỐ ĐƠN HÀNG", "SO DON HANG", "ORDER") and "order_number" not in col_map:
+                                col_map["order_number"] = c_idx
+                            elif c_name in ("MODEL CODE", "MODEL_CODE", "MÃ DÒNG XE", "MÃ XE", "MA DONG XE", "VEHICLE CODE", "VEHICLE_CODE") and "vehicle_code" not in col_map:
+                                col_map["vehicle_code"] = c_idx
+                            elif c_name in ("DESCRIPTION", "MODEL DESC", "MODEL_DESC", "MÔ TẢ", "MO TA", "TÊN XE", "TEN XE") and "description" not in col_map:
+                                col_map["description"] = c_idx
+                            elif c_name in ("COLOR CODE", "COLOR_CODE", "COLOUR CODE", "COLOUR_CODE", "MÃ MÀU", "MA MAU") and "color_code" not in col_map:
+                                col_map["color_code"] = c_idx
+                            elif c_name in ("EXTERIOR COLOUR", "EXTERIOR COLOR", "MÀU NGOẠI THẤT", "MAU NGOAI THAT", "MÀU SẮC", "MAU SAC", "COLOUR (FN)") and "exterior_color" not in col_map:
+                                col_map["exterior_color"] = c_idx
+                            elif c_name in ("ENGINE_NUMBER", "ENGINE NUMBER", "ENGINE NO", "SỐ MÁY", "SO MAY") and "engine_number" not in col_map:
+                                col_map["engine_number"] = c_idx
+                            elif c_name in ("QUANTITY", "SỐ LƯỢNG", "SO LUONG", "QTY") and "quantity" not in col_map:
+                                col_map["quantity"] = c_idx
+                            elif c_name in ("NGÀY DỰ KIẾN SHIP", "NGAY DU KIEN SHIP", "EXPECTED SHIP DATE", "EXPECTED_SHIP_DATE", "ESTIMATED SHIP DATE", "SHIP DATE") and "expected_ship_date" not in col_map:
+                                col_map["expected_ship_date"] = c_idx
+                            elif c_name in ("NGÀY DỰ KIẾN GIAO THEO HỢP ĐỒNG", "NGAY DU KIEN GIAO THEO HOP DONG", "NGÀY DỰ KIẾN GIAO", "NGAY DU KIEN GIAO", "CONTRACTUAL DELIVERY DATE", "CONTRACTUAL_DELIVERY_DATE") and "contractual_delivery_date" not in col_map:
+                                col_map["contractual_delivery_date"] = c_idx
+                            elif c_name in ("ALLOCATION MONTH", "ALLOCATION_MONTH", "THÁNG PHÂN BỔ", "THANG PHAN BO", "ALLOCATION") and "allocation_month" not in col_map:
+                                col_map["allocation_month"] = c_idx
+
+                        start_data_idx = header_row_idx + 1
+                    else:
+                        # Fallback tương thích cấu trúc 12 cột cũ
+                        col_map = {
+                            "order_number": 1,
+                            "vehicle_code": 2,
+                            "description": 3,
+                            "vin": 4,
+                            "color_code": 5,
+                            "exterior_color": 6,
+                            "engine_number": 7,
+                            "quantity": 8,
+                            "expected_ship_date": 9,
+                            "contractual_delivery_date": 10,
+                            "allocation_month": 11,
+                        }
+                        start_data_idx = 1
+
+                    if "vin" not in col_map:
+                        raise ValueError("Không tìm thấy cột Số khung (VIN) trong file Excel")
+
                     data = []
+                    default_month = today.replace(day=1)
 
-                    today = timezone.localdate()
-
-                    for row_number, row in enumerate(rows, start=2):
+                    for row_number, row in enumerate(all_rows[start_data_idx:], start=start_data_idx + 1):
                         if not any(value is not None for value in row):
                             continue
 
-                        if len(row) < 12:
-                            raise ValueError(
-                                f"Dòng {row_number}: Thiếu cột dữ liệu"
-                            )
+                        vin_idx = col_map["vin"]
+                        vin = chuyen_chuoi(row[vin_idx]) if vin_idx < len(row) else ""
 
-                        vin = chuyen_chuoi(row[4])
+                        # Bỏ qua dòng rỗng hoặc dòng header lặp lại
+                        if not vin or len(vin) < 5 or vin.upper() == "VIN":
+                            continue
 
-                        if not vin:
-                            raise ValueError(
-                                f"Dòng {row_number}: Thiếu VIN"
-                            )
+                        def get_col(fld):
+                            idx = col_map.get(fld)
+                            return row[idx] if idx is not None and idx < len(row) else None
 
-                        # Kiểm tra tháng và năm
-                        allocation_month = chuyen_thang(row[11])
-                        if (allocation_month.month != today.month
-                                or allocation_month.year != today.year):
-                            raise ValueError(
-                                f"Dòng {row_number}: Tháng phân bổ "
-                                f"{allocation_month.strftime('%m/%Y')} "
-                                "không phải tháng hiện tại"
-                            )
+                        alloc_month = chuyen_thang(get_col("allocation_month"), default_date=default_month)
 
                         data.append({
-                            "order_number": chuyen_chuoi(row[1]),
-                            "vehicle_code": chuyen_chuoi(row[2]),
-                            "description": chuyen_chuoi(row[3]),
                             "vin": vin,
-                            "color_code": chuyen_chuoi(row[5]),
-                            "exterior_color": chuyen_chuoi(row[6]),
-                            "engine_number": chuyen_chuoi(row[7]),
-                            "quantity": chuyen_so_luong(row[8]),
-                            "expected_ship_date": chuyen_ngay(row[9]),
-                            "contractual_delivery_date": chuyen_ngay(row[10]),
-                            "allocation_month": allocation_month,
+                            "order_number": chuyen_chuoi(get_col("order_number")),
+                            "vehicle_code": chuyen_chuoi(get_col("vehicle_code")),
+                            "description": chuyen_chuoi(get_col("description")),
+                            "color_code": chuyen_chuoi(get_col("color_code")),
+                            "exterior_color": chuyen_chuoi(get_col("exterior_color")),
+                            "engine_number": chuyen_chuoi(get_col("engine_number")),
+                            "quantity": chuyen_so_luong(get_col("quantity"), default=1),
+                            "expected_ship_date": chuyen_ngay(get_col("expected_ship_date")),
+                            "contractual_delivery_date": chuyen_ngay(get_col("contractual_delivery_date")),
+                            "allocation_month": alloc_month,
                         })
+
+                    if not data:
+                        raise ValueError("Không đọc được dòng dữ liệu xe phân bổ hợp lệ nào từ file Excel")
 
                     with transaction.atomic():
                         for item in data:
-                            vin = item.pop("vin")
-
+                            vin_val = item.pop("vin")
                             Allocation.objects.update_or_create(
-                                vin=vin,
+                                vin=vin_val,
                                 defaults=item
                             )
 
                     messages.success(
                         request,
-                        "Tải danh sách phân bổ thành công!"
+                        f"Tải danh sách phân bổ thành công! Đã nạp {len(data)} xe vào hệ thống."
                     )
                     return redirect("orders:allocation_list")
 
@@ -198,17 +279,25 @@ def allocation_list(request):
     else:
         form = AllocationUploadForm()
 
-    today = timezone.localdate()
-
+    # Hiển thị danh sách phân bổ: Ưu tiên tháng hiện tại, nếu chưa có thì lấy tháng phân bổ gần nhất
     allocations = Allocation.objects.filter(
         allocation_month__year=today.year,
         allocation_month__month=today.month
     ).order_by("id")
 
+    if not allocations.exists():
+        latest_allocation = Allocation.objects.order_by("-allocation_month").first()
+        if latest_allocation and latest_allocation.allocation_month:
+            allocations = Allocation.objects.filter(
+                allocation_month__year=latest_allocation.allocation_month.year,
+                allocation_month__month=latest_allocation.allocation_month.month
+            ).order_by("id")
+
     return render(request, "danh_sach_pb.html", {
         "form": form,
         "allocations": allocations
     })
+
 # Đặt xe
 
 @login_required

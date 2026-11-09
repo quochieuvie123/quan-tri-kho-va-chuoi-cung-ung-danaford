@@ -1,73 +1,69 @@
-
 {% extends "ql_dat_xe.html" %}
 
 {% block booking_content %}
-
-<h2>Chi tiết xe</h2>
-
-<table class="vehicle-table">
-    <tbody>
-        <tr>
-            <th>Mã dòng xe</th>
-            <td>{{ xe.vehicle_code }}</td>
-        </tr>
-        <tr>
-            <th>Mô tả</th>
-            <td>{{ xe.description }}</td>
-        </tr>
-        <tr>
-            <th>VIN</th>
-            <td>{{ xe.vin }}</td>
-        </tr>
-        <tr>
-            <th>Mã màu</th>
-            <td>{{ xe.color_code }}</td>
-        </tr>
-        <tr>
-            <th>Màu ngoại thất</th>
-            <td>{{ xe.exterior_color }}</td>
-        </tr>
-        <tr>
-            <th>Số máy</th>
-            <td>{{ xe.engine_number }}</td>
-        </tr>
-        <tr>
-            <th>Số lượng phân bổ</th>
-            <td>{{ xe.quantity }}</td>
-        </tr>
-    </tbody>
-</table>
-
-<h3>Nhập số lượng xe muốn đặt</h3>
-
-{% for message in messages %}
-    <p>{{ message }}</p>
-{% endfor %}
-
-<form method="POST">
-    {% csrf_token %}
-
-    <label for="quantity">Số lượng:</label>
-
-    <input
-        type="number"
-        id="quantity"
-        name="quantity"
-        min="1"
-        max="{{ xe.quantity }}"
-        value="1"
-        required
-    >
-
-    <div class="request-actions">
-        <a href="{% url 'orders:vehicle_orders' %}">
-            Quay lại
+<div class="stack" style="max-width: 800px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 class="section-title" style="margin: 0;">Thông tin chi tiết xe phân bổ</h2>
+        <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--light">
+            <i class="bi bi-arrow-left"></i> Quay lại tìm kiếm xe
         </a>
-
-        <button type="submit">
-            Thêm vào danh sách
-        </button>
     </div>
-</form>
 
+    <!-- THÔNG TIN XE -->
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+        <dl class="detail-list">
+            <dt>Mã dòng xe</dt>
+            <dd><span class="badge">{{ xe.vehicle_code }}</span></dd>
+
+            <dt>Mô tả dòng xe</dt>
+            <dd><strong style="font-size: 15px; color: #0b2a4a;">{{ xe.description }}</strong></dd>
+
+            <dt>Số khung (VIN)</dt>
+            <dd style="font-family: monospace; font-size: 14px; font-weight: 700; color: #0b66c3;">{{ xe.vin }}</dd>
+
+            <dt>Mã màu & Màu sơn</dt>
+            <dd>{{ xe.color_code }} · {{ xe.exterior_color }}</dd>
+
+            <dt>Số máy động cơ</dt>
+            <dd>{{ xe.engine_number }}</dd>
+
+            <dt>Số lượng phân bổ còn lại</dt>
+            <dd style="font-size: 16px; font-weight: 700; color: #166534;">{{ xe.quantity }} xe</dd>
+        </dl>
+    </div>
+
+    <!-- FORM NHẬP SỐ LƯỢNG ĐẶT -->
+    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+        <h3 style="margin: 0 0 14px; font-size: 15px; font-weight: 700; color: #0b2a4a;">
+            Nhập số lượng xe muốn đặt hàng
+        </h3>
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="field" style="max-width: 300px; margin-bottom: 20px;">
+                <label for="quantity">Số lượng đặt (Tối đa: {{ xe.quantity }} xe):</label>
+                <input
+                    type="number"
+                    id="quantity"
+                    name="quantity"
+                    class="input"
+                    min="1"
+                    max="{{ xe.quantity }}"
+                    value="1"
+                    required
+                >
+            </div>
+
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <button type="submit" class="btn btn--primary">
+                    <i class="bi bi-cart-plus"></i> Thêm vào danh sách đặt xe
+                </button>
+                <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--light">
+                    Hủy bỏ
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

@@ -1,0 +1,208 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Lệnh lưu chuyển PDF</title>
+
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 18mm 12mm;
+        }
+
+        @font-face {
+            font-family: "DejaVuSans";
+            src: url("DejaVuSans.ttf");
+        }
+
+        @font-face {
+            font-family: "DejaVuSansBold";
+            src: url("DejaVuSans-Bold.ttf");
+        }
+
+        body {
+            font-family: "DejaVuSans";
+            font-size: 10pt;
+            color: #000;
+        }
+
+        .company-info {
+            font-size: 10pt;
+            line-height: 1.5;
+        }
+
+        .company-name {
+            font-family: "DejaVuSansBold";
+            font-size: 12pt;
+        }
+
+        .document-number {
+            text-align: right;
+            margin-top: 10px;
+        }
+
+        .document-title {
+            font-family: "DejaVuSansBold";
+            font-size: 17pt;
+            text-align: center;
+            margin-top: 22px;
+        }
+
+        .document-date {
+            text-align: center;
+            font-size: 11pt;
+            margin-bottom: 25px;
+        }
+
+        .document-info {
+            font-size: 11pt;
+            line-height: 1.5;
+        }
+
+        .document-info p {
+            margin: 8px 0;
+        }
+
+        .vehicle-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px;
+            font-size: 8pt;
+        }
+
+        .vehicle-table th,
+        .vehicle-table td {
+            border: 1px solid #000;
+            padding: 6px 4px;
+            vertical-align: middle;
+            overflow-wrap: break-word;
+        }
+
+        .vehicle-table th {
+            font-family: "DejaVuSansBold";
+            text-align: center;
+        }
+
+        .stt,
+        .quantity,
+        .total-value {
+            text-align: center;
+        }
+
+        .total-label {
+            font-family: "DejaVuSansBold";
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="company-info">
+        <div class="company-name">
+            CÔNG TY CỔ PHẦN DANA
+        </div>
+
+        <div>Số 56, Đường Điện Biên Phủ,</div>
+        <div>Quận Thanh Khê, Tp Đà Nẵng.</div>
+        <div>SDT: 0799 646 555</div>
+        <div>Mã số thuế: 0400259800</div>
+    </div>
+
+    <div class="document-number">
+        Số:
+        {% if lenh %}
+            {{ lenh.ma_lenh }}
+        {% else %}
+            ........................
+        {% endif %}
+    </div>
+
+    <h1 class="document-title">
+        LỆNH LƯU CHUYỂN
+    </h1>
+
+    <div class="document-date">
+        Ngày {{ ngay_lap|date:"d" }}
+        tháng {{ ngay_lap|date:"m" }}
+        năm {{ ngay_lap|date:"Y" }}
+    </div>
+
+    <div class="document-info">
+        <p>Người lập: {{ nguoi_lap }}</p>
+        <p>Nội dung: Lưu chuyển sang kho chi nhánh</p>
+
+        <p>
+            Kho xuất:
+            {{ kho_xuat.ma_kho }} -
+            {{ kho_xuat.chi_nhanh }}
+        </p>
+
+        <p>
+            Kho nhập:
+            {{ kho_nhap.ma_kho }} -
+            {{ kho_nhap.chi_nhanh }}
+        </p>
+    </div>
+
+    <table class="vehicle-table">
+        <thead>
+            <tr>
+                <th width="5%">STT</th>
+                <th width="21%">VIN</th>
+                <th width="15%">Số máy</th>
+                <th width="17%">Tên xe</th>
+                <th width="14%">Loại xe</th>
+                <th width="17%">Màu sắc</th>
+                <th width="11%">SL</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for item in chi_tiet %}
+            <tr>
+                <td class="stt">
+                    {{ forloop.counter }}
+                </td>
+
+                <td>
+                    {{ item.xe.vin }}
+                </td>
+
+                <td>
+                    {{ item.xe.so_may }}
+                </td>
+
+                <td>
+                    {{ item.xe.ten_xe }}
+                </td>
+
+                <td>
+                    {{ item.xe.loai_xe }}
+                </td>
+
+                <td>
+                    {{ item.xe.mau_sac|default:"Chưa cập nhật" }}
+                </td>
+
+                <td class="quantity">
+                    {{ item.so_luong }}
+                </td>
+            </tr>
+            {% endfor %}
+
+            <tr>
+                <td colspan="6" class="total-label">
+                    Tổng số lượng:
+                </td>
+
+                <td class="total-value">
+                    {{ tong_so_luong }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+</body>
+</html>

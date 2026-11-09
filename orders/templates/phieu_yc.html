@@ -1,156 +1,185 @@
-
 {% extends 'base.html' %}
 {% load static %}
 
-{% block page_title %}
-Phiếu yêu cầu đặt xe
-{% endblock %}
+{% block page_title %}Phiếu yêu cầu đặt xe{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet"
-      href="{% static 'css/phieu_yeu_cau.css' %}">
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
+<link rel="stylesheet" href="{% static 'css/transfers.css' %}">
+<link rel="stylesheet" href="{% static 'css/phieu_yeu_cau.css' %}">
+<style>
+    @media print {
+        .sidebar, .topbar, .no-print, .toolbar {
+            display: none !important;
+        }
+        .app__content {
+            padding: 0 !important;
+        }
+        .request-paper {
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            max-width: 100% !important;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-
-<div class="request-page">
-
-    <div class="request-paper">
-
-        <!-- LOGO, TIÊU ĐỀ, SỐ PHIẾU -->
-        <div class="request-header">
-
-            <div class="request-logo">
-                <img src="{% static 'images/danaford_logo.png' %}"
-         alt="Logo DanaFord">
-            </div>
-
-            <div class="request-title">
-                <h2>PHIẾU YÊU CẦU ĐẶT XE</h2>
-
-                <p>
-                    Ngày {{ ngay_lap|date:"d" }}
-                    tháng {{ ngay_lap|date:"m" }}
-                    năm {{ ngay_lap|date:"Y" }}
-                </p>
-            </div>
-
-            <div class="request-number">
-                Số: PYC{{ phieu.id|stringformat:"05d" }}
-            </div>
-
+<div class="stack">
+    <!-- Thanh điều hướng và in ấn -->
+    <div class="toolbar no-print">
+        <div style="display: flex; gap: 10px; align-items: center;">
+            {% if phieu.status == "DRAFT" %}
+                <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--light">
+                    <i class="bi bi-arrow-left"></i> Quay lại chọn xe
+                </a>
+            {% else %}
+                <a href="{% url 'orders:danh_sach_yeu_cau' %}" class="btn btn--light">
+                    <i class="bi bi-arrow-left"></i> Quay lại danh sách yêu cầu
+                </a>
+            {% endif %}
         </div>
-
-        <!-- THÔNG TIN CÔNG TY DANA -->
-        <div class="sender-info">
-
-            <h3>CÔNG TY CỔ PHẦN DANA</h3>
-
-            <p>Số 56, Đường Điện Biên Phủ,</p>
-            <p>Quận Thanh Khê, Tp Đà Nẵng.</p>
-            <p>SĐT: 0799 646 555</p>
-            <p>Mã số thuế: 0400259800</p>
-
-            <p>
-                Người lập phiếu:
-                {{ request.user.username }}
-            </p>
-
-        </div>
-
-        <!-- THÔNG TIN BÊN NHẬN -->
-        <div class="receiver-info">
-
-            <p>Đến: Công ty TNHH FORD Việt Nam</p>
-
-            <p>
-                Địa chỉ: Số 316 Đường Hoàng Ngân,
-                Phường Việt Hoà, TP Hải Phòng
-            </p>
-
-            <p>Mã số thuế: 0800006882</p>
-
-        </div>
-
-        <!-- BẢNG DANH SÁCH XE -->
-        <table class="request-table">
-
-            <thead>
-                <tr>
-                    <th>STT</th>
-                    <th>Mã dòng</th>
-                    <th>Mô tả</th>
-                    <th>Vin</th>
-                    <th>Mã màu</th>
-                    <th>Số lượng</th>
-                </tr>
-            </thead>
-
-            <tbody>
-            {% for item in phieu.items.all %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
-                <td>{{ item.allocation.vehicle_code }}</td>
-                <td>{{ item.allocation.description }}</td>
-                <td>{{ item.allocation.vin }}</td>
-                <td>{{ item.allocation.color_code }}</td>
-                <td>{{ item.quantity }}</td>
-            </tr>
-            {% endfor %}
-            <tr class="total-row">
-                <td colspan="5">Tổng số lượng:</td>
-                <td>{{ tong_so_luong }}</td>
-            </tr>
-            </tbody>
-
-        </table>
-
-    </div>
-<p>Trạng thái thực tế: {{ phieu.status|default:"KHÔNG CÓ" }}</p>
-<p>Mã phiếu: {{ phieu.request_number }}</p>
-    <!-- NÚT XÁC NHẬN: NẰM NGOÀI PHIẾU -->
-    <div class="request-actions">
-
-        {% if phieu.status == "DRAFT" %}
-        <a href="{% url 'orders:vehicle_orders' %}" class="btn-back">
-            Quay lại chỉnh sửa
-        </a>
-        {% elif phieu.status == "PENDING" or phieu.status == "ACCEPTED" %}
-        <a href="{% url 'orders:danh_sach_yeu_cau' %}" class="btn-back">
-            Quay lại danh sách yêu cầu
-        </a>
-        {% endif %}
-
-        {% if phieu.status == "DRAFT" %}
-        <form method="POST"
-              action="{% url 'orders:gui_phieu_yeu_cau' phieu.id %}">
-            {% csrf_token %}
-            <button type="submit" class="btn-send">
-                Gửi phiếu
+        <div>
+            <button type="button" class="btn btn--light" onclick="window.print()">
+                <i class="bi bi-printer"></i> In phiếu yêu cầu
             </button>
-        </form>
+        </div>
+    </div>
+
+    <!-- Tờ phiếu yêu cầu định dạng văn bản công vụ -->
+    <div class="transfer-paper card" style="max-width: 850px; margin: 0 auto;">
+        <div class="transfer-paper-header">
+            <div>
+                <div class="transfer-company-title">CÔNG TY CỔ PHẦN DANA (DANA FORD)</div>
+                <div class="transfer-company-sub">
+                    56 Điện Biên Phủ, P. Chính Gián, Q. Thanh Khê, TP. Đà Nẵng<br>
+                    Hotline: 0799 646 555 · MST: 0400259800
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 13px; font-weight: 600; color: #475569;">
+                    Số phiếu: <span style="color: #0b66c3; font-family: monospace; font-size: 15px; font-weight: 700;">PYC{{ phieu.id|stringformat:"05d" }}</span>
+                </div>
+                <div style="margin-top: 6px;">
+                    {% if phieu.status == "DRAFT" %}
+                        <span class="badge badge--NHAP"><i class="bi bi-pencil"></i> Bản nháp</span>
+                    {% elif phieu.status == "PENDING" %}
+                        <span class="badge badge--CHO_DUYET"><i class="bi bi-send"></i> Đã gửi Ford VN</span>
+                    {% elif phieu.status == "ACCEPTED" %}
+                        <span class="badge badge--DA_DUYET"><i class="bi bi-check-circle"></i> Đã xác nhận</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <h1 class="transfer-paper-title">PHIẾU YÊU CẦU ĐẶT XE</h1>
+        <div class="transfer-paper-date">
+            Ngày {{ ngay_lap|date:"d" }} tháng {{ ngay_lap|date:"m" }} năm {{ ngay_lap|date:"Y" }}
+        </div>
+
+        <div class="transfer-info-grid">
+            <div class="transfer-info-item">
+                <strong>Đơn vị gửi:</strong>
+                <span>CÔNG TY CỔ PHẦN DANA</span>
+            </div>
+            <div class="transfer-info-item">
+                <strong>Người lập phiếu:</strong>
+                <span>{{ request.user.username }}</span>
+            </div>
+            <div class="transfer-info-item" style="grid-column: 1 / -1;">
+                <strong>Đơn vị nhận:</strong>
+                <span>CÔNG TY TNHH FORD VIỆT NAM (Số 316 Đường Hoàng Ngân, P. Việt Hòa, TP. Hải Phòng · MST: 0800006882)</span>
+            </div>
+        </div>
+
+        <!-- BẢNG DANH SÁCH XE ĐẶT HÀNG -->
+        <div class="table-wrap" style="margin-bottom: 24px;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px; text-align: center;">STT</th>
+                        <th>Mã dòng xe</th>
+                        <th>Mô tả phiên bản</th>
+                        <th>Số khung (VIN)</th>
+                        <th>Mã màu</th>
+                        <th style="text-align: center;">Số lượng đặt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in phieu.items.all %}
+                    <tr>
+                        <td style="text-align: center;">{{ forloop.counter }}</td>
+                        <td><span class="badge">{{ item.allocation.vehicle_code }}</span></td>
+                        <td><strong>{{ item.allocation.description }}</strong></td>
+                        <td style="font-family: monospace;">{{ item.allocation.vin }}</td>
+                        <td>{{ item.allocation.color_code }}</td>
+                        <td style="text-align: center; font-weight: 700; color: #0b66c3;">{{ item.quantity }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="empty">
+                            <p>Không có xe nào trong phiếu yêu cầu.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr style="background: #f8fafc; font-weight: 700;">
+                        <td colspan="5" style="text-align: right; text-transform: uppercase; font-size: 12px; color: #475569;">
+                            Tổng số lượng xe yêu cầu đặt:
+                        </td>
+                        <td style="text-align: center; font-size: 16px; color: #0b2a4a;">
+                            {{ tong_so_luong }} xe
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- CHỮ KÝ XÁC NHẬN -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; text-align: center; margin-top: 40px; font-size: 13px;">
+            <div>
+                <strong>Người lập phiếu yêu cầu</strong><br>
+                <small style="color: #64748b;">(Ký, ghi rõ họ tên)</small>
+                <div style="height: 60px;"></div>
+                <div style="font-weight: 600;">{{ request.user.username }}</div>
+            </div>
+            <div>
+                <strong>Đại diện tiếp nhận (Ford Việt Nam)</strong><br>
+                <small style="color: #64748b;">(Ký xác nhận, đóng dấu)</small>
+                <div style="height: 60px;"></div>
+                <div style="color: #94a3b8;">...................................</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CÁC NÚT THAO TÁC XỬ LÝ -->
+    <div class="toolbar no-print" style="justify-content: center; gap: 14px; margin-top: 10px;">
+        {% if phieu.status == "DRAFT" %}
+            <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--light">
+                <i class="bi bi-pencil-square"></i> Quay lại chỉnh sửa
+            </a>
+            <form method="POST" action="{% url 'orders:gui_phieu_yeu_cau' phieu.id %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn--primary">
+                    <i class="bi bi-send-check"></i> Gửi phiếu sang Ford Việt Nam
+                </button>
+            </form>
         {% elif phieu.status == "PENDING" %}
-
-        <form method="POST"
-              action="{% url 'orders:xac_nhan_phieu' phieu.id %}">
-            {% csrf_token %}
-
-            <button type="submit"
-                    class="btn-confirm"
-                    onclick="return confirm('Bạn đã nhận được thông tin xác nhận tiếp nhận từ Ford Việt Nam?');">
-                Cập nhật trạng thái: Đã xác nhận
-            </button>
-        </form>
-
-    {% elif phieu.status == "ACCEPTED" %}
-
-        <span class="status-accepted">
-            ✓ Phiếu đã được xác nhận
-        </span>
-
-    {% endif %}
+            <a href="{% url 'orders:danh_sach_yeu_cau' %}" class="btn btn--light">
+                <i class="bi bi-arrow-left"></i> Quay lại danh sách
+            </a>
+            <form method="POST" action="{% url 'orders:xac_nhan_phieu' phieu.id %}" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn--success"
+                        onclick="return confirm('Bạn đã nhận được thông tin xác nhận tiếp nhận từ Ford Việt Nam?');">
+                    <i class="bi bi-check2-circle"></i> Cập nhật trạng thái: Đã xác nhận
+                </button>
+            </form>
+        {% elif phieu.status == "ACCEPTED" %}
+            <a href="{% url 'orders:danh_sach_yeu_cau' %}" class="btn btn--light">
+                <i class="bi bi-arrow-left"></i> Quay lại danh sách yêu cầu
+            </a>
+        {% endif %}
     </div>
-
 </div>
-
 {% endblock %}

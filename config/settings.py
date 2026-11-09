@@ -156,6 +156,12 @@ DEFAULT_FROM_EMAIL = os.environ.get(
     "EMAIL_HOST_USER",
     "webmaster@localhost"
 )
+TRANSFER_RECEIVER_EMAILS = [
+    e.strip()
+    for e in os.environ.get("TRANSFER_RECEIVER_EMAILS", "").split(",")
+    if e.strip()
+]
+
 AUTH_USER_MODEL = "accounts.User"
 
 LOGIN_URL = "login"

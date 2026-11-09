@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <div class="toolbar">
+    <a class="btn btn--light" href="{% url 'contracts:index' %}">
+      <i class="bi bi-arrow-left"></i> Quay lại danh sách hợp đồng
+    </a>
+    {% if hop_dong.ma_hd %}
+    <a class="btn btn--primary" href="{% url 'contracts:xe_phu_hop' hop_dong.ma_hd %}">
+      <i class="bi bi-lightbulb"></i> Đề xuất xe phù hợp
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2 class="section-title">Thông tin chi tiết hợp đồng</h2>
+    <dl class="detail-list">
+      <dt>Mã hợp đồng</dt>
+      <dd><span style="font-size: 15px; font-weight: 700; color: #0b66c3;">{{ hop_dong.ma_hd }}</span></dd>
+
+      <dt>Khách hàng</dt>
+      <dd>{{ hop_dong.ten_khach_hang }} · <span style="color: #64748b;">{{ hop_dong.sdt_khach_hang }}</span></dd>
+
+      <dt>Chi nhánh thực hiện</dt>
+      <dd>{{ hop_dong.chi_nhanh }}</dd>
+
+      <dt>Dòng xe & Phiên bản</dt>
+      <dd>
+        <strong>{{ hop_dong.dong_xe|default:"—" }}</strong>
+        {% if hop_dong.phien_ban %} · {{ hop_dong.phien_ban }}{% endif %}
+        {% if hop_dong.mau_sac %} · Màu: {{ hop_dong.mau_sac }}{% endif %}
+      </dd>
+
+      <dt>Ngày ký hợp đồng</dt>
+      <dd>{{ hop_dong.ngay_ky|date:"d/m/Y" }}</dd>
+
+      <dt>Số tiền đặt cọc</dt>
+      <dd style="color: #166534; font-weight: 700;">{{ hop_dong.so_tien_coc }}</dd>
+    </dl>
+  </div>
+
+  <div class="card">
+    <h2 class="section-title">Danh sách xe đã liên kết với hợp đồng</h2>
+    {% if hop_dong.xe %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Số khung (VIN)</th>
+              <th>Dòng xe</th>
+              <th>Phiên bản</th>
+              <th>Màu sắc</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for xe in hop_dong.xe %}
+            <tr>
+              <td><strong>{{ xe.xe_id }}</strong></td>
+              <td>{{ xe.xe__ten_xe }}</td>
+              <td>{{ xe.xe__phien_ban|default:"—" }}</td>
+              <td>{{ xe.xe__mau_sac|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty">
+        <i class="bi bi-car-front" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
+        <p style="margin: 0; color: #64748b;">Chưa có số khung (VIN) nào được gán cho hợp đồng này.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

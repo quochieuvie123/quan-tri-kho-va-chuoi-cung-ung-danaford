@@ -1,115 +1,151 @@
 {% extends "ql_dat_xe.html" %}
 
 {% block booking_content %}
-
-<h2>Tìm kiếm xe</h2>
-
-<form method="GET">
-    <label for="keyword">Nhập VIN hoặc mô tả xe:</label>
-
-<input type="text"
-       id="keyword"
-       name="keyword"
-       placeholder="Nhập VIN hoặc mô tả"
-       value="{{ keyword }}">
-    <button type="submit">Tìm kiếm</button>
-</form>
-
-{% if keyword %}
-    <h3>Kết quả tìm kiếm</h3>
-
-    {% if allocations %}
-        <table class="vehicle-table">
-        <thead>
-            <tr>
-                <th>Mã dòng xe</th>
-                <th>Mô tả</th>
-                <th>VIN</th>
-                <th>Mã màu</th>
-                <th>Màu ngoại thất</th>
-                <th>Số máy</th>
-                <th>Số lượng phân bổ</th>
-                <th>Thao tác</th>
-            </tr>
-        </thead>
-
-        <tbody>
-            {% for xe in allocations %}
-                <tr>
-                    <td>{{ xe.vehicle_code }}</td>
-                    <td>{{ xe.description }}</td>
-                    <td>{{ xe.vin }}</td>
-                    <td>{{ xe.color_code }}</td>
-                    <td>{{ xe.exterior_color }}</td>
-                    <td>{{ xe.engine_number }}</td>
-                    <td>{{ xe.quantity }}</td>
-                    <td>
-                        <a href="{% url 'orders:chi_tiet_xe' xe.id %}"
-   class="btn-select">
-    Chọn xe
-</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>Không tìm thấy xe phù hợp.</p>
-    {% endif %}
-{% endif %}
-
-<h3>Danh sách xe đã chọn</h3>
-
-{% for message in messages %}
-    <p>{{ message }}</p>
-{% endfor %}
-
-{% if xe_da_chon %}
-    <div class="table-wrapper">
-        <table class="vehicle-table">
-            <thead>
-                <tr>
-                    <th>Mã dòng xe</th>
-                    <th>Mô tả</th>
-                    <th>VIN</th>
-                    <th>Mã màu</th>
-                    <th>Số lượng yêu cầu</th>
-                    <th>Thao tác</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                {% for item in xe_da_chon %}
-                    <tr>
-                        <td>{{ item.xe.vehicle_code }}</td>
-                        <td>{{ item.xe.description }}</td>
-                        <td>{{ item.xe.vin }}</td>
-                        <td>{{ item.xe.color_code }}</td>
-                        <td>{{ item.quantity }}</td>
-                        <td>
-                            <form method="POST"
-                                  action="{% url 'orders:xoa_xe_da_chon' item.xe.id %}"
-                                  onsubmit="return confirm('Bạn muốn xóa xe này khỏi danh sách?');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn-delete">
-                                    Xóa
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="stack">
+    <!-- KHUNG TÌM KIẾM XE -->
+    <div>
+        <h2 class="section-title">Tra cứu & Đặt xe từ nguồn phân bổ</h2>
+        <form method="GET" class="filters" style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
+            <div class="field" style="flex: 2;">
+                <label for="keyword">Nhập số khung VIN hoặc mô tả dòng xe:</label>
+                <input
+                    type="text"
+                    id="keyword"
+                    name="keyword"
+                    class="input"
+                    placeholder="Ví dụ: Everest, Territory, VIN..."
+                    value="{{ keyword }}"
+                >
+            </div>
+            <div style="display: flex; gap: 8px; align-items: flex-end;">
+                <button type="submit" class="btn btn--primary">
+                    <i class="bi bi-search"></i> Tìm kiếm xe
+                </button>
+                {% if keyword %}
+                <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--light">
+                    <i class="bi bi-x-circle"></i> Xóa tìm kiếm
+                </a>
+                {% endif %}
+            </div>
+        </form>
     </div>
 
-<div class="selected-actions">
-    <a href="{% url 'orders:lap_phieu_yeu_cau' %}"
-   class="btn-create-request">
-    Lập phiếu yêu cầu đặt xe
-    </a>
-</div>
-{% else %}
-    <p>Chưa có xe nào được chọn.</p>
-{% endif %}
+    <!-- KẾT QUẢ TÌM KIẾM -->
+    {% if keyword %}
+    <div>
+        <h3 style="font-size: 15px; font-weight: 700; color: #0b2a4a; margin: 0 0 12px;">
+            Kết quả tra cứu phân bổ theo từ khóa "{{ keyword }}"
+        </h3>
+        {% if allocations %}
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Mã xe</th>
+                            <th>Mô tả phiên bản</th>
+                            <th>Số khung (VIN)</th>
+                            <th>Mã màu</th>
+                            <th>Màu ngoại thất</th>
+                            <th>Số máy</th>
+                            <th style="text-align: center;">Số lượng PB</th>
+                            <th style="text-align: right;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for xe in allocations %}
+                        <tr>
+                            <td><span class="badge">{{ xe.vehicle_code }}</span></td>
+                            <td><strong>{{ xe.description }}</strong></td>
+                            <td>{{ xe.vin }}</td>
+                            <td>{{ xe.color_code }}</td>
+                            <td>{{ xe.exterior_color }}</td>
+                            <td>{{ xe.engine_number }}</td>
+                            <td style="text-align: center; font-weight: 700; color: #0b66c3;">{{ xe.quantity }}</td>
+                            <td style="text-align: right;">
+                                <a href="{% url 'orders:chi_tiet_xe' xe.id %}" class="btn btn--primary">
+                                    <i class="bi bi-plus-lg"></i> Chọn xe
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="empty" style="padding: 32px 16px;">
+                <i class="bi bi-search" style="font-size: 28px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
+                <p style="margin: 0; color: #64748b;">Không tìm thấy xe phù hợp trong nguồn phân bổ tháng hiện tại.</p>
+            </div>
+        {% endif %}
+    </div>
+    {% endif %}
 
+    <!-- DANH SÁCH XE ĐÃ CHỌN ĐỂ ĐẶT -->
+    <div style="border-top: 2px dashed #e2e8f0; padding-top: 20px; margin-top: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <h3 style="font-size: 16px; font-weight: 700; color: #0b2a4a; margin: 0;">
+                Danh sách xe đã chọn đặt hàng ({% if xe_da_chon %}{{ xe_da_chon|length }}{% else %}0{% endif %})
+            </h3>
+            {% if xe_da_chon %}
+            <a href="{% url 'orders:lap_phieu_yeu_cau' %}" class="btn btn--primary">
+                <i class="bi bi-file-earmark-plus"></i> Tiến hành lập phiếu yêu cầu đặt xe
+            </a>
+            {% endif %}
+        </div>
+
+        {% if xe_da_chon %}
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px; text-align: center;">STT</th>
+                            <th>Mã xe</th>
+                            <th>Mô tả phiên bản</th>
+                            <th>Số khung (VIN)</th>
+                            <th>Mã màu</th>
+                            <th style="text-align: center;">Số lượng yêu cầu</th>
+                            <th style="text-align: right;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in xe_da_chon %}
+                        <tr>
+                            <td style="text-align: center;">{{ forloop.counter }}</td>
+                            <td><span class="badge">{{ item.xe.vehicle_code }}</span></td>
+                            <td><strong>{{ item.xe.description }}</strong></td>
+                            <td>{{ item.xe.vin }}</td>
+                            <td>{{ item.xe.color_code }}</td>
+                            <td style="text-align: center; font-weight: 700; color: #0b66c3; font-size: 15px;">
+                                {{ item.quantity }}
+                            </td>
+                            <td style="text-align: right;">
+                                <form method="POST"
+                                      action="{% url 'orders:xoa_xe_da_chon' item.xe.id %}"
+                                      onsubmit="return confirm('Bạn muốn xóa xe này khỏi danh sách?');"
+                                      style="margin: 0; display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn--danger">
+                                        <i class="bi bi-trash"></i> Xóa
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                <a href="{% url 'orders:lap_phieu_yeu_cau' %}" class="btn btn--primary">
+                    <i class="bi bi-send-check"></i> Lập phiếu yêu cầu đặt xe
+                </a>
+            </div>
+        {% else %}
+            <div class="empty" style="padding: 36px 16px;">
+                <i class="bi bi-cart-x" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
+                <p style="margin: 0; color: #64748b;">Chưa có xe nào được chọn. Hãy tìm kiếm và bấm "Chọn xe" ở trên.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <div class="page-header">
+    <div>
+      <h1 class="page-header__title">Lịch sử giao dịch nhập kho</h1>
+      <p class="page-header__subtitle">Theo dõi lịch sử ghi nhận tăng tồn kho thực tế đối với phiếu nhập</p>
+    </div>
+    <div>
+      <a class="btn btn--light" href="{% url 'warehouse:receipt_detail' pk %}">
+        <i class="bi bi-arrow-left"></i> Quay lại chi tiết phiếu nhập
+      </a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Số khung (VIN)</th>
+            <th>Kho tiếp nhận</th>
+            <th>Người thực hiện</th>
+            <th>Thời điểm hoàn tất giao dịch</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+          <tr>
+            <td><strong>{{ row.xe_id }}</strong></td>
+            <td><span class="badge">{{ row.kho.chi_nhanh.ten_cn }}</span></td>
+            <td>{{ row.nguoi_thuc_hien }}</td>
+            <td>{{ row.thoi_gian|date:'d/m/Y H:i' }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="empty">
+              <i class="bi bi-clock-history" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
+              <p style="margin: 0; color: #64748b;">Chưa có giao dịch nhập kho hoàn tất. (Phiếu Nháp / Chờ duyệt chưa làm tăng tồn kho thực tế).</p>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

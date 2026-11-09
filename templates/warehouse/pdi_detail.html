@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+  <div class="page-header">
+    <div>
+      <h1 class="page-header__title">Chi tiết biên bản kiểm định PDI ({{ pdi.ma_pdi_hien_thi }})</h1>
+      <p class="page-header__subtitle">Kết quả thẩm định chất lượng kỹ thuật phương tiện trước khi nhập kho chính thức</p>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <a class="btn btn--light" href="{% url 'warehouse:receipt_detail' pdi.phieu_nhap_id %}">
+        <i class="bi bi-arrow-left"></i> Quay lại phiếu nhập
+      </a>
+      {% if la_moi_nhat and thao_tac.cap_nhat_pdi %}
+        <a class="btn btn--light" href="{% url 'warehouse:receipt_detail' pdi.phieu_nhap_id %}#pdi-edit">
+          <i class="bi bi-pencil-square"></i> Cập nhật kết quả
+        </a>
+      {% endif %}
+      {% if la_moi_nhat and thao_tac.duyet_pdi %}
+        <form method="post" action="{% url 'warehouse:receipt_web_action' pdi.phieu_nhap_id 'duyet-pdi' %}" onsubmit="return confirm('Xác nhận duyệt kết quả PDI Đạt?')" style="margin: 0;">
+          {% csrf_token %}
+          <button class="btn btn--primary">
+            <i class="bi bi-shield-check"></i> Xác nhận duyệt PDI
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if pdi.ket_qua == 'KHONG_DAT' %}
+    <div class="alert" style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 14px 18px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+      <i class="bi bi-x-circle-fill" style="font-size: 20px;"></i>
+      <div>
+        <strong>Cảnh báo PDI không đạt yêu cầu:</strong> Phiếu nhập chỉ được lưu ở trạng thái Nháp. Cần chuyển bộ phận kỹ thuật / bảo hành xử lý sự cố và tái kiểm định trước khi tiếp tục.
+      </div>
+    </div>
+  {% endif %}
+
+  <div class="card">
+    <h2 class="section-title">Thông tin tổng quát biên bản</h2>
+    <dl class="detail-list">
+      <dt>Mã biên bản PDI</dt>
+      <dd><span style="font-size: 15px; font-weight: 700; color: #0b66c3;">{{ pdi.ma_pdi_hien_thi }}</span></dd>
+
+      <dt>Số khung (VIN)</dt>
+      <dd><strong>{{ pdi.vin }}</strong></dd>
+
+      <dt>Kết quả kiểm định</dt>
+      <dd>
+        <span class="badge badge--{{ pdi.ket_qua }}">{{ pdi.ket_qua_hien_thi }}</span>
+      </dd>
+
+      <dt>Trạng thái biên bản</dt>
+      <dd><span class="badge">{{ pdi.trang_thai_hien_thi }}</span></dd>
+
+      <dt>Kỹ thuật viên kiểm tra</dt>
+      <dd>{{ pdi.nguoi_kiem_tra }}</dd>
+
+      <dt>Người phê duyệt</dt>
+      <dd>{{ pdi.nguoi_duyet|default:'Chưa duyệt' }}</dd>
+
+      <dt>Thời gian phê duyệt</dt>
+      <dd>{{ pdi.thoi_gian_duyet|date:'d/m/Y H:i'|default:'—' }}</dd>
+    </dl>
+    {% if pdi.tinh_trang %}
+      <div style="margin-top: 18px; background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <span style="font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase;">Tình trạng tổng thể:</span>
+        <p style="margin: 4px 0 0; font-size: 13px; color: #1e293b;">{{ pdi.tinh_trang }}</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2 class="section-title">Chi tiết các hạng mục kiểm tra</h2>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Hạng mục kiểm tra</th>
+            <th>Tình trạng ghi nhận thực tế</th>
+            <th style="text-align: center;">Đánh giá</th>
+            <th>Ghi chú</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in pdi.hang_muc %}
+          <tr>
+            <td><strong>{{ item.hang_muc }}</strong></td>
+            <td>{{ item.tinh_trang }}</td>
+            <td style="text-align: center;">
+              {% if item.ket_qua == 'DAT' %}
+                <span class="badge badge--DA_DUYET"><i class="bi bi-check-circle"></i> Đạt</span>
+              {% else %}
+                <span class="badge badge--KHONG_DAT"><i class="bi bi-x-circle"></i> Không đạt</span>
+              {% endif %}
+            </td>
+            <td>{{ item.ghi_chu|default:'—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if pdi.ghi_chu %}
+      <div style="margin-top: 18px; background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <span style="font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase;">Ý kiến kết luận / Ghi chú thêm:</span>
+        <p style="margin: 4px 0 0; font-size: 13px; color: #1e293b;">{{ pdi.ghi_chu }}</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
