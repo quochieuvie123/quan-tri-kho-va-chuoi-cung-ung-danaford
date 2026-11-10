@@ -96,63 +96,115 @@ ROLES = {
         "can_monitor_subordinates": True,
         "can_manage_events": True,
         "can_manage_notifications": True,
+        "can_manage_allocations": True,
+        "can_manage_transfers": True,
         "is_read_only": False,
         "allowed_urls": ["*"],  # Toàn bộ module
     },
-    "BA": {
-        "code": "BA",
-        "title": "Chuyên viên BA (Phân tích nghiệp vụ)",
-        "department": "Phòng Kế Hoạch & Phân Tích Dữ Liệu",
-        "badge_color": "info",
-        "can_monitor_subordinates": True,
-        "can_manage_events": True,
-        "can_manage_notifications": True,
-        "is_read_only": True,  # Không được can thiệp sửa dữ liệu tác nghiệp
-        "allowed_urls": ["*"],  # Toàn bộ module (chế độ xem & phân tích)
-    },
-    "KIEM_TRA_TON_KHO": {
-        "code": "KIEM_TRA_TON_KHO",
-        "title": "Kiểm tra tồn kho & Quản lý kho",
-        "department": "Bộ Phận Quản Lý Kho & Lưu Chuyển",
-        "badge_color": "warning",
-        "can_monitor_subordinates": False,
-        "can_manage_events": False,
-        "can_manage_notifications": False,
-        "is_read_only": False,
-        "allowed_urls": [
-            "warehouse:ton_kho",
-            "warehouse:xuat",
-            "warehouse:nhap",
-            "transfers:index",
-            "alerts:index",
-        ],
-    },
-    "DIEU_PHOI_SU_CO_DU_BAO": {
-        "code": "DIEU_PHOI_SU_CO_DU_BAO",
-        "title": "Điều phối Sự cố & Dự báo nhu cầu",
-        "department": "Phòng Điều Vận & Kế Hoạch Cung Ứng",
+    "SALE": {
+        "code": "SALE",
+        "title": "Nhân viên Kinh doanh (Sale Chi Nhánh)",
+        "department": "Phòng Kinh Doanh & Bán Hàng Chi Nhánh",
         "badge_color": "primary",
         "can_monitor_subordinates": False,
         "can_manage_events": False,
         "can_manage_notifications": False,
+        "can_manage_allocations": False,
+        "can_manage_transfers": False,
         "is_read_only": False,
         "allowed_urls": [
-            "incidents:index",
-            "analytics:index",
+            "orders:index",
+            "contracts:index",
+            "warehouse:nhap",
+            "warehouse:xuat",
+            "warehouse:ton_kho",
             "alerts:index",
+            "dashboard:index",
+            "analytics:index",
+            "incidents:index",
         ],
     },
-    "NHAN_VIEN_CHUNG": {
-        "code": "NHAN_VIEN_CHUNG",
-        "title": "Nhân viên tác nghiệp",
-        "department": "Chi Nhánh Dana Ford",
-        "badge_color": "secondary",
+    # Giữ lại các alias cũ để tương thích ngược tuyệt đối
+    "BA": {
+        "code": "ADMIN",
+        "title": "Quản trị viên (Admin)",
+        "department": "Ban Điều Hành & Quản Trị Hệ Thống",
+        "badge_color": "danger",
+        "can_monitor_subordinates": True,
+        "can_manage_events": True,
+        "can_manage_notifications": True,
+        "can_manage_allocations": True,
+        "can_manage_transfers": True,
+        "is_read_only": False,
+        "allowed_urls": ["*"],
+    },
+    "KIEM_TRA_TON_KHO": {
+        "code": "SALE",
+        "title": "Nhân viên Kinh doanh (Sale Chi Nhánh)",
+        "department": "Phòng Kinh Doanh & Bán Hàng Chi Nhánh",
+        "badge_color": "primary",
         "can_monitor_subordinates": False,
         "can_manage_events": False,
         "can_manage_notifications": False,
+        "can_manage_allocations": False,
+        "can_manage_transfers": False,
         "is_read_only": False,
         "allowed_urls": [
+            "orders:index",
+            "contracts:index",
+            "warehouse:nhap",
+            "warehouse:xuat",
+            "warehouse:ton_kho",
             "alerts:index",
+            "dashboard:index",
+            "analytics:index",
+            "incidents:index",
+        ],
+    },
+    "DIEU_PHOI_SU_CO_DU_BAO": {
+        "code": "SALE",
+        "title": "Nhân viên Kinh doanh (Sale Chi Nhánh)",
+        "department": "Phòng Kinh Doanh & Bán Hàng Chi Nhánh",
+        "badge_color": "primary",
+        "can_monitor_subordinates": False,
+        "can_manage_events": False,
+        "can_manage_notifications": False,
+        "can_manage_allocations": False,
+        "can_manage_transfers": False,
+        "is_read_only": False,
+        "allowed_urls": [
+            "orders:index",
+            "contracts:index",
+            "warehouse:nhap",
+            "warehouse:xuat",
+            "warehouse:ton_kho",
+            "alerts:index",
+            "dashboard:index",
+            "analytics:index",
+            "incidents:index",
+        ],
+    },
+    "NHAN_VIEN_CHUNG": {
+        "code": "SALE",
+        "title": "Nhân viên Kinh doanh (Sale Chi Nhánh)",
+        "department": "Phòng Kinh Doanh & Bán Hàng Chi Nhánh",
+        "badge_color": "primary",
+        "can_monitor_subordinates": False,
+        "can_manage_events": False,
+        "can_manage_notifications": False,
+        "can_manage_allocations": False,
+        "can_manage_transfers": False,
+        "is_read_only": False,
+        "allowed_urls": [
+            "orders:index",
+            "contracts:index",
+            "warehouse:nhap",
+            "warehouse:xuat",
+            "warehouse:ton_kho",
+            "alerts:index",
+            "dashboard:index",
+            "analytics:index",
+            "incidents:index",
         ],
     },
 }
@@ -162,13 +214,13 @@ USER_ROLE_MAPPING = {
     "phanquochieu": "ADMIN",
     "hieu": "ADMIN",
     "admin": "ADMIN",
-    "mydung": "BA",
-    "dung": "BA",
-    "tu": "KIEM_TRA_TON_KHO",
-    "ygiang": "KIEM_TRA_TON_KHO",
-    "lgiang": "DIEU_PHOI_SU_CO_DU_BAO",
-    "quanly": "KIEM_TRA_TON_KHO",
-    "nhanvien": "NHAN_VIEN_CHUNG",
+    "mydung": "SALE",
+    "dung": "SALE",
+    "tu": "SALE",
+    "ygiang": "SALE",
+    "lgiang": "SALE",
+    "quanly": "ADMIN",
+    "nhanvien": "SALE",
 }
 
 
@@ -186,12 +238,12 @@ def get_user_role_info(user):
         if not role_code:
             # Fallback từ Django Groups nếu có
             group_name = user.groups.values_list("name", flat=True).first()
-            if group_name == "Quản lý":
-                role_code = "KIEM_TRA_TON_KHO"
+            if group_name in ["Quản lý", "Admin", "Quản trị viên"]:
+                role_code = "ADMIN"
             else:
-                role_code = "NHAN_VIEN_CHUNG"
+                role_code = "SALE"
 
-    role_info = dict(ROLES.get(role_code, ROLES["NHAN_VIEN_CHUNG"]))
+    role_info = dict(ROLES.get(role_code, ROLES["SALE"]))
     return role_info
 
 

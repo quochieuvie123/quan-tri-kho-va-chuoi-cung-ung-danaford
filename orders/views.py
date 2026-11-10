@@ -122,7 +122,22 @@ def chuyen_so_luong(value, default=1):
         return default
 
 @login_required
+def order_index(request):
+    """Điều hướng Quản lý đặt xe: Admin vào Phân bổ, Sale vào Đặt xe"""
+    from core.roles import get_user_role_info
+    role_info = get_user_role_info(request.user)
+    if request.user.is_superuser or (role_info and role_info.get('code') == 'ADMIN'):
+        return redirect('orders:allocation_list')
+    return redirect('orders:vehicle_orders')
+
+
+@login_required
 def allocation_list(request):
+    from core.roles import get_user_role_info
+    role_info = get_user_role_info(request.user)
+    if not (request.user.is_superuser or (role_info and role_info.get('code') == 'ADMIN')):
+        messages.warning(request, 'Chức năng Tải phân bổ xe chỉ dành cho Quản trị viên (Admin). Đã chuyển bạn về trang Đặt xe.')
+        return redirect('orders:vehicle_orders')
     today = timezone.localdate()
 
     if request.method == "POST":
