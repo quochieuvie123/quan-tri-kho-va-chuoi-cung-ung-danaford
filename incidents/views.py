@@ -190,11 +190,12 @@ def _soan_thu(bb, ghi_chu, han):
 
 
 def _ket_noi_mail():
-    """Dùng cấu hình MAILERS["default"] của dự án (giống module đặt xe).
+    """Dùng cấu hình MAILERS['default'] của dự án (giống module đặt xe).
     Nếu là SMTP nhưng chưa có tài khoản (chưa đặt biến môi trường EMAIL_HOST_USER) -> in email ra cửa sổ lệnh."""
     cau_hinh = getattr(settings, "MAILERS", {}).get("default", {})
     if cau_hinh.get("BACKEND", "").endswith("smtp.EmailBackend") and not cau_hinh.get("OPTIONS", {}).get("username"):
-        return get_connection("django.core.mail.backends.console.EmailBackend"), True
+        from django.core.mail.backends.console import EmailBackend
+        return EmailBackend(), True
     return None, False
 
 
@@ -296,3 +297,56 @@ def tep_thoa_thuan(request, ma_pdi):
     if hs is None or not hs.bien_ban_thoa_thuan:
         raise Http404
     return FileResponse(hs.bien_ban_thoa_thuan.open("rb"), as_attachment=True)
+
+
+@login_required
+def cap_nhat_anh(request, ma_pdi):
+    """Cập nhật / Thay thế hình ảnh cho sự cố vận chuyển PDI."""
+    if request.method != "POST":
+        return redirect("incidents:chi_tiet", ma_pdi=ma_pdi)
+
+    bb = _lay_bien_ban(request, ma_pdi)
+    if bb is None:
+        return redirect("incidents:index")
+
+    files = request.FILES.getlist("anh")
+    if not files:
+        messages.error(request, "Vui lòng chọn ít nhất một hình ảnh từ máy tính.")
+        return redirect("incidents:chi_tiet", ma_pdi=ma_pdi)
+
+    from incidents.models import PHAM_VI_LOI_ANH, AnhSuCo
+    hop_le = []
+    for f in files:
+        ext = f.name.rsplit(".", 1)[-1].lower() if "." in f.name else ""
+        if ext in PHAM_VI_LOI_ANH:
+            hop_le.append(f)
+
+    if not hop_le:
+        messages.error(request, f"Định dạng ảnh không hợp lệ. Chỉ chấp nhận các định dạng: {', '.join(PHAM_VI_LOI_ANH)}.")
+        return redirect("incidents:chi_tiet", ma_pdi=ma_pdi)
+
+    che_do = request.POST.get("che_do", "thay_the")
+
+    with transaction.atomic():
+        if che_do == "thay_the":
+            for old in bb.anh_su_co.all():
+                try:
+                    old.tep.delete(save=False)
+                except Exception:
+                    pass
+                old.delete()
+
+        created_imgs = []
+        for f in hop_le:
+            img = AnhSuCo.objects.create(bien_ban=bb, tep=f)
+            created_imgs.append(img)
+
+        if created_imgs:
+            bb.hinh_anh_url = request.build_absolute_uri(reverse("incidents:tep_anh", args=[created_imgs[0].pk]))
+            bb.save(update_fields=["hinh_anh_url"])
+
+        hanh_dong = "Thay thế hình ảnh sự cố" if che_do == "thay_the" else "Bổ sung hình ảnh sự cố"
+        _ghi_lich_su(request, bb, hanh_dong, f"Đã tải lên {len(created_imgs)} ảnh hiện trường.")
+
+    messages.success(request, f"Đã lưu thành công {len(created_imgs)} hình ảnh cho sự cố {bb.ma_pdi}.")
+    return redirect("incidents:chi_tiet", ma_pdi=ma_pdi)

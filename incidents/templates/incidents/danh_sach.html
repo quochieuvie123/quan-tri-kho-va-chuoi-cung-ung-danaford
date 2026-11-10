@@ -29,13 +29,13 @@
     <tbody>
     {% for bb in trang %}
       <tr>
-        <td><a href="{% url 'incidents:chi_tiet' bb.ma_pdi %}"><strong>{{ bb.ma_pdi }}</strong></a></td>
+        <td><strong style="color: #1f4e79;">{{ bb.ma_pdi }}</strong></td>
         <td>{{ bb.xe_id }}</td>
         <td>{{ bb.loai_su_co }}</td>
         <td>{{ bb.hoa_don_nhap.don_vi_van_chuyen.ten_dvvc }}</td>
         <td>{{ bb.ngay_ghi_nhan|date:"d/m/Y H:i" }}</td>
         <td><span class="badge {% if bb.nhan_tt == 'Đã đóng' %}badge--done{% else %}badge--open{% endif %}">{{ bb.nhan_tt }}</span></td>
-        <td><a href="{% url 'incidents:chi_tiet' bb.ma_pdi %}">Xem chi tiết</a></td>
+        <td><a class="btn btn--sm" href="{% url 'incidents:chi_tiet' bb.ma_pdi %}" style="padding: 4px 10px; font-size: 13px;"><i class="bi bi-eye"></i> Xem chi tiết</a></td>
       </tr>
     {% empty %}
       <tr><td colspan="7" class="none">
