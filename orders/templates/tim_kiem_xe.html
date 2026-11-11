@@ -60,7 +60,7 @@
                             <td>{{ xe.color_code }}</td>
                             <td>{{ xe.exterior_color }}</td>
                             <td>{{ xe.engine_number }}</td>
-                            <td style="text-align: center; font-weight: 700; color: #0b66c3;">{{ xe.quantity }}</td>
+                            <td style="text-align: center; font-weight: 700; color: #0067c5;">{{ xe.quantity }}</td>
                             <td style="text-align: right;">
                                 <a href="{% url 'orders:chi_tiet_xe' xe.id %}" class="btn btn--primary">
                                     <i class="bi bi-plus-lg"></i> Chọn xe
@@ -115,7 +115,7 @@
                             <td><strong>{{ item.xe.description }}</strong></td>
                             <td>{{ item.xe.vin }}</td>
                             <td>{{ item.xe.color_code }}</td>
-                            <td style="text-align: center; font-weight: 700; color: #0b66c3; font-size: 15px;">
+                            <td style="text-align: center; font-weight: 700; color: #0067c5; font-size: 15px;">
                                 {{ item.quantity }}
                             </td>
                             <td style="text-align: right;">

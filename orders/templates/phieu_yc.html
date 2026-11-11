@@ -59,7 +59,7 @@
             </div>
             <div style="text-align: right;">
                 <div style="font-size: 13px; font-weight: 600; color: #475569;">
-                    Số phiếu: <span style="color: #0b66c3; font-family: monospace; font-size: 15px; font-weight: 700;">PYC{{ phieu.id|stringformat:"05d" }}</span>
+                    Số phiếu: <span style="color: #0067c5; font-family: monospace; font-size: 15px; font-weight: 700;">PYC{{ phieu.id|stringformat:"05d" }}</span>
                 </div>
                 <div style="margin-top: 6px;">
                     {% if phieu.status == "DRAFT" %}
@@ -114,7 +114,7 @@
                         <td><strong>{{ item.allocation.description }}</strong></td>
                         <td style="font-family: monospace;">{{ item.allocation.vin }}</td>
                         <td>{{ item.allocation.color_code }}</td>
-                        <td style="text-align: center; font-weight: 700; color: #0b66c3;">{{ item.quantity }}</td>
+                        <td style="text-align: center; font-weight: 700; color: #0067c5;">{{ item.quantity }}</td>
                     </tr>
                     {% empty %}
                     <tr>

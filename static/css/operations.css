@@ -1,29 +1,32 @@
 /* ========================================================
    Dana Ford - Operations Stylesheet
-   Dành cho Quản lý Hợp đồng & Quản lý Nhập kho & Lưu chuyển
+   Chuẩn hóa theo Design System Figma (Màu sắc, Typography, Spacing, Radii)
    ======================================================== */
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   flex-wrap: wrap;
   gap: 16px;
 }
 
 .page-header__title {
   margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: #0b2a4a;
+  font-family: "Montserrat", sans-serif;
+  font-size: 28px; /* Figma 02: Tiêu đề trang 28px SemiBold 600 */
+  font-weight: 600;
+  color: #102a43;  /* Figma 01: Tiêu đề #102A43 */
   letter-spacing: -0.3px;
+  line-height: 1.45;
 }
 
 .page-header__subtitle {
   margin: 4px 0 0;
   font-size: 13px;
-  color: #64748b;
+  color: #627d98;  /* Figma 01: Chữ phụ #627D98 */
+  font-weight: 400;
 }
 
 .toolbar {
@@ -35,75 +38,82 @@
   flex-wrap: wrap;
 }
 
+/* Bộ lọc (Figma 04: Bộ lọc 3 cột, viền #DCE6F0, r14, đệm 24px) */
 .filters {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   flex-wrap: wrap;
   align-items: flex-end;
-  background: #f8fafc;
-  padding: 16px;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 14px; /* r14 */
+  border: 1px solid #dce6f0;
   margin-bottom: 20px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px; /* Figma 03a: Nhãn -> giá trị khoảng 7px */
   min-width: 160px;
   flex: 1;
 }
 
 .field label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #475569;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px; /* Figma 02: Nhãn trường Montserrat 12px Medium 500 */
+  font-weight: 500;
+  color: #243b53;  /* Figma 01: Chữ chính #243B53 */
+  letter-spacing: 0.2px;
 }
 
+/* Ô nhập liệu & Dropdown (Figma 03b & 05a: cao 37-44px, viền #DCE6F0, r8) */
 .input, .select, .textarea {
   width: 100%;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  padding: 9px 12px;
+  height: 40px;
+  border: 1px solid #dce6f0;
+  border-radius: 8px; /* r8 */
+  padding: 0 12px;
   background: #ffffff;
-  font-family: inherit;
-  font-size: 13px;
-  color: #1e293b;
+  font-family: "Montserrat", sans-serif;
+  font-size: 13px; /* Figma 02: Giá trị trường 13px Regular 400 */
+  color: #243b53;
   transition: all 0.2s ease;
   box-sizing: border-box;
 }
 
-.input:focus, .select:focus, .textarea:focus {
-  outline: none;
-  border-color: #0b66c3;
-  box-shadow: 0 0 0 3px rgba(11, 102, 195, 0.15);
-}
-
 .textarea {
+  height: auto;
   min-height: 90px;
+  padding: 10px 12px;
   resize: vertical;
 }
 
-/* Buttons */
+.input:focus, .select:focus, .textarea:focus {
+  outline: none;
+  border-color: #0067c5;
+  box-shadow: 0 0 0 3px rgba(0, 103, 197, 0.15);
+}
+
+/* Nút bấm (Figma 05a: Nút chính #0067C5, r8, Montserrat 13px SemiBold 600) */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  height: 40px;
   border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 9px 16px;
-  font-family: inherit;
+  border-radius: 8px; /* r8 */
+  padding: 0 16px;
+  font-family: "Montserrat", sans-serif;
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
-  line-height: 1.4;
+  line-height: 1.45;
+  box-sizing: border-box;
 }
 
 .btn:disabled {
@@ -113,103 +123,104 @@
 }
 
 .btn--primary {
-  background: #0b66c3;
+  background: #0067c5; /* Figma 01: Tương tác chính #0067C5 */
   color: #ffffff;
-  border-color: #0b66c3;
-  box-shadow: 0 1px 2px rgba(11, 102, 195, 0.2);
+  border-color: #0067c5;
 }
 
 .btn--primary:hover {
-  background: #0955a3;
-  border-color: #0955a3;
+  background: #00539f;
+  border-color: #00539f;
   color: #ffffff;
 }
 
 .btn--light {
   background: #ffffff;
-  color: #334155;
-  border: 1px solid #cbd5e1;
+  color: #243b53;
+  border: 1px solid #dce6f0;
 }
 
 .btn--light:hover {
-  background: #f1f5f9;
-  color: #0f172a;
-  border-color: #94a3b8;
+  background: #f4f7fb;
+  color: #0067c5;
+  border-color: #0067c5;
 }
 
 .btn--success {
-  background: #16a34a;
+  background: #0a7a45;
   color: #ffffff;
-  border-color: #16a34a;
+  border-color: #0a7a45;
 }
 
 .btn--success:hover {
-  background: #15803d;
+  background: #086337;
   color: #ffffff;
 }
 
 .btn--warning {
-  background: #d97706;
+  background: #b76e00;
   color: #ffffff;
-  border-color: #d97706;
+  border-color: #b76e00;
 }
 
 .btn--warning:hover {
-  background: #b45309;
+  background: #965b00;
   color: #ffffff;
 }
 
 .btn--danger {
-  background: #dc2626;
+  background: #b82e3a;
   color: #ffffff;
-  border-color: #dc2626;
+  border-color: #b82e3a;
 }
 
 .btn--danger:hover {
-  background: #b91c1c;
+  background: #99232e;
   color: #ffffff;
 }
 
-/* Tables */
+/* Bảng dữ liệu (Figma 04 & 05b: thead #F4F7FB cao 37px; tbody #FFFFFF cao 47px; viền #DCE6F0, r14) */
 .table-wrap {
   overflow-x: auto;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  margin-top: 12px;
+  border-radius: 14px; /* r14 */
+  border: 1px solid #dce6f0;
+  background: #ffffff;
+  margin-top: 16px;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px; /* Figma 02: Giá trị bảng 12px Regular 400 */
   text-align: left;
 }
 
 .data-table th {
-  padding: 12px 16px;
-  background: #f8fafc;
-  color: #475569;
+  padding: 10px 16px;
+  background: #f4f7fb; /* Figma 04: Đầu bảng #F4F7FB, cao 37px */
+  color: #627d98;      /* Figma 01: Chữ phụ #627D98 */
+  font-family: "Montserrat", sans-serif;
   font-weight: 600;
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  border-bottom: 1px solid #e2e8f0;
+  letter-spacing: 0.2px;
+  border-bottom: 1px solid #dce6f0;
   white-space: nowrap;
 }
 
 .data-table td {
-  padding: 13px 16px;
-  border-bottom: 1px solid #e2e8f0;
-  color: #1e293b;
+  padding: 12px 16px;
+  border-bottom: 1px solid #dce6f0;
+  color: #243b53;      /* Figma 01: Chữ chính #243B53 */
   vertical-align: middle;
+  background: #ffffff;
 }
 
 .data-table tbody tr {
+  height: 47px; /* Figma 04: Dòng dữ liệu cao 47px */
   transition: background 0.15s ease;
 }
 
-.data-table tbody tr:hover {
+.data-table tbody tr:hover td {
   background: #f8fafc;
 }
 
@@ -217,41 +228,41 @@
   border-bottom: 0;
 }
 
-/* Badges */
+/* Nhãn trạng thái (Badges - Figma 01 & 05c) */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 10px;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: #f1f5f9;
-  color: #475569;
-  font-size: 11px;
-  font-weight: 600;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px; /* Figma 02: Vai trò phụ 11px Medium 500 */
+  font-weight: 500;
   letter-spacing: 0.2px;
+  white-space: nowrap;
 }
 
-.badge--NHAP, .badge--draft, .badge--bg-secondary {
-  color: #92400e;
-  background: #fef3c7;
-  border: 1px solid #fde68a;
+.badge--NHAP, .badge--draft, .badge--bg-secondary, .badge--open, .badge--wait {
+  color: #b76e00;
+  background: #fff4d8;
+  border: 1px solid #fed7aa;
 }
 
 .badge--CHO_DUYET, .badge--sent, .badge--bg-primary {
-  color: #1d4ed8;
-  background: #dbeafe;
-  border: 1px solid #bfdbfe;
+  color: #0067c5;
+  background: #e0f2fe;
+  border: 1px solid #bae6fd;
 }
 
-.badge--DA_DUYET, .badge--DAT, .badge--confirmed, .badge--bg-success {
-  color: #166534;
-  background: #dcfce7;
+.badge--DA_DUYET, .badge--DAT, .badge--confirmed, .badge--bg-success, .badge--done, .badge--ok {
+  color: #12805c;
+  background: #e8f7f0;
   border: 1px solid #bbf7d0;
 }
 
-.badge--KHONG_DAT, .badge--cancelled {
-  color: #991b1b;
-  background: #fee2e2;
+.badge--KHONG_DAT, .badge--cancelled, .badge--bad {
+  color: #b82e3a;
+  background: #ffffff;
   border: 1px solid #fecaca;
 }
 
@@ -271,54 +282,56 @@
 }
 
 .detail-list dt {
-  color: #64748b;
+  color: #627d98;
   font-weight: 500;
 }
 
 .detail-list dd {
   margin: 0;
   font-weight: 600;
-  color: #0f172a;
+  color: #102a43;
 }
 
 .section-title {
   margin: 0 0 18px;
-  font-size: 16px;
-  font-weight: 700;
-  color: #0b2a4a;
-  border-left: 4px solid #0b66c3;
+  font-family: "Montserrat", sans-serif;
+  font-size: 18px; /* Figma 02: Tiêu đề khối 18px SemiBold */
+  font-weight: 600;
+  color: #102a43;
+  border-left: 4px solid #0067c5;
   padding-left: 10px;
-  line-height: 1.2;
+  line-height: 1.35;
 }
 
 .stack {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 20px; /* Figma 04: Khoảng cách giữa các khối: 20px */
 }
 
 .pdi-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  background: #f8fafc;
-  padding: 16px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  background: #f4f7fb;
+  padding: 20px;
+  border-radius: 14px;
+  border: 1px solid #dce6f0;
 }
 
-/* Dialog */
-dialog#criteria-dialog {
-  border: none;
-  border-radius: 14px;
+/* Dialog / Modal (Figma 03b: r16) */
+dialog#criteria-dialog, .dlg {
+  border: 1px solid #dce6f0;
+  border-radius: 16px; /* r16 chuẩn Figma 03b */
   padding: 28px;
-  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
-  max-width: 500px;
+  background: #ffffff;
+  box-shadow: 0 20px 40px rgba(16, 42, 67, 0.15);
+  max-width: 560px; /* Figma 05c: Hộp thoại xác nhận rộng 560px */
   width: 90%;
 }
 
-dialog#criteria-dialog::backdrop {
-  background: rgba(15, 23, 42, 0.45);
+dialog#criteria-dialog::backdrop, .dlg::backdrop {
+  background: rgba(16, 42, 67, 0.45);
   backdrop-filter: blur(2px);
 }
 

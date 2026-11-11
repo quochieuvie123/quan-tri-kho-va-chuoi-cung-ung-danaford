@@ -31,7 +31,7 @@
       <h2 class="section-title">Thông tin phiếu nhập kho</h2>
       <dl class="detail-list">
         <dt>Mã phiếu nhập</dt>
-        <dd><span style="font-size: 15px; font-weight: 700; color: #0b66c3;">{{ phieu_nhap.ma_phieu }}</span></dd>
+        <dd><span style="font-size: 15px; font-weight: 700; color: #0067c5;">{{ phieu_nhap.ma_phieu }}</span></dd>
 
         <dt>Số khung (VIN)</dt>
         <dd><strong>{{ phieu_nhap.vin }}</strong></dd>
@@ -115,7 +115,7 @@
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; font-size: 13px;">
       <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
         <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Mã hóa đơn nhập</span>
-        <strong style="color: #0b66c3;">{{ phieu_nhap.ma_hdn }}</strong>
+        <strong style="color: #0067c5;">{{ phieu_nhap.ma_hdn }}</strong>
       </div>
       <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
         <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Số hóa đơn</span>
@@ -147,7 +147,7 @@
         <!-- Ngoại thất -->
         <div style="background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #cbd5e1;">
           <div style="font-weight: 700; color: #0b2a4a; margin-bottom: 10px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
-            <i class="bi bi-car-front-fill" style="color: #0b66c3;"></i> 1. Kiểm tra Ngoại thất
+            <i class="bi bi-car-front-fill" style="color: #0067c5;"></i> 1. Kiểm tra Ngoại thất
           </div>
           <div class="field" style="margin-bottom: 10px;">
             <label>Tình trạng thực tế</label>
@@ -169,7 +169,7 @@
         <!-- Nội thất -->
         <div style="background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #cbd5e1;">
           <div style="font-weight: 700; color: #0b2a4a; margin-bottom: 10px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
-            <i class="bi bi-speedometer2" style="color: #0b66c3;"></i> 2. Kiểm tra Nội thất & Khoang lái
+            <i class="bi bi-speedometer2" style="color: #0067c5;"></i> 2. Kiểm tra Nội thất & Khoang lái
           </div>
           <div class="field" style="margin-bottom: 10px;">
             <label>Tình trạng thực tế</label>
@@ -191,7 +191,7 @@
         <!-- Vận hành -->
         <div style="background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #cbd5e1; grid-column: 1 / -1;">
           <div style="font-weight: 700; color: #0b2a4a; margin-bottom: 10px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
-            <i class="bi bi-gear-wide-connected" style="color: #0b66c3;"></i> 3. Động cơ & Khả năng vận hành cơ bản
+            <i class="bi bi-gear-wide-connected" style="color: #0067c5;"></i> 3. Động cơ & Khả năng vận hành cơ bản
           </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <div class="field">
@@ -246,7 +246,7 @@
             {% for item in pdi %}
             <tr>
               <td>
-                <strong style="color: #0b66c3;">{{ item.ma_pdi_hien_thi }}</strong>
+                <strong style="color: #0067c5;">{{ item.ma_pdi_hien_thi }}</strong>
               </td>
               <td style="text-align: center;">
                 <span class="badge badge--{{ item.ket_qua }}">{{ item.ket_qua_hien_thi }}</span>
@@ -291,7 +291,7 @@ document.querySelectorAll('table tbody tr').forEach(row => {
     const a = document.createElement('a');
     a.textContent = cell.textContent.trim();
     a.href = '/kho/pdi/' + Number(cell.textContent.trim().replace('PDI-', '')) + '/';
-    a.style.color = '#0b66c3';
+    a.style.color = '#0067c5';
     a.style.textDecoration = 'none';
     a.style.fontWeight = '700';
     cell.replaceChildren(a);
