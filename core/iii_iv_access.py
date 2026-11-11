@@ -26,9 +26,9 @@ def has_role(user, role):
             code = role_info.get("code")
             if code in ["ADMIN", "BA"]:
                 return True
-            if role == WAREHOUSE and code in ["KIEM_TRA_TON_KHO", "DIEU_PHOI_SU_CO_DU_BAO"]:
+            if role == WAREHOUSE and code in ["KIEM_TRA_TON_KHO"]:
                 return True
-            if role == SALE_ADMIN and code in ["KIEM_TRA_TON_KHO", "NHAN_VIEN_CHUNG"]:
+            if role == SALE_ADMIN and code in ["SALE_ADMIN"]:
                 return True
     except Exception:
         pass
@@ -37,8 +37,7 @@ def has_role(user, role):
     if user.groups.filter(name__in=mapping.get(role, ())).exists():
         return True
 
-    # Fallback cho tài khoản nhân viên tác nghiệp nói chung
-    return True
+    return False
 
 
 def require_role(user, *roles):
@@ -56,7 +55,7 @@ def can_write_warehouse(user, kho):
     try:
         from core.roles import get_user_role_info
         role_info = get_user_role_info(user)
-        if role_info and role_info.get("code") in ["ADMIN", "KIEM_TRA_TON_KHO"]:
+        if role_info and role_info.get("code") in ["ADMIN"]:
             return True
     except Exception:
         pass

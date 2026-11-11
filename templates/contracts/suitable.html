@@ -3,94 +3,82 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/operations.css' %}">
+<link rel="stylesheet" href="{% static 'css/contract-receipt-guidelines.css' %}">
+<style>
+.source-jump { color:#243b53; text-decoration:none; cursor:pointer; transition:background .15s ease, color .15s ease; }
+.source-jump:hover { background:#e3effa; color:#0067c5; }
+.source-section { padding:8px 16px 18px; }
+.source-section[hidden] { display:none; }
+.source-title { display:flex; align-items:center; gap:10px; margin:8px 0 14px; color:#102a43; font-size:16px; }
+.source-empty { margin:0; padding:14px; color:#627d98; background:#f8fafc; border-radius:8px; }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="stack">
+<div class="stack df-workflow">
   <div class="page-header">
     <div>
       <h1 class="page-header__title">Kết quả đề xuất xe khả dụng</h1>
       <p class="page-header__subtitle">Hợp đồng: <strong>{{ ma_hd }}</strong> · Danh sách xe tồn kho thỏa mãn tiêu chí dòng xe, phiên bản và màu sắc</p>
     </div>
     <div style="display: flex; gap: 10px;">
-      <a class="btn btn--light" href="{% url 'contracts:detail' ma_hd %}">
+      {% if co_the_xem_hop_dong %}<a class="btn btn--light" href="{% url 'contracts:detail' ma_hd %}">
         <i class="bi bi-file-earmark-text"></i> Xem chi tiết hợp đồng
-      </a>
+      </a>{% endif %}
       <a class="btn btn--light" href="{% url 'contracts:index' %}">
         <i class="bi bi-arrow-left"></i> Danh sách hợp đồng
       </a>
     </div>
   </div>
 
-  {% if canh_bao_du_lieu %}
-    <div class="alert alert--warning" style="background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 12px 16px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
-      <i class="bi bi-exclamation-triangle-fill" style="font-size: 18px;"></i>
-      <span>{{ canh_bao_du_lieu }}</span>
-    </div>
-  {% endif %}
-
-  {% if canh_bao %}
-    <div class="alert" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 12px 16px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
-      <i class="bi bi-info-circle-fill" style="font-size: 18px;"></i>
-      <span>{{ canh_bao }}</span>
-    </div>
-  {% endif %}
-
   <div class="card">
+    <div style="padding:16px; display:flex; gap:12px; flex-wrap:wrap">
+      <a class="badge source-jump" href="#xe-da-nang">1. Kho Đà Nẵng: {{ xe_da_nang|length }} xe</a>
+      <a class="badge source-jump" href="#xe-chi-nhanh">2. Bình Định / Gia Lai: {{ xe_chi_nhanh|length }} xe</a>
+      <form method="post" action="{% url 'contracts:wait_allocation' ma_hd %}">{% csrf_token %}<button class="btn btn--primary" type="submit">3. Chờ lịch phân bổ tháng sau</button></form>
+    </div>
     {% if message %}
       <div class="empty">
         <i class="bi bi-car-front" style="font-size: 36px; color: #94a3b8; display: block; margin-bottom: 12px;"></i>
         <p style="font-size: 15px; font-weight: 600; color: #334155; margin: 0 0 6px;">{{ message }}</p>
-        <small style="color: #64748b;">Hãy cập nhật đủ dòng xe, phiên bản và màu sắc trong hợp đồng trước khi đề xuất.</small>
-      </div>
-    {% else %}
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Số khung (VIN)</th>
-              <th>Dòng xe</th>
-              <th>Phiên bản</th>
-              <th>Màu sắc</th>
-              <th>Vị trí lưu kho</th>
-              <th style="text-align: center;">Trạng thái</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for xe in xe_phu_hop %}
-            <tr>
-              <td><strong>{{ xe.vin }}</strong></td>
-              <td><strong>{{ xe.xe__ten_xe }}</strong></td>
-              <td>{{ xe.xe__phien_ban }}</td>
-              <td>{{ xe.xe__mau_sac }}</td>
-              <td><span class="badge">{{ xe.vi_tri_kho }}</span></td>
-              <td style="text-align: center;">
-                <span class="badge badge--DA_DUYET">{{ xe.trang_thai_hien_thi }}</span>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
       </div>
     {% endif %}
+      {% for nguon in nhom_xe %}
+      <section id="{{ nguon.id }}" class="source-section" hidden>
+        {% if nguon.xe %}
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Số khung (VIN)</th><th>Dòng xe</th><th>Phiên bản</th><th>Màu sắc</th><th>Vị trí lưu kho</th><th>Chất lượng / gán hợp đồng</th><th>Phương án</th><th style="text-align:center">Trạng thái</th><th>Thao tác</th></tr></thead>
+            <tbody>
+              {% for xe in nguon.xe %}
+              <tr>
+                <td><strong><a href="{{ request.path }}{{ xe.vin }}/">{{ xe.vin }}</a></strong></td><td><strong>{{ xe.xe__ten_xe }}</strong></td><td>{{ xe.xe__phien_ban }}</td><td>{{ xe.xe__mau_sac }}</td>
+                <td><span class="badge">{{ xe.vi_tri_kho }}</span></td><td>{{ xe.chat_luong }}<br>{{ xe.tinh_trang_gan }}</td><td>{{ xe.phuong_an }}</td>
+                <td style="text-align:center"><span class="badge badge--DA_DUYET">{{ xe.trang_thai_hien_thi }}</span></td>
+                <td><form method="post" action="{% url 'contracts:choose_suggested_vehicle' ma_hd xe.vin %}">{% csrf_token %}<button class="btn btn--primary" type="submit">Chốt xe</button></form></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}<p class="source-empty">Không có xe phù hợp.</p>{% endif %}
+      </section>
+      {% endfor %}
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.querySelectorAll('table tbody tr').forEach(row => {
-  const cell = row.cells[0];
-  if (cell) {
-    const vinText = cell.textContent.trim();
-    const a = document.createElement('a');
-    a.textContent = vinText;
-    a.href = window.location.pathname.replace(/\/$/, '') + '/' + encodeURIComponent(vinText) + '/';
-    a.style.color = '#0b66c3';
-    a.style.textDecoration = 'none';
-    a.style.fontWeight = '700';
-    cell.replaceChildren(a);
-  }
+document.querySelectorAll('.source-jump').forEach(link => {
+  link.addEventListener('click', event => {
+    event.preventDefault();
+    document.querySelectorAll('.source-section').forEach(section => {
+      section.hidden = '#' + section.id !== link.getAttribute('href');
+    });
+    document.querySelectorAll('.source-jump').forEach(item => item.setAttribute('aria-current', item === link ? 'true' : 'false'));
+  });
 });
 </script>
 {% endblock %}
+

@@ -3,10 +3,11 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/operations.css' %}">
+<link rel="stylesheet" href="{% static 'css/contract-receipt-guidelines.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="stack">
+<div class="stack df-workflow">
   <!-- Thanh công cụ điều hướng -->
   <div class="toolbar no-print">
     <div style="display: flex; gap: 10px; align-items: center;">
@@ -27,7 +28,11 @@
   <!-- Thông tin phiếu nhập & Thao tác nghiệp vụ -->
   <div class="grid">
     <!-- Card thông tin phiếu -->
-    <div class="card">
+    {% if phieu_nhap.pdi_moi_nhat.ket_qua == 'KHONG_DAT' %}
+  <div class="card"><p>PDI không đạt: lập hồ sơ sự cố, hoàn tất xử lý rồi kiểm tra lại.</p>
+  <a class="btn btn--warning" href="{% url 'incidents:ghi_nhan' %}?xe={{ phieu_nhap.vin|urlencode }}{% if phieu_nhap.ma_hdn %}&amp;hoa_don_nhap={{ phieu_nhap.ma_hdn|urlencode }}{% endif %}">Ghi nhận sự cố vận chuyển</a></div>
+  {% endif %}
+  <div class="card">
       <h2 class="section-title">Thông tin phiếu nhập kho</h2>
       <dl class="detail-list">
         <dt>Mã phiếu nhập</dt>
@@ -68,6 +73,7 @@
             <p style="margin: 0 0 10px; font-size: 13px; color: #92400e;">Kết quả kiểm tra PDI đã hoàn tất, sẵn sàng xem xét phê duyệt chất lượng kỹ thuật.</p>
             <form method="post" action="{% url 'warehouse:receipt_web_action' phieu_nhap.id 'duyet-pdi' %}">
               {% csrf_token %}
+          <input type="hidden" name="pdi_id" value="{{ phieu_nhap.pdi_moi_nhat.id|default_if_none:'' }}">
               <button class="btn btn--warning" style="width: 100%;">
                 <i class="bi bi-shield-check"></i> Duyệt kết quả PDI
               </button>
@@ -80,6 +86,7 @@
             <p style="margin: 0 0 10px; font-size: 13px; color: #1e40af;">Hồ sơ phiếu nhập đã sẵn sàng. Gửi Sale Admin để kiểm tra và phê duyệt chính thức.</p>
             <form method="post" action="{% url 'warehouse:receipt_web_action' phieu_nhap.id 'gui-duyet' %}">
               {% csrf_token %}
+          <input type="hidden" name="pdi_id" value="{{ phieu_nhap.pdi_moi_nhat.id|default_if_none:'' }}">
               <button class="btn btn--primary" style="width: 100%;">
                 <i class="bi bi-send-check"></i> Gửi Sale Admin duyệt
               </button>
@@ -92,6 +99,7 @@
             <p style="margin: 0 0 10px; font-size: 13px; color: #065f46;">Xác nhận hoàn tất thủ tục nhập kho và cập nhật số lượng tồn khả dụng trong hệ thống.</p>
             <form method="post" action="{% url 'warehouse:receipt_web_action' phieu_nhap.id 'duyet' %}">
               {% csrf_token %}
+          <input type="hidden" name="pdi_id" value="{{ phieu_nhap.pdi_moi_nhat.id|default_if_none:'' }}">
               <button class="btn btn--success" style="width: 100%;">
                 <i class="bi bi-check-circle"></i> Duyệt nhập kho chính thức
               </button>
@@ -138,6 +146,7 @@
     <h2 class="section-title">Ghi nhận / Cập nhật kết quả kiểm định PDI</h2>
     <form method="post" action="{% url 'warehouse:receipt_web_action' phieu_nhap.id 'ghi-pdi' %}" class="stack" id="pdi-edit">
       {% csrf_token %}
+          <input type="hidden" name="pdi_id" value="{{ phieu_nhap.pdi_moi_nhat.id|default_if_none:'' }}">
       <div class="field">
         <label>Tình trạng tổng thể phương tiện</label>
         <textarea class="textarea" name="tinh_trang" placeholder="Mô tả tổng quát tình trạng xe khi bàn giao..." required></textarea>

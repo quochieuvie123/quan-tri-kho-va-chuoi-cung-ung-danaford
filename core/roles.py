@@ -88,6 +88,12 @@ ALL_MODULES = [
 
 # Định nghĩa các vai trò và phạm vi quyền hạn
 ROLES = {
+    "SALE_ADMIN": {
+        "code": "SALE_ADMIN", "title": "Sale Admin", "department": "Kinh doanh",
+        "badge_color": "primary", "can_monitor_subordinates": False,
+        "can_manage_events": False, "can_manage_notifications": False, "is_read_only": False,
+        "allowed_urls": ["orders:index", "contracts:index", "warehouse:ton_kho", "warehouse:nhap", "warehouse:xuat", "alerts:index"],
+    },
     "ADMIN": {
         "code": "ADMIN",
         "title": "Quản trị viên (Admin)",
@@ -120,6 +126,8 @@ ROLES = {
         "can_manage_notifications": False,
         "is_read_only": False,
         "allowed_urls": [
+            "contracts:index",
+            "incidents:index",
             "warehouse:ton_kho",
             "warehouse:xuat",
             "warehouse:nhap",
@@ -186,7 +194,14 @@ def get_user_role_info(user):
         if not role_code:
             # Fallback từ Django Groups nếu có
             group_name = user.groups.values_list("name", flat=True).first()
-            if group_name == "Quản lý":
+            groups = set(user.groups.values_list("name", flat=True))
+            if "Quản trị viên" in groups:
+                role_code = "ADMIN"
+            elif groups.intersection({"III-IV Sale Admin", "Nhân viên kinh doanh"}):
+                role_code = "SALE_ADMIN"
+            elif groups.intersection({"III-IV Nhân viên kho", "Quản lý kho"}):
+                role_code = "KIEM_TRA_TON_KHO"
+            elif group_name == "Quản lý":
                 role_code = "KIEM_TRA_TON_KHO"
             else:
                 role_code = "NHAN_VIEN_CHUNG"

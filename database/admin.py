@@ -59,5 +59,8 @@ class ChiTietKiemKeAdmin(admin.ModelAdmin):
 admin.site.register([
     NhaCungCap, DonViVanChuyen, KhachHang, ChiNhanh, Kho, Xe,
     HoaDonNhap, HoaDonBan, TonKho, BienBanPDI,
-    HopDong, ChiTietHopDong,
+    ChiTietHopDong,
 ])
+@admin.register(HopDong)
+class HopDongAdmin(admin.ModelAdmin):
+    list_display = ('ma_hd', 'khach_hang', 'chi_nhanh', 'trang_thai', 'ngay_du_kien_giao')

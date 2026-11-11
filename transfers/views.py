@@ -73,7 +73,10 @@ def danh_sach_ton_kho(request):
     if tu_khoa:
         ds_ton_kho = ds_ton_kho.filter(
             Q(xe__ten_xe__icontains=tu_khoa) |
-            Q(kho__ma_kho__icontains=tu_khoa)
+            Q(xe__vin__icontains=tu_khoa) |
+            Q(xe__loai_xe__icontains=tu_khoa) |
+            Q(kho__ma_kho__icontains=tu_khoa) |
+            Q(kho__chi_nhanh__ten_cn__icontains=tu_khoa)
         )
 
     # 5. Sắp xếp theo mã kho
@@ -708,39 +711,14 @@ def chi_tiet_lenh_luu_chuyen(request, id):
 @login_required
 @require_POST
 def cap_nhat_trang_thai_lenh(request, id):
-    from .models import LenhLuuChuyen
-    from database.models import TonKho, Xe, TrangThaiXe
-
-    lenh = get_object_or_404(LenhLuuChuyen.objects.prefetch_related("chi_tiet__xe"), pk=id)
-
-    if lenh.trang_thai != "DA_GUI":
-        messages.error(
-            request,
-            "Chỉ có thể xác nhận lệnh đang ở trạng thái Đã gửi."
-        )
-        return redirect("transfers:chi_tiet_lenh", id=id)
-
-    lenh.trang_thai = "DA_XAC_NHAN"
-    lenh.ngay_xac_nhan = timezone.now()
-    lenh.nguoi_xac_nhan = request.user
-
-    lenh.save(update_fields=[
-        "trang_thai",
-        "ngay_xac_nhan",
-        "nguoi_xac_nhan"
-    ])
-
-    # Di chuyển xe sang kho nhận và trả trạng thái xe về SẴN SÀNG
-    for item in lenh.chi_tiet.all():
-        TonKho.objects.filter(xe=item.xe, kho=lenh.kho_xuat).update(kho=lenh.kho_nhap)
-        Xe.objects.filter(pk=item.xe_id).update(trang_thai=TrangThaiXe.SAN_SANG)
-
-    messages.success(
-        request,
-        f"Đã cập nhật trạng thái lệnh {lenh.ma_lenh} thành Đã xác nhận. Tồn kho xe đã được chuyển về kho {lenh.kho_nhap}."
-    )
-
-    return redirect("transfers:chi_tiet_lenh", id=id)
+    from django.core.exceptions import PermissionDenied, ValidationError
+    from .services import receive_transfer
+    try:
+        receive_transfer(request.user, id)
+        messages.success(request, 'Đã tiếp nhận xe. Lập phiếu nhập và kiểm tra PDI trước khi ghi tồn kho đích.')
+    except (PermissionDenied, ValidationError) as exc:
+        messages.error(request, str(exc))
+    return redirect('transfers:chi_tiet_lenh', id=id)
 
 
 @login_required
@@ -960,6 +938,14 @@ def gui_lenh_luu_chuyen(request, id):
         if ket_qua.err:
             raise ValueError("Không thể tạo file PDF.")
 
+        from django.core.exceptions import PermissionDenied, ValidationError
+        from .services import dispatch_transfer
+        try:
+            dispatch_transfer(request.user, lenh.pk)
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, str(exc))
+            return redirect('transfers:chi_tiet_lenh', id=id)
+
         danh_sach_email = getattr(settings, "TRANSFER_RECEIVER_EMAILS", [])
 
 
@@ -1019,13 +1005,6 @@ def gui_lenh_luu_chuyen(request, id):
     except Exception as e:
         messages.error(request, f"Lỗi gửi lệnh: {e}")
         return redirect("transfers:chi_tiet_lenh", id=id)
-
-    lenh.trang_thai = "DA_GUI"
-    lenh.ngay_gui = timezone.now()
-    lenh.save(update_fields=["trang_thai", "ngay_gui"])
-
-    from database.models import Xe, TrangThaiXe
-    Xe.objects.filter(pk__in=[item.xe_id for item in chi_tiet]).update(trang_thai=TrangThaiXe.DANG_LUU_CHUYEN)
 
     if request.session.get("lenh_nhap_dang_sua_id") == lenh.pk:
         request.session.pop("lenh_nhap_dang_sua_id", None)

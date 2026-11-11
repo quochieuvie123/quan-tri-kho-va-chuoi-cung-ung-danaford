@@ -3,6 +3,9 @@ import json
 from django.db import models
 from django.http import JsonResponse
 from django.views import View
+from django.utils.decorators import method_decorator
+from core.iii_iv_access import role_required, SALE_ADMIN
+from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from database.models import PhieuXuatKho, TrangThaiPhieuXuat
@@ -130,6 +133,8 @@ class TraCuuXeKhaDungView(LoginRequiredMixin, View):
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
 
+@method_decorator(role_required(SALE_ADMIN), name='dispatch')
+@method_decorator(permission_required('database.add_phieuxuatkho', raise_exception=True), name='dispatch')
 class LapPhieuXuatKhoActionView(LoginRequiredMixin, View):
     """UC-LPXK-01: Lập phiếu xuất kho"""
     def post(self, request, *args, **kwargs):
@@ -165,6 +170,8 @@ class LapPhieuXuatKhoActionView(LoginRequiredMixin, View):
             return JsonResponse({"status": "error", "message": f"Lỗi hệ thống: {str(e)}"}, status=500)
 
 
+@method_decorator(role_required(SALE_ADMIN), name='dispatch')
+@method_decorator(permission_required('database.change_phieuxuatkho', raise_exception=True), name='dispatch')
 class DuyetPhieuXuatKhoActionView(LoginRequiredMixin, View):
     """UC-PXK-03: Duyệt phiếu xuất kho và tự động cập nhật tồn kho"""
     def post(self, request, ma_pxk, *args, **kwargs):
@@ -187,6 +194,8 @@ class DuyetPhieuXuatKhoActionView(LoginRequiredMixin, View):
             return JsonResponse({"status": "error", "message": f"Lỗi xử lý duyệt phiếu: {str(e)}"}, status=500)
 
 
+@method_decorator(role_required(SALE_ADMIN), name='dispatch')
+@method_decorator(permission_required('database.change_phieuxuatkho', raise_exception=True), name='dispatch')
 class HuyPhieuXuatKhoActionView(LoginRequiredMixin, View):
     """Hủy phiếu xuất kho"""
     def post(self, request, ma_pxk, *args, **kwargs):

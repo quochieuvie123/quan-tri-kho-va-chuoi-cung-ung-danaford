@@ -9,6 +9,8 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
+from core.iii_iv_access import role_required, SALE_ADMIN
+from django.contrib.auth.decorators import permission_required
 
 from database.models import (
     BienBanPDI, ChiTietKiemKe, HopDong, Kho, LichSuXuatKho, NhanVien, PhanLoaiKiemKe, PhieuKiemKe,
@@ -53,12 +55,8 @@ def _nhan_vien(request):
     nv = getattr(request.user, "nhan_vien", None)
     if nv:
         return nv
-    ma = request.POST.get("ma_nv")
-    nv = NhanVien.objects.filter(pk=ma).first() if ma else None
-    if nv is None:
-        messages.error(request, "Tài khoản chưa liên kết với nhân viên. Hãy chọn “Nhân viên thực hiện” "
-                                "hoặc gán nhân viên cho tài khoản trong Trang quản trị.")
-    return nv
+    messages.error(request, 'Tài khoản phải được gắn nhân viên để ghi nhận người thực hiện.')
+    return None
 
 
 def _phan_trang(request, ds):
@@ -116,6 +114,8 @@ def xuat_chi_tiet(request, ma_pxk):
 
 
 @login_required
+@role_required(SALE_ADMIN)
+@permission_required('database.add_phieuxuatkho', raise_exception=True)
 def xuat_lap(request):
     """UC-LPXK: chọn hợp đồng -> xem xe khả dụng -> lập phiếu."""
     ma_kho = _chon_kho(request)
@@ -144,9 +144,7 @@ def xuat_lap(request):
             xe_kha_dung = XuatKhoService.lay_danh_sach_xe_kha_dung(ma_hd=ma_hd, ma_kho=ma_kho)
         except HopDong.DoesNotExist:
             messages.error(request, f"Hợp đồng {ma_hd} không tồn tại.")
-    chua_co_phieu = HopDong.objects.exclude(
-        chitiethopdong__phieuxuatkho__trang_thai__in=[TrangThaiPhieuXuat.CHO_DUYET, TrangThaiPhieuXuat.DA_DUYET]
-    ).exclude(trang_thai=TrangThaiHopDong.HOAN_TAT).select_related("khach_hang").order_by("ma_hd")
+    chua_co_phieu = HopDong.objects.exclude(trang_thai=TrangThaiHopDong.HOAN_TAT).select_related("khach_hang").order_by("ma_hd")
     return render(request, "warehouse/xuat_lap.html", _ngu_canh(
         request, "Lập phiếu xuất kho", ma_hd=ma_hd, ds_hop_dong=chua_co_phieu, xe_kha_dung=xe_kha_dung,
         doi_chieu=doi_chieu))
@@ -154,6 +152,8 @@ def xuat_lap(request):
 
 @login_required
 @require_POST
+@role_required(SALE_ADMIN)
+@permission_required('database.change_phieuxuatkho', raise_exception=True)
 def xuat_duyet(request, ma_pxk):
     nv = _nhan_vien(request)
     if nv is not None:
@@ -167,6 +167,8 @@ def xuat_duyet(request, ma_pxk):
 
 @login_required
 @require_POST
+@role_required(SALE_ADMIN)
+@permission_required('database.change_phieuxuatkho', raise_exception=True)
 def xuat_huy(request, ma_pxk):
     nv = _nhan_vien(request)
     if nv is not None:

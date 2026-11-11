@@ -3,10 +3,11 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/operations.css' %}">
+<link rel="stylesheet" href="{% static 'css/contract-receipt-guidelines.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="stack">
+<div class="stack df-workflow">
   <div class="page-header">
     <div>
       <h1 class="page-header__title">Chi tiết biên bản kiểm định PDI ({{ pdi.ma_pdi_hien_thi }})</h1>
@@ -24,6 +25,7 @@
       {% if la_moi_nhat and thao_tac.duyet_pdi %}
         <form method="post" action="{% url 'warehouse:receipt_web_action' pdi.phieu_nhap_id 'duyet-pdi' %}" onsubmit="return confirm('Xác nhận duyệt kết quả PDI Đạt?')" style="margin: 0;">
           {% csrf_token %}
+          <input type="hidden" name="pdi_id" value="{{ pdi.id|default_if_none:'' }}">
           <button class="btn btn--primary">
             <i class="bi bi-shield-check"></i> Xác nhận duyệt PDI
           </button>

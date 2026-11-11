@@ -50,6 +50,35 @@
         color: #ffffff;
         box-shadow: 0 4px 10px rgba(11, 102, 195, 0.2);
     }
+
+    /* Cố định bố cục giữa các tháng, kể cả khi mã xe hoặc số máy dài. */
+    .allocation-table {
+        width: 100%;
+        min-width: 1100px;
+        table-layout: fixed;
+    }
+    .allocation-table th,
+    .allocation-table td {
+        padding: 10px 6px;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+    .allocation-table .badge {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+    .allocation-table th:nth-child(1) { width: 3%; }
+    .allocation-table th:nth-child(2) { width: 8%; }
+    .allocation-table th:nth-child(3) { width: 8%; }
+    .allocation-table th:nth-child(4) { width: 11%; }
+    .allocation-table th:nth-child(5) { width: 11%; }
+    .allocation-table th:nth-child(6) { width: 5%; }
+    .allocation-table th:nth-child(7) { width: 9%; }
+    .allocation-table th:nth-child(8) { width: 11%; }
+    .allocation-table th:nth-child(9) { width: 6%; }
+    .allocation-table th:nth-child(10),
+    .allocation-table th:nth-child(11) { width: 7%; }
+    .allocation-table th:nth-child(12) { width: 7%; }
 </style>
 {% endblock %}
 
@@ -100,14 +129,20 @@
     <!-- KHỐI 2: BẢNG DỮ LIỆU PHÂN BỔ ĐÃ TẢI -->
     <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-            <h2 class="section-title" style="margin: 0;">Danh sách xe phân bổ trong tháng hiện tại</h2>
+            <h2 class="section-title" style="margin: 0;">Danh sách xe phân bổ</h2>
             <span class="badge" style="font-size: 13px; padding: 6px 12px;">
                 Tổng số xe: <strong>{{ allocations|length }}</strong>
             </span>
         </div>
 
+        <form method="get" style="display:flex; gap:10px; align-items:center; margin-bottom:16px;">
+            <label for="thang-phan-bo">Tháng phân bổ</label>
+            <input id="thang-phan-bo" name="thang" type="month" value="{{ selected_month }}">
+            <button type="submit" class="btn btn--light">Xem tháng</button>
+        </form>
+
         <div class="table-wrap">
-            <table class="data-table">
+            <table class="data-table allocation-table">
                 <thead>
                     <tr>
                         <th style="width: 50px; text-align: center;">STT</th>

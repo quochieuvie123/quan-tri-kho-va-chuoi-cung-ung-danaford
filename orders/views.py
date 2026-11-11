@@ -280,12 +280,19 @@ def allocation_list(request):
         form = AllocationUploadForm()
 
     # Hiển thị danh sách phân bổ: Ưu tiên tháng hiện tại, nếu chưa có thì lấy tháng phân bổ gần nhất
+    selected_month = request.GET.get('thang', '')
+    try:
+        from datetime import date
+        month_date = date.fromisoformat(selected_month + '-01') if selected_month else today
+    except ValueError:
+        month_date = today
+        selected_month = ''
     allocations = Allocation.objects.filter(
-        allocation_month__year=today.year,
-        allocation_month__month=today.month
+        allocation_month__year=month_date.year,
+        allocation_month__month=month_date.month
     ).order_by("id")
 
-    if not allocations.exists():
+    if not allocations.exists() and not selected_month:
         latest_allocation = Allocation.objects.order_by("-allocation_month").first()
         if latest_allocation and latest_allocation.allocation_month:
             allocations = Allocation.objects.filter(
@@ -295,7 +302,8 @@ def allocation_list(request):
 
     return render(request, "danh_sach_pb.html", {
         "form": form,
-        "allocations": allocations
+        "allocations": allocations,
+        "selected_month": selected_month,
     })
 
 # Đặt xe
@@ -489,6 +497,10 @@ def lap_phieu_yeu_cau(request):
                 allocation=item["xe"],
                 quantity=item["quantity"]
             )
+
+        # PYC là chứng từ nguồn: tạo ngay phiếu nhập nháp theo từng VIN để import PDI.
+        from warehouse.order_intake import sync_request
+        sync_request(phieu.pk)
 
     # 4. Chuyển sang trang xem phiếu
     return redirect(
@@ -718,8 +730,11 @@ def xac_nhan_phieu(request, id):
             id=phieu.id
         )
 
-    phieu.status = VehicleRequest.Status.ACCEPTED
-    phieu.save(update_fields=["status"])
+    from warehouse.order_intake import sync_request
+    with transaction.atomic():
+        phieu.status = VehicleRequest.Status.ACCEPTED
+        phieu.save(update_fields=["status"])
+        sync_request(phieu.pk)
 
     messages.success(
         request,

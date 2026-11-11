@@ -3,15 +3,17 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/operations.css' %}">
+<link rel="stylesheet" href="{% static 'css/contract-receipt-guidelines.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="stack">
+<div class="stack df-workflow">
   <div class="page-header">
     <div>
       <h1 class="page-header__title">Quản lý hợp đồng xe bán</h1>
       <p class="page-header__subtitle">Theo dõi tiến độ thực hiện hợp đồng mua bán xe, đề xuất và điều phối xe tồn kho phù hợp với yêu cầu khách hàng</p>
     </div>
+    <a class="btn btn--primary" href="{% url 'contracts:import_contracts_excel' %}"><i class="bi bi-file-earmark-spreadsheet"></i> Import hợp đồng Excel</a>
   </div>
 
   <div class="card">
@@ -22,7 +24,10 @@
       </div>
       <div class="field">
         <label>Trạng thái</label>
-        <input class="input" name="trang_thai" value="{{ request.GET.trang_thai }}" placeholder="Trạng thái hợp đồng...">
+        <select class="select" name="trang_thai">
+          <option value="">Tất cả trạng thái</option>
+          {% for value,label in trang_thai_options %}<option value="{{ value }}"{% if request.GET.trang_thai == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
       </div>
       <div class="field">
         <label>Dòng xe yêu cầu</label>
@@ -73,22 +78,24 @@
             {% for hd in hop_dong %}
             <tr>
               <td>
-                <a href="{% url 'contracts:detail' hd.ma_hd %}" style="text-decoration: none; font-weight: 700; color: #0b66c3;">
+                {% if hd.thao_tac.xem_chi_tiet %}<a href="{% url 'contracts:detail' hd.ma_hd %}" style="text-decoration: none; font-weight: 700; color: #0b66c3;">
                   {{ hd.ma_hd }}
-                </a>
+                </a>{% else %}<strong>{{ hd.ma_hd }}</strong>{% endif %}
               </td>
               <td>
                 <strong>{{ hd.khach_hang__ten_kh }}</strong>
               </td>
               <td>
-                <div style="font-weight: 600; color: #0b2a4a;">{{ hd.dong_xe_yeu_cau|default:"—" }}</div>
-                <small style="color: #64748b;">{{ hd.phien_ban_yeu_cau|default:"—" }} · {{ hd.mau_sac_yeu_cau|default:"—" }}</small>
+                {% for item in hd.tieu_chi_xe %}
+                <div><strong>{{ item.dong_xe|default:"Chưa có dòng xe" }}</strong><br><small>{{ item.phien_ban|default:"Chưa có phiên bản" }} · {{ item.mau_sac|default:"Chưa có màu sắc" }}</small></div>
+                {% empty %}Chưa có yêu cầu xe{% endfor %}
+                {% if hd.canh_bao %}<small>{{ hd.canh_bao }}</small>{% endif %}
               </td>
               <td>{{ hd.ngay_ky|date:"d/m/Y" }}</td>
               <td>{{ hd.ngay_du_kien_giao|date:"d/m/Y"|default:"—" }}</td>
               <td style="text-align: center;">
-                <span class="badge {% if hd.trang_thai == 'Đã hoàn thành' or hd.trang_thai == 'Đã giao xe' %}badge--DA_DUYET{% elif hd.trang_thai == 'Đang xử lý' or hd.trang_thai == 'Đã ký' %}badge--CHO_DUYET{% elif hd.trang_thai == 'Hủy' %}badge--KHONG_DAT{% else %}badge--NHAP{% endif %}">
-                  {{ hd.trang_thai|default:"Chưa cập nhật" }}
+                <span class="badge {% if hd.trang_thai == 'HOAN_TAT' %}badge--DA_DUYET{% elif hd.trang_thai == 'DANG_XUAT_KHO' or hd.trang_thai == 'DU_DIEU_KIEN_XUAT' %}badge--CHO_DUYET{% elif hd.trang_thai == 'Hủy' %}badge--KHONG_DAT{% else %}badge--NHAP{% endif %}">
+                  {{ hd.trang_thai_hien_thi }}
                 </span>
               </td>
               <td style="text-align: right;">
@@ -99,7 +106,7 @@
                     </a>
                   {% endif %}
                   {% if hd.thao_tac.de_xuat_xe %}
-                    <a class="btn btn--primary" href="{% url 'contracts:xe_phu_hop' hd.ma_hd %}">
+                    <a class="btn btn--primary" style="min-width: 138px; color: #fff; white-space: nowrap;" aria-label="Đề xuất xe" href="{% url 'contracts:xe_phu_hop' hd.ma_hd %}">
                       <i class="bi bi-lightbulb"></i> Đề xuất xe
                     </a>
                   {% endif %}
@@ -122,36 +129,3 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
-<dialog id="criteria-dialog">
-  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-    <i class="bi bi-lightbulb-fill" style="color: #0b66c3; font-size: 22px;"></i>
-    <h2 class="section-title" style="margin: 0; border: none; padding: 0;">Xác nhận tra cứu đề xuất xe</h2>
-  </div>
-  <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin: 0 0 16px;">
-    Thao tác này sẽ tra cứu tồn kho xe trên toàn hệ thống Dana Ford theo yêu cầu của hợp đồng (không tự động giữ xe hay thay đổi trạng thái hợp đồng).
-  </p>
-  <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px;">
-    <div style="font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase;">Thông tin hợp đồng & xe yêu cầu</div>
-    <div id="criteria-summary" style="font-size: 14px; font-weight: 600; color: #0b2a4a; margin-top: 4px;"></div>
-  </div>
-  <div style="display: flex; justify-content: flex-end; gap: 10px;">
-    <button type="button" class="btn btn--light" onclick="this.closest('dialog').close()">Đóng</button>
-    <a id="criteria-confirm" class="btn btn--primary">
-      <i class="bi bi-search"></i> Xác nhận tra cứu
-    </a>
-  </div>
-</dialog>
-
-<script>
-document.querySelectorAll('a[href$="/xe-phu-hop/"]').forEach(link => {
-  link.addEventListener('click', event => {
-    event.preventDefault();
-    const row = link.closest('tr');
-    document.getElementById('criteria-summary').textContent = row.cells[0].textContent.trim() + ' · ' + row.cells[2].textContent.replace(/\s+/g, ' ').trim();
-    document.getElementById('criteria-confirm').href = link.href;
-    document.getElementById('criteria-dialog').showModal();
-  });
-});
-</script>
-{% endblock %}

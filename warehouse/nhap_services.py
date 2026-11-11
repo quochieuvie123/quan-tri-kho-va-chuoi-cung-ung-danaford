@@ -2,25 +2,28 @@
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
-from database.models import Xe, Kho, ChiTietNhap, TonKho, BienBanPDI
+from database.models import Xe, Kho, ChiTietNhap, TonKho, BienBanPDI, TrangThaiXe
 from core.iii_iv_access import require_role, can_write_warehouse, is_da_nang_branch, SALE_ADMIN, WAREHOUSE
 from .models import PhieuNhapKho, KetQuaPDI, LichSuNhapKho
 from .validation import validate_pdi_items
 
 
 def require_permission(user, codename):
-    if not user.is_authenticated or not user.has_perm(codename):
+    from core.roles import get_user_role_info
+    role = get_user_role_info(user)
+    if not user.is_authenticated or not user.is_active or (role and role.get('is_read_only')) or not user.has_perm(codename):
         raise PermissionDenied('Bạn không có quyền thực hiện thao tác này.')
 
 
 def require_branch(user, kho):
+    if not is_da_nang_branch(kho.chi_nhanh):
+        raise ValidationError('Kho nhận phải là Dana Ford Đà Nẵng.')
     if not can_write_warehouse(user, kho):
         raise PermissionDenied('Tài khoản chưa được gắn nhân viên tại chi nhánh của kho này.')
 
 
 def incident_rows(receipt):
-    return BienBanPDI.objects.filter(xe_id=receipt.xe_id,
-        hoa_don_nhap_id=receipt.chi_tiet_nhap.hoa_don_nhap_id)
+    return BienBanPDI.objects.filter(hoa_don_nhap_id=receipt.chi_tiet_nhap.hoa_don_nhap_id, xe_id=receipt.xe_id)
 
 
 def lock_receipt(pk):
@@ -68,19 +71,23 @@ def ready_pdi(receipt, pdi=None):
 
 def incident_warnings(receipt, pdi):
     """PDI lỗi phải qua hồ sơ sự cố và có lần kiểm tra lại sau xử lý."""
+    if BienBanPDI.objects.filter(xe_id=receipt.xe_id).exclude(trang_thai_claim='Đã xử lý').exists():
+        return ['VIN còn sự cố chưa đóng; cần hoàn tất hồ sơ xử lý sự cố trước khi duyệt PDI lại.']
     failures = receipt.cac_lan_pdi.filter(ket_qua='KHONG_DAT')
     if not failures.exists():
         return []
     first_failure = failures.order_by('thoi_gian_kiem_tra').first()
-    incidents = BienBanPDI.objects.filter(
-        xe_id=receipt.xe_id,
-        hoa_don_nhap_id=receipt.chi_tiet_nhap.hoa_don_nhap_id,
-        ngay_ghi_nhan__gte=first_failure.thoi_gian_kiem_tra,
-    )
+    incidents = incident_rows(receipt).filter(ngay_ghi_nhan__gte=first_failure.thoi_gian_kiem_tra)
     if not incidents.exists() or incidents.exclude(trang_thai_claim='Đã xử lý').exists():
         return ['PDI không đạt: cần hoàn tất hồ sơ xử lý sự cố vận chuyển trước khi duyệt PDI lại.']
     if pdi is None or pdi.ket_qua != 'DAT':
         return ['Cần kiểm tra PDI lại và có kết quả Đạt sau khi xử lý sự cố.']
+    # Ngày đóng trong hồ sơ và thời điểm nhật ký đều phải trước lần kiểm tra lại.
+    if incidents.filter(ho_so__ngay_xac_nhan__gt=timezone.localtime(pdi.thoi_gian_kiem_tra).date()).exists() or incidents.filter(
+        lich_su__hanh_dong='Cập nhật kết quả xử lý, đóng sự cố',
+        lich_su__thoi_gian__gte=pdi.thoi_gian_kiem_tra,
+    ).exists():
+        return ['PDI phải được kiểm tra lại sau khi sự cố hoàn tất.']
     return []
 
 
@@ -91,7 +98,7 @@ def check_pdi_version(pdi, expected_id):
 
 def receipt_warnings(receipt):
     car = receipt.xe
-    ncc_name = getattr(receipt.chi_tiet_nhap.hoa_don_nhap.nha_cung_cap, 'ten_ncc', '') if receipt.chi_tiet_nhap and receipt.chi_tiet_nhap.hoa_don_nhap and receipt.chi_tiet_nhap.hoa_don_nhap.nha_cung_cap else ''
+    ncc_name = receipt.chi_tiet_nhap.hoa_don_nhap.nha_cung_cap.ten_ncc
     required = [car.ten_xe, car.mau_sac, car.so_may, ncc_name]
     if not all(isinstance(value, str) and value.strip() for value in required):
         return ['Thiếu dòng xe, màu sắc, số máy hoặc nguồn xe; cần bổ sung trước khi gửi/duyệt nhập.']
@@ -106,21 +113,29 @@ def validate_receipt_data(receipt):
 
 
 @transaction.atomic
-def create_receipt(user, *, ma_phieu, chi_tiet_nhap_id, kho_id, ngay_nhap):
+def create_receipt(user, *, ma_phieu, kho_id, ngay_nhap, chi_tiet_nhap_id=None):
     require_role(user, WAREHOUSE)
     require_permission(user, 'warehouse.add_phieunhapkho')
+    if not isinstance(ma_phieu, str):
+        raise ValidationError('Mã phiếu phải là chuỗi.')
     kho = Kho.objects.select_related('chi_nhanh').get(pk=kho_id)
     require_branch(user, kho)
+    if not chi_tiet_nhap_id:
+        raise ValidationError('Phải chọn Chi tiết nhập từ hóa đơn nhập kho.')
     line = ChiTietNhap.objects.select_for_update().select_related('hoa_don_nhap').get(pk=chi_tiet_nhap_id)
-    if line.so_luong_nhap != 1:
-        raise ValidationError('Chỉ lập phiếu cho dòng nhập một xe theo VIN.')
-    Xe.objects.select_for_update().get(pk=line.xe_id)
+    if line.so_luong_nhap != 1 or line.hoa_don_nhap.chi_nhanh_id != kho.chi_nhanh_id:
+        raise ValidationError('Chứng từ phải đúng chi nhánh và một xe theo VIN.')
+    if PhieuNhapKho.objects.filter(chi_tiet_nhap=line).exists():
+        raise ValidationError('Chứng từ nguồn đã được dùng; mở phiếu hiện có.')
+    car = Xe.objects.select_for_update().get(pk=line.xe_id)
+    if car.trang_thai in (TrangThaiXe.DA_XUAT, TrangThaiXe.GIU_CHO_XUAT):
+        raise ValidationError('Xe đã xuất hoặc đang giữ cho phiếu xuất.')
     if PhieuNhapKho.objects.filter(xe_id=line.xe_id, trang_thai__in=['NHAP', 'CHO_DUYET']).exists():
         raise ValidationError('VIN này đang có phiếu nhập chưa hoàn tất.')
     if TonKho.objects.filter(xe_id=line.xe_id, so_luong_ton__gt=0).exists():
         raise ValidationError('VIN đã có tồn kho; không được nhập trùng.')
-    receipt = PhieuNhapKho(ma_phieu=ma_phieu.strip(), chi_tiet_nhap=line, xe_id=line.xe_id,
-                           kho=kho, ngay_nhap=ngay_nhap, nguoi_lap=user)
+    receipt = PhieuNhapKho(ma_phieu=ma_phieu.strip(), xe_id=line.xe_id,
+                           kho=kho, ngay_nhap=ngay_nhap, nguoi_lap=user, chi_tiet_nhap=line)
     validate_receipt_data(receipt)
     receipt.save()
     return receipt
@@ -166,9 +181,7 @@ def approve_pdi(user, receipt_id, *, pdi_id):
     if pdi is None or pdi.nguoi_duyet_id is not None:
         raise ValidationError('Không có PDI mới chờ duyệt.')
     check_pdi_version(pdi, pdi_id)
-    if pdi.ket_qua != 'DAT':
-        raise ValidationError('PDI không đạt: giữ phiếu Nháp và chuyển xử lý sự cố vận chuyển.')
-    incident_errors = incident_warnings(receipt, pdi)
+    incident_errors = incident_warnings(receipt, pdi) if pdi.ket_qua == 'DAT' else []
     if incident_errors:
         raise ValidationError(incident_errors)
     warnings = pdi_warnings(pdi)
@@ -178,6 +191,8 @@ def approve_pdi(user, receipt_id, *, pdi_id):
     pdi.nguoi_duyet = user
     pdi.thoi_gian_duyet = timezone.now()
     pdi.save(update_fields=['nguoi_duyet', 'thoi_gian_duyet'])
+    if pdi.ket_qua == 'KHONG_DAT':
+        Xe.objects.filter(pk=receipt.xe_id).update(trang_thai=TrangThaiXe.SU_CO_PDI)
     return pdi
 
 
@@ -198,7 +213,7 @@ def submit_receipt(user, receipt_id, *, pdi_id):
 
 @transaction.atomic
 def approve_receipt(user, receipt_id, *, pdi_id):
-    require_role(user, SALE_ADMIN, WAREHOUSE)
+    require_role(user, SALE_ADMIN)
     require_permission(user, 'warehouse.approve_phieunhapkho')
     receipt = lock_receipt(receipt_id)
     if not is_da_nang_branch(receipt.kho.chi_nhanh):
@@ -207,15 +222,20 @@ def approve_receipt(user, receipt_id, *, pdi_id):
         raise ValidationError('Phiếu chưa đủ điều kiện duyệt hoặc đã duyệt.')
     check_pdi_version(latest_pdi(receipt), pdi_id)
     validate_receipt_data(receipt)
-    line = ChiTietNhap.objects.select_for_update().select_related('hoa_don_nhap').get(pk=receipt.chi_tiet_nhap_id)
+    line = ChiTietNhap.objects.select_for_update().get(pk=receipt.chi_tiet_nhap_id)
     if line.xe_id != receipt.xe_id or line.so_luong_nhap != 1:
-        raise ValidationError('Dữ liệu hóa đơn, VIN hoặc kho không còn khớp.')
+        raise ValidationError('Chứng từ nguồn không còn khớp VIN.')
+    if receipt.xe.trang_thai in (TrangThaiXe.DA_XUAT, TrangThaiXe.GIU_CHO_XUAT):
+        raise ValidationError('Trạng thái xe không cho phép nhập kho.')
+    if BienBanPDI.objects.filter(xe_id=receipt.xe_id).exclude(trang_thai_claim='Đã xử lý').exists():
+        raise ValidationError('VIN còn sự cố chưa hoàn tất.')
     if TonKho.objects.filter(xe_id=receipt.xe_id, so_luong_ton__gt=0).exists():
         raise ValidationError('VIN đã tồn tại trong kho, không thể nhập trùng.')
     stock, _ = TonKho.objects.get_or_create(kho_id=receipt.kho_id, xe_id=receipt.xe_id,
                    defaults={'ngay_vao_kho': receipt.ngay_nhap, 'so_luong_ton': 0})
     if TonKho.objects.filter(pk=stock.pk, so_luong_ton=0).update(so_luong_ton=1, ngay_vao_kho=receipt.ngay_nhap) != 1:
         raise ValidationError('Tồn kho vừa thay đổi, vui lòng kiểm tra lại.')
+    Xe.objects.filter(pk=receipt.xe_id).update(trang_thai=TrangThaiXe.SAN_SANG)
     now = timezone.now()
     LichSuNhapKho.objects.create(phieu_nhap=receipt, xe_id=receipt.xe_id, kho_id=receipt.kho_id,
                                  nguoi_thuc_hien=user, thoi_gian=now)
@@ -223,4 +243,41 @@ def approve_receipt(user, receipt_id, *, pdi_id):
     receipt.nguoi_duyet = user
     receipt.thoi_gian_duyet = now
     receipt.save(update_fields=['trang_thai', 'nguoi_duyet', 'thoi_gian_duyet'])
+    from contracts.workflow import sync_contract_for_vin
+    sync_contract_for_vin(receipt.xe_id)
+    return receipt
+
+
+@transaction.atomic
+def complete_after_incident_closed(incident):
+    """Đóng sự cố là xác nhận xưởng đã khắc phục và nghiệm thu xe."""
+    receipt = PhieuNhapKho.objects.select_for_update().filter(
+        chi_tiet_nhap__hoa_don_nhap_id=incident.hoa_don_nhap_id,
+        xe_id=incident.xe_id,
+    ).first()
+    if receipt is None:
+        raise ValidationError('Không tìm thấy phiếu nhập tương ứng VIN và hóa đơn nhập.')
+    if receipt.trang_thai == 'DA_DUYET':
+        return receipt
+    if BienBanPDI.objects.filter(xe_id=receipt.xe_id).exclude(trang_thai_claim='Đã xử lý').exists():
+        raise ValidationError('Xe vẫn còn sự cố chưa đóng.')
+    if TonKho.objects.filter(xe_id=receipt.xe_id, so_luong_ton__gt=0).exists():
+        raise ValidationError('Xe đã có trong tồn kho.')
+    pdi = latest_pdi(receipt)
+    if pdi is None or pdi.ket_qua != 'KHONG_DAT' or not pdi.nguoi_duyet_id:
+        raise ValidationError('Phiếu nhập chưa có PDI không đạt đã xác nhận.')
+    stock, _ = TonKho.objects.get_or_create(kho=receipt.kho, xe=receipt.xe,
+        defaults={'ngay_vao_kho': timezone.localdate(), 'so_luong_ton': 0})
+    if TonKho.objects.filter(pk=stock.pk, so_luong_ton=0).update(
+        so_luong_ton=1, ngay_vao_kho=timezone.localdate()) != 1:
+        raise ValidationError('Tồn kho đã thay đổi; không thể duyệt tự động.')
+    receipt.trang_thai = 'DA_DUYET'
+    receipt.nguoi_duyet = pdi.nguoi_duyet
+    receipt.thoi_gian_duyet = timezone.now()
+    receipt.save(update_fields=['trang_thai', 'nguoi_duyet', 'thoi_gian_duyet'])
+    LichSuNhapKho.objects.create(phieu_nhap=receipt, xe=receipt.xe, kho=receipt.kho,
+        nguoi_thuc_hien=pdi.nguoi_duyet, thoi_gian=receipt.thoi_gian_duyet)
+    Xe.objects.filter(pk=receipt.xe_id).update(trang_thai=TrangThaiXe.SAN_SANG)
+    from contracts.workflow import sync_contract_for_vin
+    sync_contract_for_vin(receipt.xe_id)
     return receipt

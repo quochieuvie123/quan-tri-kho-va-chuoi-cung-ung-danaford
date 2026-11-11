@@ -52,7 +52,7 @@
                     type="text"
                     name="q"
                     value="{{ tu_khoa }}"
-                    placeholder="Nhập tên xe, loại xe hoặc mã kho..."
+                    placeholder="Nhập VIN, tên xe, loại xe hoặc kho..."
                 >
                 <button class="transfer-btn transfer-btn--primary" type="submit">
                     <i class="bi bi-search"></i> Tìm kiếm
@@ -69,6 +69,7 @@
             <table class="transfer-table">
                 <thead>
                     <tr>
+                        <th>Số khung (VIN)</th>
                         <th>Tên xe</th>
                         <th>Loại xe</th>
                         <th>Màu sắc</th>
@@ -81,6 +82,7 @@
                 <tbody>
                     {% for item in ds_ton_kho %}
                     <tr>
+                        <td><strong>{{ item.xe.vin }}</strong></td>
                         <td><strong>{{ item.xe.ten_xe }}</strong></td>
                         <td>{{ item.xe.loai_xe }}</td>
                         <td>{{ item.xe.mau_sac|default:"Chưa cập nhật" }}</td>
@@ -95,7 +97,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="empty">
+                        <td colspan="8" class="empty">
                             <i class="bi bi-inbox" style="font-size: 28px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
                             <p style="margin: 0; color: #64748b;">Không tìm thấy xe tồn kho phù hợp với điều kiện tìm kiếm.</p>
                         </td>
