@@ -52,11 +52,6 @@ def link_callback(uri, rel):
     return uri
 @login_required
 def danh_sach_ton_kho(request):
-    from core.roles import get_user_role_info
-    role_info = get_user_role_info(request.user)
-    if not (request.user.is_superuser or (role_info and role_info.get('code') == 'ADMIN')):
-        messages.error(request, 'Bạn không có quyền truy cập module Quản lý lưu chuyển xe (Chức năng dành riêng cho Quản trị viên).')
-        return redirect('dashboard:home')
 
     # 1. Lấy danh sách các kho và thông tin chi nhánh
     ds_kho = Kho.objects.select_related(

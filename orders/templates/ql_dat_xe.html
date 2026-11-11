@@ -61,14 +61,12 @@
         </div>
     </div>
 
-    <!-- Hệ thống Tab điều hướng theo phân quyền -->
+    <!-- Hệ thống 4 Tab điều hướng nhất quán -->
     <div class="order-page-tabs">
-        {% if user_display.role_code == 'ADMIN' or request.user.is_superuser %}
         <a href="{% url 'orders:allocation_list' %}"
            class="order-page-tab {% if request.resolver_match.url_name == 'allocation_list' %}active{% endif %}">
             <i class="bi bi-file-earmark-spreadsheet"></i> Tải & Xem phân bổ
         </a>
-        {% endif %}
         <a href="{% url 'orders:proposal_list' %}"
            class="order-page-tab {% if request.resolver_match.url_name == 'proposal_list' or request.resolver_match.url_name == 'proposal_detail' %}active{% endif %}">
             <i class="bi bi-graph-up-arrow"></i> Đề xuất nhập xe

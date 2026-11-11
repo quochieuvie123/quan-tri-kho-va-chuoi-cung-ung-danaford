@@ -73,7 +73,7 @@ ALL_MODULES = [
         "label": "Dự báo nhu cầu và đề xuất nhập xe",
         "url_name": "analytics:index",
         "icon": "bi-graph-up-arrow",
-        "badge": "Phân tích",
+        "badge": "Phác thảo",
         "description": "Dự báo xu hướng tiêu thụ từng dòng xe Ford và đề xuất kế hoạch đặt hàng.",
     },
     {
@@ -86,11 +86,11 @@ ALL_MODULES = [
     },
 ]
 
-# Định nghĩa các vai trò và phạm vi quyền hạn
+# Định nghĩa các vai trò và phạm vi quyền hạn (2 nhóm chính: Sale Admin & Nhân viên Sale)
 ROLES = {
     "ADMIN": {
         "code": "ADMIN",
-        "title": "Quản trị viên (Admin)",
+        "title": "Quản trị viên (Sale Admin)",
         "department": "Ban Điều Hành & Quản Trị Hệ Thống",
         "badge_color": "danger",
         "can_monitor_subordinates": True,
@@ -109,25 +109,15 @@ ROLES = {
         "can_monitor_subordinates": False,
         "can_manage_events": False,
         "can_manage_notifications": False,
-        "can_manage_allocations": False,
-        "can_manage_transfers": False,
+        "can_manage_allocations": True,   # Được up phân bổ theo yêu cầu
+        "can_manage_transfers": True,     # Được lưu chuyển xe theo yêu cầu
         "is_read_only": False,
-        "allowed_urls": [
-            "orders:index",
-            "contracts:index",
-            "warehouse:nhap",
-            "warehouse:xuat",
-            "warehouse:ton_kho",
-            "alerts:index",
-            "dashboard:index",
-            "analytics:index",
-            "incidents:index",
-        ],
+        "allowed_urls": ["*"],  # Truy cập toàn bộ module tác nghiệp
     },
     # Giữ lại các alias cũ để tương thích ngược tuyệt đối
     "BA": {
         "code": "ADMIN",
-        "title": "Quản trị viên (Admin)",
+        "title": "Quản trị viên (Sale Admin)",
         "department": "Ban Điều Hành & Quản Trị Hệ Thống",
         "badge_color": "danger",
         "can_monitor_subordinates": True,
@@ -146,20 +136,10 @@ ROLES = {
         "can_monitor_subordinates": False,
         "can_manage_events": False,
         "can_manage_notifications": False,
-        "can_manage_allocations": False,
-        "can_manage_transfers": False,
+        "can_manage_allocations": True,
+        "can_manage_transfers": True,
         "is_read_only": False,
-        "allowed_urls": [
-            "orders:index",
-            "contracts:index",
-            "warehouse:nhap",
-            "warehouse:xuat",
-            "warehouse:ton_kho",
-            "alerts:index",
-            "dashboard:index",
-            "analytics:index",
-            "incidents:index",
-        ],
+        "allowed_urls": ["*"],
     },
     "DIEU_PHOI_SU_CO_DU_BAO": {
         "code": "SALE",
@@ -169,20 +149,10 @@ ROLES = {
         "can_monitor_subordinates": False,
         "can_manage_events": False,
         "can_manage_notifications": False,
-        "can_manage_allocations": False,
-        "can_manage_transfers": False,
+        "can_manage_allocations": True,
+        "can_manage_transfers": True,
         "is_read_only": False,
-        "allowed_urls": [
-            "orders:index",
-            "contracts:index",
-            "warehouse:nhap",
-            "warehouse:xuat",
-            "warehouse:ton_kho",
-            "alerts:index",
-            "dashboard:index",
-            "analytics:index",
-            "incidents:index",
-        ],
+        "allowed_urls": ["*"],
     },
     "NHAN_VIEN_CHUNG": {
         "code": "SALE",
@@ -192,35 +162,27 @@ ROLES = {
         "can_monitor_subordinates": False,
         "can_manage_events": False,
         "can_manage_notifications": False,
-        "can_manage_allocations": False,
-        "can_manage_transfers": False,
+        "can_manage_allocations": True,
+        "can_manage_transfers": True,
         "is_read_only": False,
-        "allowed_urls": [
-            "orders:index",
-            "contracts:index",
-            "warehouse:nhap",
-            "warehouse:xuat",
-            "warehouse:ton_kho",
-            "alerts:index",
-            "dashboard:index",
-            "analytics:index",
-            "incidents:index",
-        ],
+        "allowed_urls": ["*"],
     },
 }
 
 # Mapping người dùng theo username vào vai trò
+# Nhóm 1: Sale Admin (Hiếu và Dung)
+# Nhóm 2: Nhân viên Sale (4 bạn còn lại: Yên Giang, Linh Giang, Cẩm Tú, Minh Thư)
 USER_ROLE_MAPPING = {
     "phanquochieu": "ADMIN",
     "hieu": "ADMIN",
     "admin": "ADMIN",
-    "mydung": "SALE",
-    "dung": "SALE",
+    "mydung": "ADMIN",
+    "dung": "ADMIN",
     "tu": "SALE",
     "ygiang": "SALE",
     "lgiang": "SALE",
-    "quanly": "ADMIN",
     "nhanvien": "SALE",
+    "quanly": "SALE",
 }
 
 
