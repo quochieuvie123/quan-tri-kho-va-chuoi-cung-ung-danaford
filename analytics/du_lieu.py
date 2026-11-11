@@ -108,6 +108,17 @@ def thu_thap(thang, nam):
     for c in ChiTieuPhanBo.objects.filter(nam=nam, thang=thang):
         if c.ten_xe in bo.dong_xe:
             bo.dong_xe[c.ten_xe].chi_tieu = c.so_luong
+    # Đồng bộ bổ sung từ bảng Allocation nếu dòng xe chưa được gán chỉ tiêu
+    try:
+        from orders.models import Allocation
+        for a in (Allocation.objects
+                  .filter(allocation_month__year=nam, allocation_month__month=thang)
+                  .values("description").annotate(tong=Sum("quantity"))):
+            dx = a["description"]
+            if dx in bo.dong_xe and bo.dong_xe[dx].chi_tieu == 0:
+                bo.dong_xe[dx].chi_tieu = a["tong"] or 0
+    except Exception:
+        pass
     for r in ChiTietNhap.objects.values("xe__ten_xe").annotate(g=Avg("don_gia")):
         bo.dong_xe[r["xe__ten_xe"]].don_gia_von = float(r["g"] or 0)
     return bo

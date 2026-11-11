@@ -30,12 +30,22 @@
         </form>
     </div>
 
-    <!-- KẾT QUẢ TÌM KIẾM -->
-    {% if keyword %}
+    <!-- KẾT QUẢ TÌM KIẾM / NGUỒN XE PHÂN BỔ KHẢ DỤNG -->
     <div>
-        <h3 style="font-size: 15px; font-weight: 700; color: #0b2a4a; margin: 0 0 12px;">
-            Kết quả tra cứu phân bổ theo từ khóa "{{ keyword }}"
-        </h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h3 style="font-size: 15px; font-weight: 700; color: #0b2a4a; margin: 0;">
+                {% if keyword %}
+                    Kết quả tra cứu phân bổ theo từ khóa "{{ keyword }}"
+                {% else %}
+                    Nguồn xe phân bổ khả dụng sẵn sàng đặt hàng
+                {% endif %}
+            </h3>
+            {% if allocations %}
+            <span style="font-size: 13px; color: #64748b; font-weight: 500;">
+                Có <strong>{{ allocations|length }}</strong> xe sẵn sàng
+            </span>
+            {% endif %}
+        </div>
         {% if allocations %}
             <div class="table-wrap">
                 <table class="data-table">
@@ -74,11 +84,14 @@
         {% else %}
             <div class="empty" style="padding: 32px 16px;">
                 <i class="bi bi-search" style="font-size: 28px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
-                <p style="margin: 0; color: #64748b;">Không tìm thấy xe phù hợp trong nguồn phân bổ tháng hiện tại.</p>
+                {% if keyword %}
+                <p style="margin: 0; color: #64748b;">Không tìm thấy xe phù hợp với từ khóa "{{ keyword }}".</p>
+                {% else %}
+                <p style="margin: 0; color: #64748b;">Chưa có xe phân bổ nào trong hệ thống. Vui lòng tải file Excel phân bổ tại mục "Phân bổ".</p>
+                {% endif %}
             </div>
         {% endif %}
     </div>
-    {% endif %}
 
     <!-- DANH SÁCH XE ĐÃ CHỌN ĐỂ ĐẶT -->
     <div style="border-top: 2px dashed #e2e8f0; padding-top: 20px; margin-top: 10px;">

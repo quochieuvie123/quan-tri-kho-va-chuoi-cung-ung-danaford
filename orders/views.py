@@ -68,23 +68,29 @@ def chuyen_thang(value, default_date=None):
     if isinstance(value, str):
         val_str = value.strip()
 
-        # Tiếng Việt: "Tháng 10 năm 2026"
-        m_vn = re.search(r"Tháng\s+(\d{1,2})\s+năm\s+(\d{4})", val_str, flags=re.IGNORECASE)
+        # Tiếng Việt: "Tháng 10 năm 2026", "Tháng 10/2026"
+        m_vn = re.search(r"Tháng\s+(\d{1,2})(?:\s+năm|\s*[/.-])\s*(\d{2,4})", val_str, flags=re.IGNORECASE)
         if m_vn:
-            return date(int(m_vn.group(2)), int(m_vn.group(1)), 1)
+            nam = int(m_vn.group(2))
+            if nam < 100:
+                nam += 2000
+            return date(nam, int(m_vn.group(1)), 1)
 
-        # Dạng MM/YYYY hoặc MM-YYYY
-        m_slash = re.search(r"(\d{1,2})[/.-](\d{4})", val_str)
+        # Dạng MM/YYYY hoặc MM-YYYY hoặc MM/YY
+        m_slash = re.search(r"(?:^|[^\d])(\d{1,2})[/.-](\d{2,4})(?:$|[^\d])", val_str)
         if m_slash:
-            return date(int(m_slash.group(2)), int(m_slash.group(1)), 1)
+            nam = int(m_slash.group(2))
+            if nam < 100:
+                nam += 2000
+            return date(nam, int(m_slash.group(1)), 1)
 
         # Dạng YYYY-MM
-        m_dash = re.search(r"(\d{4})[/.-](\d{1,2})", val_str)
+        m_dash = re.search(r"(?:^|[^\d])(\d{4})[/.-](\d{1,2})(?:$|[^\d])", val_str)
         if m_dash:
             return date(int(m_dash.group(1)), int(m_dash.group(2)), 1)
 
         # Tiếng Anh: "Oct 2026 Allocation", "OCT 26 DEFER FROM SEP", "Sep 2026"
-        m_en = re.search(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\s_-]+(?:20)?(\d{2,4})", val_str, flags=re.IGNORECASE)
+        m_en = re.search(r"(?:\b|_)(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\s_-]+(?:20)?(\d{2,4})(?:\b|_)", val_str, flags=re.IGNORECASE)
         if m_en:
             thang = MONTH_EN_MAP.get(m_en.group(1).lower()[:3], 1)
             nam = int(m_en.group(2))
@@ -270,6 +276,28 @@ def allocation_list(request):
                                 defaults=item
                             )
 
+                    # TỰ ĐỘNG ĐỒNG BỘ CHỈ TIÊU PHÂN BỔ SANG MODULE DỰ BÁO NHU CẦU (ANALYTICS)
+                    try:
+                        from analytics.models import ChiTieuPhanBo
+                        from django.db.models import Sum
+                        summary_pbs = (
+                            Allocation.objects
+                            .filter(allocation_month__isnull=False)
+                            .values("allocation_month__year", "allocation_month__month", "description")
+                            .annotate(tong_pb=Sum("quantity"))
+                        )
+                        for pb in summary_pbs:
+                            desc = pb["description"]
+                            if desc:
+                                ChiTieuPhanBo.objects.update_or_create(
+                                    nam=pb["allocation_month__year"],
+                                    thang=pb["allocation_month__month"],
+                                    ten_xe=desc,
+                                    defaults={"so_luong": pb["tong_pb"]}
+                                )
+                    except Exception:
+                        pass
+
                     messages.success(
                         request,
                         f"Tải danh sách phân bổ thành công! Đã nạp {len(data)} xe vào hệ thống."
@@ -317,20 +345,28 @@ def dat_xe(request):
         # Lấy ngày hiện tại theo múi giờ Django
         today = timezone.localdate()
 
-        # Chỉ lấy xe thuộc tháng và năm hiện tại
+        # Ưu tiên lấy xe thuộc tháng hiện tại, nếu chưa có thì lấy tháng phân bổ gần nhất
         allocations = Allocation.objects.filter(
             allocation_month__year=today.year,
             allocation_month__month=today.month
-        )
+        ).order_by("id")
 
-        # Tìm kiếm theo VIN hoặc mô tả
+        if not allocations.exists():
+            latest_alloc = Allocation.objects.order_by("-allocation_month").first()
+            if latest_alloc and latest_alloc.allocation_month:
+                allocations = Allocation.objects.filter(
+                    allocation_month__year=latest_alloc.allocation_month.year,
+                    allocation_month__month=latest_alloc.allocation_month.month
+                ).order_by("id")
+
+        # Tìm kiếm theo VIN, mô tả, mã xe, màu sắc
         if keyword:
-            allocations = allocations.filter(
-                Q(vin__iexact=keyword) |
-                Q(description__icontains=keyword)
-            )
-        else:
-            allocations = allocations.none()
+            allocations = Allocation.objects.filter(
+                Q(vin__icontains=keyword) |
+                Q(description__icontains=keyword) |
+                Q(vehicle_code__icontains=keyword) |
+                Q(exterior_color__icontains=keyword)
+            ).order_by("-allocation_month", "id")
 
         context = {
             "keyword": keyword,
@@ -362,12 +398,10 @@ def dat_xe(request):
 def chi_tiet_xe(request, id):
     today = timezone.localdate()
 
-    # Chỉ cho phép chọn xe thuộc tháng hiện tại
+    # Lấy thông tin xe phân bổ theo id
     xe = get_object_or_404(
         Allocation,
-        id=id,
-        allocation_month__year=today.year,
-        allocation_month__month=today.month
+        id=id
     )
 
     if request.method == "POST":
@@ -457,15 +491,13 @@ def lap_phieu_yeu_cau(request):
     for ma_xe, so_luong in danh_sach.items():
 
         xe = Allocation.objects.filter(
-            pk=ma_xe,
-            allocation_month__year=today.year,
-            allocation_month__month=today.month
+            pk=ma_xe
         ).first()
 
         if xe is None:
             messages.error(
                 request,
-                "Xe không thuộc danh sách phân bổ tháng hiện tại."
+                "Không tìm thấy thông tin xe trong danh sách phân bổ."
             )
             return redirect("orders:vehicle_orders")
 
@@ -751,11 +783,18 @@ from database.models import ChiTietBan, TonKho
 def danh_sach_de_xuat(request):
     today = timezone.localdate()
 
-    # 1. Lấy danh sách phân bổ tháng hiện tại
+    # 1. Lấy danh sách phân bổ (ưu tiên tháng hiện tại, nếu chưa có thì lấy tháng gần nhất)
     allocations = Allocation.objects.filter(
         allocation_month__year=today.year,
         allocation_month__month=today.month
     )
+    if not allocations.exists():
+        latest_pb = Allocation.objects.order_by("-allocation_month").first()
+        if latest_pb and latest_pb.allocation_month:
+            allocations = Allocation.objects.filter(
+                allocation_month__year=latest_pb.allocation_month.year,
+                allocation_month__month=latest_pb.allocation_month.month
+            )
 
     # 2. Tính tổng số xe bán theo dòng xe
     doanh_so = (
@@ -831,12 +870,10 @@ def chi_tiet_de_xuat(request, id):
     # 1. Lấy ngày hiện tại
     today = timezone.localdate()
 
-    # 2. Lấy xe từ danh sách phân bổ tháng hiện tại
+    # 2. Lấy xe từ danh sách phân bổ
     allocation = get_object_or_404(
         Allocation,
-        id=id,
-        allocation_month__year=today.year,
-        allocation_month__month=today.month
+        id=id
     )
 
     # 3. Xác định dòng xe
@@ -872,8 +909,7 @@ def chi_tiet_de_xuat(request, id):
         Allocation.objects
         .filter(
             description=ten_xe,
-            allocation_month__year=today.year,
-            allocation_month__month=today.month
+            allocation_month=allocation.allocation_month
         )
         .aggregate(
             total=Sum("quantity")
