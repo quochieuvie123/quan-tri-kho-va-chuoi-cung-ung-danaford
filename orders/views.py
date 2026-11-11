@@ -366,7 +366,6 @@ def allocation_list(request):
                     # TỰ ĐỘNG ĐỒNG BỘ CHỈ TIÊU PHÂN BỔ SANG MODULE DỰ BÁO NHU CẦU (ANALYTICS)
                     try:
                         from analytics.models import ChiTieuPhanBo
-                        from django.db.models import Sum
                         summary_pbs = (
                             Allocation.objects
                             .filter(allocation_month__isnull=False)
