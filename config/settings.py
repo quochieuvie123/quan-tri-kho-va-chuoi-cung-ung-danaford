@@ -27,6 +27,16 @@ DEBUG = True
 
 ALLOWED_HOSTS = ["*", "localhost", "127.0.0.1", "testserver"]
 
+# Cho phép gửi form (POST/Login/CSRF) an toàn qua các đường hầm tunnel test (Cloudflare, Ngrok, Pinggy...)
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.trycloudflare.com",
+    "https://*.ngrok-free.app",
+    "https://*.pinggy.link",
+    "https://*.loca.lt",
+    "http://127.0.0.1",
+    "http://localhost",
+]
+
 
 # Application definition
 
