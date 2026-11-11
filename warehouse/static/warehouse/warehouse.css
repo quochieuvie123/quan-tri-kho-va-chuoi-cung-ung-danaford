@@ -60,3 +60,203 @@ textarea.inp { width: 100%; }
 .filter .inp { width: 100%; margin-top: 4px; }
 @media (max-width: 800px) { .filter__grid { grid-template-columns: 1fr; } .filter__wide2 { grid-column: auto; } }
 @media print { .sidebar, .topbar, .page-title { display: none !important; } .app__content { padding: 0 !important; } }
+
+/* ============================================================
+   FIGMA DESIGN TOKENS - Danaford Warehouse UI
+   ============================================================ */
+:root {
+  --blue:          #0067C5;
+  --bg-page:       #F4F7FB;
+  --surface:       #FFFFFF;
+  --heading:       #102A43;
+  --text-main:     #243B53;
+  --text-secondary:#627D98;
+  --border:        #DCE6F0;
+  --placeholder:   #9FB3C8;
+  --banner-bg:     #FFF4D8;
+  --banner-text:   #B76E00;
+  --radius-ctrl:   8px;
+  --radius-card:   14px;
+  --radius-banner: 10px;
+  --radius-btn:    8px;
+  --radius-kpi:    12px;
+}
+
+/* Typography */
+.page-title {
+  font-family: Montserrat, sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 145%;
+  color: var(--heading);
+  margin: 0 0 20px;
+}
+.card h3 {
+  font-family: Montserrat, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 145%;
+  color: var(--heading);
+  margin: 0 0 16px;
+}
+.field-label {
+  display: block;
+  font-family: Montserrat, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 145%;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+/* Card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+/* Notice banner */
+.notice-banner {
+  background: var(--banner-bg);
+  color: var(--banner-text);
+  border-radius: var(--radius-banner);
+  padding: 12px 20px;
+  font-family: Montserrat, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+/* Inputs */
+.inp {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-ctrl);
+  font-family: Montserrat, sans-serif;
+  font-size: 13px;
+  color: var(--text-main);
+  box-sizing: border-box;
+  background: var(--surface);
+}
+.inp::placeholder { color: var(--placeholder); }
+.inp:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,103,197,.15); }
+
+/* Buttons Figma */
+.btn-figma-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 180px;
+  height: 44px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-btn);
+  font-family: Montserrat, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 145%;
+  cursor: pointer;
+  text-decoration: none;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.btn-figma-primary:hover { background: #0056a8; color: #fff; text-decoration: none; }
+
+.btn-figma-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 180px;
+  height: 44px;
+  background: var(--surface);
+  color: var(--blue);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-btn);
+  font-family: Montserrat, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 145%;
+  cursor: pointer;
+  text-decoration: none;
+  box-sizing: border-box;
+  white-space: nowrap;
+}
+.btn-figma-secondary:hover { background: #F4F7FB; color: var(--blue); text-decoration: none; }
+
+/* Table Figma */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th {
+  background: var(--bg-page);
+  color: var(--text-secondary);
+  font-family: Montserrat, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.tbl td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-family: Montserrat, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-main);
+}
+.tbl a { color: var(--blue); text-decoration: underline; }
+.tbl tbody tr:hover { background: #F8FAFC; }
+
+/* Grid helpers */
+.grid2-figma {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.kv-figma {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 10px 16px;
+  margin: 0;
+}
+.kv-figma dt {
+  font-family: Montserrat, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.kv-figma dd {
+  font-family: Montserrat, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-main);
+  margin: 0;
+}
+
+/* Timeline */
+.timeline-figma { margin: 0; padding-left: 20px; }
+.timeline-figma li {
+  font-family: Montserrat, sans-serif;
+  font-size: 13px;
+  color: var(--text-main);
+  margin-bottom: 10px;
+}
+.timeline-figma li small { color: var(--text-secondary); }
+
+/* Action row */
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+/* Page background */
+body { background: var(--bg-page); }
