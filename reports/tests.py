@@ -241,3 +241,93 @@ class BaoCaoTonKhoTest(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn("den_ngay", form.errors)
+
+
+class BaoCaoBoSungTest(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+
+        self.user = get_user_model().objects.create_user(username="report-extra")
+        self.user_khac = get_user_model().objects.create_user(username="report-other")
+        self.khos = []
+
+        for i in range(1, 3):
+            cn = ChiNhanh.objects.create(
+                ma_cn=f"CN-EXTRA-{i}", ten_cn=f"Chi nhánh thử {i}",
+            )
+            self.khos.append(Kho.objects.create(
+                ma_kho=f"KHO-EXTRA-{i}", chi_nhanh=cn,
+            ))
+
+    def test_dat_xe_dem_phieu_va_so_luong_rieng(self):
+        from orders.models import Allocation, VehicleRequest, VehicleRequestItem
+        from .utils import tao_bao_cao_dat_xe
+
+        phieu = VehicleRequest.objects.create(created_by=self.user)
+        VehicleRequest.objects.create(created_by=self.user_khac)
+
+        for i, so_luong in enumerate([2, 3], start=1):
+            xe = Allocation.objects.create(
+                order_number=f"ORDER-{i}", vehicle_code="RANGER",
+                description="Ford Ranger", vin=f"ALLOC-EXTRA-{i}",
+                color_code="W", exterior_color="Trắng",
+                engine_number=f"ENGINE-{i}",
+            )
+            VehicleRequestItem.objects.create(
+                vehicle_request=phieu, allocation=xe, quantity=so_luong,
+            )
+
+        bao_cao = tao_bao_cao_dat_xe(
+            self.user, {"ten_xe": "Ranger"}, True,
+        )
+        self.assertEqual(bao_cao["tong"], 1)
+        self.assertEqual(sum(row[7] for row in bao_cao["dong"]), 5)
+        self.assertEqual(len(bao_cao["dong"]), 2)
+
+    def test_luu_chuyen_hai_kho_khong_dem_trung(self):
+        from transfers.models import LenhLuuChuyen, ChiTietLenhLuuChuyen
+        from .utils import tao_bao_cao_luu_chuyen
+
+        lenh = LenhLuuChuyen.objects.create(
+            ma_lenh="LLC-EXTRA", kho_xuat=self.khos[0],
+            kho_nhap=self.khos[1], nguoi_lap=self.user,
+        )
+
+        for i in range(1, 3):
+            xe = Xe.objects.create(
+                vin=f"VIN-EXTRA-{i}", ten_xe="Ford Ranger",
+                so_may=f"MAY-EXTRA-{i}", loai_xe="SUV", mau_sac="Trắng",
+            )
+            ChiTietLenhLuuChuyen.objects.create(
+                lenh=lenh, xe=xe, so_luong=1,
+            )
+
+        for bo_loc in [{}, {"kho": self.khos[0]}, {"kho": self.khos[1]}]:
+            bao_cao = tao_bao_cao_luu_chuyen(Kho.objects.all(), bo_loc, True)
+            self.assertEqual(bao_cao["tong"], 1)
+            self.assertEqual(sum(row[6] for row in bao_cao["dong"]), 2)
+
+    def test_canh_bao_nhieu_kho_chi_dem_mot_lan(self):
+        from alerts.models import CanhBao, NguongCanhBao
+        from .utils import tao_bao_cao_canh_bao
+
+        nguong = NguongCanhBao.objects.create(
+            ten_xe="Everest", mau_sac="Trắng Tuyết", ton_toi_thieu=3,
+        )
+        cb = CanhBao.objects.create(
+            nguong=nguong, loai=CanhBao.Loai.DUOI_NGUONG,
+            so_luong_hien_tai=2, con_hieu_luc=True,
+            trang_thai=CanhBao.TrangThai.DA_XU_LY,
+        )
+        cb.cac_kho.set(self.khos)
+
+        bao_cao = tao_bao_cao_canh_bao(Kho.objects.all(), {})
+        self.assertEqual(bao_cao["tong"], 1)
+        self.assertEqual(sum(bao_cao["theo_loai"].values()), 1)
+        self.assertEqual(bao_cao["dong"][0][5], "Còn hiệu lực")
+        self.assertEqual(bao_cao["dong"][0][6], "Đã xử lý")
+
+    def test_thieu_quyen_khong_them_bao_cao_moi(self):
+        bao_cao = tao_bao_cao(Kho.objects.all(), {}, user=self.user)
+        for loai in ["dat_xe", "luu_chuyen", "canh_bao"]:
+            self.assertNotIn(loai, bao_cao)

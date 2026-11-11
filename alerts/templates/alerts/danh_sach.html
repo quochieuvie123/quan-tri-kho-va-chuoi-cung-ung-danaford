@@ -1,154 +1,198 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block extra_css %}
-<style>
-    .canh-bao .bo-loc {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-end;
-        gap: 16px;
-    }
-
-    .canh-bao .bo-loc p {
-        margin: 0;
-        flex: 1 1 180px;
-    }
-
-    .canh-bao label {
-        display: block;
-        margin-bottom: 8px;
-        font-size: 14px;
-    }
-
-    .canh-bao input,
-    .canh-bao select {
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #dce3eb;
-        border-radius: 6px;
-        font: inherit;
-        font-size: 14px;
-    }
-
-    .canh-bao .thao-tac {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .canh-bao button {
-        padding: 11px 24px;
-        background: #0b66c3;
-        color: white;
-        border: 0;
-        border-radius: 6px;
-        cursor: pointer;
-    }
-
-    .canh-bao .bang {
-        margin-top: 20px;
-        overflow-x: auto;
-    }
-
-    .canh-bao table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 14px;
-    }
-
-    .canh-bao th,
-    .canh-bao td {
-        padding: 14px 12px;
-        border-bottom: 1px solid #e5e7eb;
-        text-align: left;
-        vertical-align: top;
-    }
-
-    .canh-bao th {
-        background: #f4f7fb;
-    }
-
-    .canh-bao .errorlist {
-        color: #b42318;
-        padding-left: 18px;
-        font-size: 13px;
-    }
-</style>
+<link rel="stylesheet" href="{% static 'alerts/giao_dien.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="canh-bao">
-    <div class="card">
+<div class="giao-dien-dnf">
+    <header class="dau-trang">
+        <h1>Cảnh báo</h1>
+        <p class="mo-ta">
+            Theo dõi xe tồn lâu, nhóm xe hết hàng và tồn dưới ngưỡng
+            để kịp thời xử lý.
+        </p>
+    </header>
+
+    <section class="khung" aria-label="Bộ lọc cảnh báo">
         <form method="get" class="bo-loc">
-            {{ form.as_p }}
+            <div class="luoi-bo-loc">
+                <div class="truong">
+    {{ form.kho.label_tag }}
+
+    <div class="chon-kho" id="chon-kho">
+        {{ form.kho }}
+
+        <button
+            type="button"
+            id="nut-chon-kho"
+            class="nut-chon-kho"
+            aria-haspopup="listbox"
+            aria-controls="danh-sach-kho"
+            aria-expanded="false"
+            hidden
+        >
+            <span id="ten-kho-da-chon"></span>
+        </button>
+
+        <div
+            id="danh-sach-kho"
+            class="danh-sach-kho"
+            role="listbox"
+            aria-label="Kho"
+            hidden
+        ></div>
+    </div>
+
+    {{ form.kho.errors }}
+</div>
+
+                <div class="truong">
+    {{ form.loai.label_tag }}
+
+    <div class="chon-kho">
+        {{ form.loai }}
+
+        <button
+            type="button"
+            class="nut-chon-kho"
+            aria-haspopup="listbox"
+            aria-expanded="false"
+            hidden
+        >
+            <span></span>
+        </button>
+
+        <div
+            class="danh-sach-kho"
+            role="listbox"
+            aria-label="Loại cảnh báo"
+            hidden
+        ></div>
+    </div>
+
+    {{ form.loai.errors }}
+</div>
+
+                <div class="truong">
+                    {{ form.ten_xe.label_tag }}
+                    {{ form.ten_xe }}
+                    {{ form.ten_xe.errors }}
+                </div>
+
+                <div class="truong">
+                    {{ form.mau_sac.label_tag }}
+                    {{ form.mau_sac }}
+                    {{ form.mau_sac.errors }}
+                </div>
+            </div>
+
+            {{ form.non_field_errors }}
 
             <div class="thao-tac">
-                <button type="submit">Lọc</button>
-                <a href="{% url 'alerts:index' %}">Bỏ lọc</a>
+                <button type="submit" class="nut">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    Tìm kiếm
+                </button>
+
+                <a href="{% url 'alerts:index' %}" class="nut nut-phu">
+                    <i
+                        class="bi bi-arrow-counterclockwise"
+                        aria-hidden="true"
+                    ></i>
+                    Đặt lại
+                </a>
             </div>
         </form>
-    </div>
+    </section>
 
-    <div class="card bang">
-        <h2>Danh sách cảnh báo</h2>
-        <p>Số cảnh báo phù hợp: {{ tong_so }}</p>
+    <section class="khung">
+        <div class="dau-khoi">
+            <h2>Danh sách cảnh báo</h2>
+            <span class="ghi-chu">
+                {{ tong_so }} cảnh báo phù hợp
+            </span>
+        </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Mã</th>
-                    <th>Loại cảnh báo</th>
-                    <th>Kho</th>
-                    <th>Đối tượng cảnh báo</th>
-                    <th>Số liệu</th>
-                    <th>Trạng thái xử lý</th>
-                    <th>Ngày phát sinh</th>
-                </tr>
-            </thead>
+        <div
+            class="cuon-bang"
+            role="region"
+            aria-label="Danh sách cảnh báo"
+            tabindex="0"
+        >
+            <table>
+                <thead>
+                    <tr>
+                        <th scope="col">Mã cảnh báo</th>
+                        <th scope="col">Loại cảnh báo</th>
+                        <th scope="col">Kho</th>
+                        <th scope="col">Đối tượng cảnh báo</th>
+                        <th scope="col">Số liệu</th>
+                        <th scope="col">Trạng thái xử lý</th>
+                        <th scope="col">Ngày phát sinh</th>
+                    </tr>
+                </thead>
 
-            <tbody>
-                {% for cb in danh_sach %}
-                <tr>
-                    <td>
-                        <a href="{% url 'alerts:chi_tiet' cb.pk %}?{{ request.GET.urlencode }}">
-                            CB{{ cb.pk }}
-                        </a>
-                    </td>
-                    <td>{{ cb.get_loai_display }}</td>
-                    <td>{{ cb.kho }}</td>
+                <tbody>
+                    {% for cb in danh_sach %}
+                    <tr>
+                        <td>
+                            <a
+                                class="lien-ket"
+                                href="{% url 'alerts:chi_tiet' cb.pk %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}"
+                            >
+                                CB{{ cb.pk }}
+                            </a>
+                        </td>
 
-                    <td>
-                        {% if cb.xe %}
-                            {{ cb.xe.vin }}<br>
-                            {{ cb.xe.ten_xe }}<br>
-                            {{ cb.xe.mau_sac|default:"Chưa có màu" }}
-                        {% else %}
-                            {{ cb.nguong.ten_xe }}<br>
-                            {{ cb.nguong.mau_sac|default:"Chưa có màu" }}
-                        {% endif %}
-                    </td>
+                        <td>{{ cb.get_loai_display }}</td>
+                        <td>{{ cb.kho_hien_thi }}</td>
 
-                    <td>
-                        {% if cb.loai == "TON_LAU" %}
-                            {{ cb.so_ngay_ton }} ngày
-                        {% else %}
-                            Tồn: {{ cb.so_luong_hien_tai }} xe<br>
-                            Ngưỡng: {{ cb.nguong.ton_toi_thieu }} xe
-                        {% endif %}
-                    </td>
+                        <td>
+                            {% if cb.xe %}
+                                {{ cb.xe.vin }}<br>
+                                {{ cb.xe.ten_xe }}<br>
+                                {{ cb.xe.mau_sac|default:"Chưa có màu" }}
+                            {% else %}
+                                {{ cb.nguong.ten_xe }}<br>
+                                {{ cb.nguong.mau_sac|default:"Chưa có màu" }}
+                            {% endif %}
+                        </td>
 
-                    <td>{{ cb.get_trang_thai_display }}</td>
-                    <td>{{ cb.ngay_phat_sinh|date:"d/m/Y H:i" }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7">
-                        Không có cảnh báo phù hợp.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                        <td>
+                            {% if cb.loai == "TON_LAU" %}
+                                {{ cb.so_ngay_ton }} ngày
+                            {% else %}
+                                Tổng tồn: {{ cb.so_luong_hien_tai }} xe<br>
+                                Ngưỡng: {{ cb.nguong.ton_toi_thieu }} xe
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            <span class="trang-thai {{ cb.trang_thai|lower }}">
+                                {{ cb.get_trang_thai_display }}
+                            </span>
+                        </td>
+
+                        <td>
+                            {{ cb.ngay_phat_sinh|date:"d/m/Y H:i" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="trong">
+                            Không có cảnh báo phù hợp với bộ lọc.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'alerts/chon_kho.js' %}" defer></script>
 {% endblock %}

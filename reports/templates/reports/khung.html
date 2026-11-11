@@ -1,234 +1,133 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block extra_css %}
-<style>
-.bc {
-    background: #fff;
-    border-radius: 12px;
-    padding: 22px;
-    margin-bottom: 20px;
-    color: #102b46;
-    min-width: 0;
-}
-
-.bc form {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    align-items: flex-start;
-}
-
-.bc .truong {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-width: 180px;
-    flex: 1;
-}
-
-.bc input,
-.bc select {
-    padding: 10px;
-    border: 1px solid #ccd6e1;
-    border-radius: 6px;
-    max-width: 100%;
-    box-sizing: border-box;
-}
-
-.bc .nut {
-    display: inline-block;
-    background: #0866c6;
-    color: #fff;
-    padding: 10px 16px;
-    border: 0;
-    border-radius: 6px;
-    text-decoration: none;
-    font: inherit;
-    cursor: pointer;
-}
-
-.bc .phu {
-    background: #e9eff6;
-    color: #102b46;
-}
-
-.bc .loi,
-.bc .errorlist {
-    color: #b42318;
-}
-
-.bc .the {
-    display: grid;
-    grid-template-columns: repeat(
-        auto-fit,
-        minmax(210px, 1fr)
-    );
-    gap: 16px;
-}
-
-.bc .o {
-    border: 1px solid #dce4ec;
-    border-radius: 8px;
-    padding: 16px;
-}
-
-.bc .so {
-    font-size: 28px;
-    font-weight: 700;
-    margin: 12px 0;
-}
-
-.bc .so small {
-    font-size: 16px;
-}
-
-.bc .cuon {
-    overflow-x: auto;
-}
-
-.bc table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 12px 0;
-}
-
-.bc th,
-.bc td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #e1e7ee;
-}
-
-.bc th {
-    background: #eef4fa;
-    white-space: nowrap;
-}
-
-.bc .ghi-chu {
-    line-height: 1.6;
-    color: #52677c;
-    font-size: 14px;
-}
-
-.bc .thanh-tac-vu {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 16px;
-}
-
-.bc .thanh-tac-vu p {
-    margin: 0;
-}
-
-.bc-luoi {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
-}
-
-.bc-luoi .bc {
-    margin-bottom: 0;
-}
-
-.bc .bieu-do {
-    width: 100%;
-    min-width: 0;
-}
-
-.bc .rong {
-    display: flex;
-    min-height: 220px;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    background: #f6f8fb;
-    border-radius: 8px;
-    color: #52677c;
-    padding: 20px;
-}
-
-.bc .canh-bao-du-lieu {
-    background: #fff5df;
-    color: #835600;
-    padding: 12px;
-    border-radius: 6px;
-}
-
-@media (max-width: 1100px) {
-    .bc-luoi {
-        grid-template-columns: 1fr;
-    }
-}
-</style>
+<link rel="stylesheet" href="{% static 'reports/giao_dien.css' %}">
 {% endblock %}
 
 {% block content %}
-<section class="bc">
-    <form method="get">
-        {% for field in form %}
-        <div class="truong">
-            {{ field.label_tag }}
-            {{ field }}
-            {{ field.errors }}
-        </div>
-        {% endfor %}
+<div class="giao-dien-dnf">
+    <header class="dau-trang">
+        <h1>{{ page_title }}</h1>
 
-        <button class="nut" type="submit">
-            Áp dụng bộ lọc
+        <p class="mo-ta">
+            {% block mo_ta_bao_cao %}
+                Theo dõi tồn kho, tuổi tồn và các nghiệp vụ phát sinh
+                thông qua số liệu tổng hợp và biểu đồ.
+            {% endblock %}
+        </p>
+    </header>
+
+    <section class="khung" aria-label="Bộ lọc báo cáo">
+        <form method="get" class="bo-loc">
+            <div class="luoi-bo-loc">
+                <div class="truong">
+    {{ form.kho.label_tag }}
+
+    <div class="chon-kho" id="chon-kho">
+        {{ form.kho }}
+
+        <button
+            type="button"
+            id="nut-chon-kho"
+            class="nut-chon-kho"
+            aria-haspopup="listbox"
+            aria-controls="danh-sach-kho"
+            aria-expanded="false"
+            hidden
+        >
+            <span id="ten-kho-da-chon"></span>
         </button>
 
-        <a
-            class="nut phu"
-            href="{% url 'dashboard:index' %}"
-        >
-            Xóa bộ lọc
-        </a>
-    </form>
-
-    {{ form.non_field_errors }}
-
-    <div class="thanh-tac-vu">
-        <p class="ghi-chu">
-            Tổng hợp lúc:
-            {{ thoi_diem|date:"d/m/Y H:i:s" }}.
-        </p>
-
-        {% if hop_le %}
-        <a
-            class="nut"
-            href="{% url 'dashboard:reports:xuat_excel' %}?{{ tham_so }}"
-        >
-            Xuất Excel (6 trang tính)
-        </a>
-        {% endif %}
+        <div
+            id="danh-sach-kho"
+            class="danh-sach-kho"
+            role="listbox"
+            aria-label="Kho"
+            hidden
+        ></div>
     </div>
 
-    <p class="ghi-chu">
-        Tồn kho và tuổi tồn phản ánh hiện tại.
-        Bộ lọc ngày áp dụng cho nhập kho, xuất kho,
-        hợp đồng và PDI (bao gồm ngày đầu và ngày cuối).
-    </p>
+    {{ form.kho.errors }}
+</div>
 
-    {% if kho_da_chon %}
-    <p class="ghi-chu">
-        Phạm vi: kho {{ kho_da_chon.pk }}
-        (chi nhánh {{ kho_da_chon.chi_nhanh_id }}).
-    </p>
+                <div class="truong">
+                    {{ form.ten_xe.label_tag }}
+                    {{ form.ten_xe }}
+                    {{ form.ten_xe.errors }}
+                </div>
+
+                <div class="truong">
+                    {{ form.tu_ngay.label_tag }}
+                    {{ form.tu_ngay }}
+                    {{ form.tu_ngay.errors }}
+                </div>
+
+                <div class="truong">
+                    {{ form.den_ngay.label_tag }}
+                    {{ form.den_ngay }}
+                    {{ form.den_ngay.errors }}
+                </div>
+            </div>
+
+            {{ form.non_field_errors }}
+
+            <div class="thao-tac">
+                <button class="nut" type="submit">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    Tìm kiếm
+                </button>
+
+                <a
+                    class="nut nut-phu"
+                    href="{% url 'dashboard:index' %}"
+                >
+                    <i
+                        class="bi bi-arrow-counterclockwise"
+                        aria-hidden="true"
+                    ></i>
+                    Đặt lại
+                </a>
+            </div>
+        </form>
+
+        {% if hop_le %}
+        <div class="thanh-tac-vu">
+            <a
+                class="nut"
+                href="{% url 'dashboard:reports:xuat_excel' %}?{{ tham_so }}{% if loai_bao_cao %}&amp;loai={{ loai_bao_cao }}{% endif %}"
+            >
+                <i
+                    class="bi bi-file-earmark-excel"
+                    aria-hidden="true"
+                ></i>
+                Xuất Excel
+            </a>
+        </div>
+        {% endif %}
+
+        {% if kho_da_chon %}
+        <p class="ghi-chu">
+            Phạm vi: kho {{ kho_da_chon.pk }}
+            (chi nhánh {{ kho_da_chon.chi_nhanh_id }}).
+        </p>
+        {% endif %}
+
+        {% if not hop_le %}
+        <p class="loi" role="alert">
+            Bộ lọc chưa hợp lệ.
+            Vui lòng sửa các trường được báo lỗi.
+        </p>
+        {% endif %}
+    </section>
+
+    {% if hop_le %}
+        {% block noi_dung_bao_cao %}
+        {% endblock %}
     {% endif %}
+</div>
+{% endblock %}
 
-    {% if not hop_le %}
-    <p class="loi">
-        Bộ lọc chưa hợp lệ.
-        Vui lòng sửa các trường được báo lỗi.
-    </p>
-    {% endif %}
-</section>
-
-{% if hop_le %}
-    {% block noi_dung_bao_cao %}
-    {% endblock %}
-{% endif %}
+{% block extra_js %}
+<script src="{% static 'reports/chon_kho.js' %}" defer></script>
 {% endblock %}

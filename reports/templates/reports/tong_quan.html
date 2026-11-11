@@ -1,52 +1,49 @@
 {% extends "reports/khung.html" %}
 
 {% block noi_dung_bao_cao %}
-<section class="bc">
-    <div class="the">
-        {% for item in cac_chi_so %}
-        <div class="o">
-            <strong>{{ item.ten }}</strong>
+<section class="luoi-chi-so" aria-label="Các chỉ số tổng hợp">
+    {% for item in cac_chi_so %}
+    <article class="chi-so">
+        <h2 class="ten-chi-so">{{ item.ten }}</h2>
 
-            <p class="so">
-                {{ item.tong }}
-                <small>{{ item.don_vi }}</small>
-            </p>
+        <p class="gia-tri">
+            {{ item.tong }}
+            <small>{{ item.don_vi }}</small>
+        </p>
 
-            {% if item.ghi_chu %}
-            <p class="ghi-chu">
-                {{ item.ghi_chu }}
-            </p>
-            {% endif %}
+        {% if item.ghi_chu %}
+        <p class="ghi-chu">{{ item.ghi_chu }}</p>
+        {% endif %}
 
-            <a href="{% url 'dashboard:reports:chi_tiet' item.loai %}?{{ tham_so }}">
-                Xem chi tiết
-            </a>
-        </div>
-        {% endfor %}
-    </div>
+        <a
+            class="lien-ket"
+            href="{% url 'dashboard:reports:chi_tiet' item.loai %}?{{ tham_so }}"
+        >
+            Xem chi tiết
+            <i class="bi bi-arrow-right" aria-hidden="true"></i>
+            <span class="nhan-an">{{ item.ten }}</span>
+        </a>
+    </article>
+    {% endfor %}
 </section>
 
 {% if bao_cao.tuoi_ton.ngay_khong_hop_le %}
-<section class="bc">
-    <p class="canh-bao-du-lieu">
-        Có {{ bao_cao.tuoi_ton.ngay_khong_hop_le }} xe
-        có ngày vào kho ở tương lai.
-        Các xe này vẫn được tính trong tổng tồn,
-        nhưng không đưa vào ba nhóm tuổi tồn hợp lệ.
-        Bạn có thể kiểm tra tại trang chi tiết tuổi tồn.
-    </p>
-</section>
+<p class="canh-bao">
+    Có {{ bao_cao.tuoi_ton.ngay_khong_hop_le }} xe
+    có ngày vào kho ở tương lai.
+    Các xe này vẫn được tính trong tổng tồn,
+    nhưng không đưa vào ba nhóm tuổi tồn hợp lệ.
+    Bạn có thể kiểm tra tại trang chi tiết tuổi tồn.
+</p>
 {% endif %}
 
-<div class="bc-luoi">
+<div class="luoi-bieu-do">
     {% for item in cac_bieu_do %}
-    <section class="bc">
+    <section class="khung">
         <h2>{{ item.tieu_de }}</h2>
 
         {% if item.mo_ta %}
-        <p class="ghi-chu">
-            {{ item.mo_ta }}
-        </p>
+        <p class="ghi-chu">{{ item.mo_ta }}</p>
         {% endif %}
 
         {% if item.html %}
@@ -54,7 +51,7 @@
             {{ item.html|safe }}
         </div>
         {% else %}
-        <div class="rong">
+        <div class="bieu-do-trong">
             Không có dữ liệu phù hợp với bộ lọc.
         </div>
         {% endif %}
