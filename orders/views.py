@@ -181,8 +181,17 @@ def allocation_list(request):
                                 col_map["description"] = c_idx
                             elif c_name in ("COLOR CODE", "COLOR_CODE", "COLOUR CODE", "COLOUR_CODE", "MÃ MÀU", "MA MAU") and "color_code" not in col_map:
                                 col_map["color_code"] = c_idx
-                            elif c_name in ("EXTERIOR COLOUR", "EXTERIOR COLOR", "MÀU NGOẠI THẤT", "MAU NGOAI THAT", "MÀU SẮC", "MAU SAC", "COLOUR (FN)") and "exterior_color" not in col_map:
+                            elif c_name in (
+                                    "EXTERIOR COLOUR",
+                                    "EXTERIOR COLOR",
+                                    "MÀU NGOẠI THẤT",
+                                    "MAU NGOAI THAT",
+                                    "COLOUR (FN)"
+                            ) and "exterior_color" not in col_map:
                                 col_map["exterior_color"] = c_idx
+
+                            elif c_name in ("MÀU SẮC", "MAU SAC") and "mau_sac" not in col_map:
+                                col_map["mau_sac"] = c_idx
                             elif c_name in ("ENGINE_NUMBER", "ENGINE NUMBER", "ENGINE NO", "SỐ MÁY", "SO MAY") and "engine_number" not in col_map:
                                 col_map["engine_number"] = c_idx
                             elif c_name in ("QUANTITY", "SỐ LƯỢNG", "SO LUONG", "QTY") and "quantity" not in col_map:
@@ -204,11 +213,12 @@ def allocation_list(request):
                             "vin": 4,
                             "color_code": 5,
                             "exterior_color": 6,
-                            "engine_number": 7,
-                            "quantity": 8,
-                            "expected_ship_date": 9,
-                            "contractual_delivery_date": 10,
-                            "allocation_month": 11,
+                            "mau_sac": 7,
+                            "engine_number": 8,
+                            "quantity": 9,
+                            "expected_ship_date": 10,
+                            "contractual_delivery_date": 11,
+                            "allocation_month": 12,
                         }
                         start_data_idx = 1
 
@@ -248,6 +258,11 @@ def allocation_list(request):
                             "contractual_delivery_date": chuyen_ngay(get_col("contractual_delivery_date")),
                             "allocation_month": alloc_month,
                         })
+                        if "mau_sac" in col_map:
+                            mau_sac_excel = chuyen_chuoi(get_col("mau_sac"))
+
+                            if mau_sac_excel:
+                                data[-1]["mau_sac"] = mau_sac_excel
 
                     if not data:
                         raise ValueError("Không đọc được dòng dữ liệu xe phân bổ hợp lệ nào từ file Excel")
@@ -293,9 +308,14 @@ def allocation_list(request):
                 allocation_month__month=latest_allocation.allocation_month.month
             ).order_by("id")
 
+    tong_so_xe = allocations.aggregate(
+        total=Sum("quantity")
+    )["total"] or 0
+
     return render(request, "danh_sach_pb.html", {
         "form": form,
-        "allocations": allocations
+        "allocations": allocations,
+        "tong_so_xe": tong_so_xe
     })
 
 # Đặt xe
@@ -605,7 +625,7 @@ def gui_phieu_yeu_cau(request, id):
 
         from_email=settings.DEFAULT_FROM_EMAIL,
 
-        to=["fordvn04@gmail.com"],
+        to=settings.ORDER_RECEIVER_EMAILS,
     )
 
 
@@ -733,161 +753,124 @@ def xac_nhan_phieu(request, id):
 
 
 
-from collections import defaultdict
-from database.models import ChiTietBan, TonKho
+from analytics.models import PhienDuBao, DongDuBao, HOAN_TAT
+
 
 
 @login_required
 def danh_sach_de_xuat(request):
     today = timezone.localdate()
 
-    # 1. Lấy danh sách phân bổ tháng hiện tại
-    allocations = Allocation.objects.filter(
-        allocation_month__year=today.year,
-        allocation_month__month=today.month
-    )
-
-    # 2. Tính tổng số xe bán theo dòng xe
-    doanh_so = (
-        ChiTietBan.objects
+    # 1. Lấy phiên dự báo hoàn tất, còn hiệu lực
+    phien = (
+        PhienDuBao.objects
         .filter(
-            hoa_don_ban__ngay_ban__year=today.year,
-            hoa_don_ban__ngay_ban__month=today.month
+            nam=today.year,
+            thang=today.month,
+            trang_thai=HOAN_TAT,
+            het_han_luc__gt=timezone.now()
         )
-        .values("xe__ten_xe")
-        .annotate(tong_ban=Sum("so_luong_ban"))
+        .order_by("-tao_luc", "-id")
+        .first()
     )
 
-    doanh_so_map = {
-        item["xe__ten_xe"]: item["tong_ban"]
-        for item in doanh_so
-    }
-
-    # 3. Tính tổng số xe tồn kho theo dòng xe
-    ton_kho = (
-        TonKho.objects
-        .values("xe__ten_xe")
-        .annotate(tong_ton=Sum("so_luong_ton"))
-    )
-
-    ton_kho_map = {
-        item["xe__ten_xe"]: item["tong_ton"]
-        for item in ton_kho
-    }
-
-    # 4. Gom phân bổ theo dòng xe, bỏ mã màu
-    phan_bo_map = defaultdict(lambda: {
-        "so_phan_bo": 0,
-        "allocation_id": None
-    })
-
-    for xe in allocations:
-        ten_xe = xe.description
-
-        phan_bo_map[ten_xe]["so_phan_bo"] += xe.quantity
-        phan_bo_map[ten_xe]["allocation_id"] = xe.id
-
-    # 5. Tính số lượng đề xuất nhập
     danh_sach = []
 
-    for ten_xe, thong_tin in phan_bo_map.items():
-        so_ban = doanh_so_map.get(ten_xe, 0)
-        so_ton = ton_kho_map.get(ten_xe, 0)
-        so_phan_bo = thong_tin["so_phan_bo"]
+    # 2. Nếu có phiên dự báo thì lấy các dòng đề xuất
+    if phien is not None:
+        dong_du_bao = (
+            DongDuBao.objects
+            .filter(phien=phien)
+            .order_by("loai_xe", "ten_xe")
+        )
 
-        nhu_cau = max(0, so_ban - so_ton)
-        de_xuat_nhap = min(nhu_cau, so_phan_bo)
+        for dong in dong_du_bao:
+            # 1. Lấy xe từ danh sách phân bổ theo tháng và mã dòng xe
+            xe_phu_hop = Allocation.objects.filter(
+                allocation_month__year=phien.nam,
+                allocation_month__month=phien.thang,
+                vehicle_code__iexact=dong.ma_dong_xe
+            )
+            # 2. Tính tổng số lượng xe phân bổ thực tế
+            so_phan_bo_thuc_te = (
+                    xe_phu_hop.aggregate(
+                        total=Sum("quantity")
+                    )["total"] or 0
+            )
+            # 3. Đưa dữ liệu vào danh sách đề xuất
+            danh_sach.append({
+                "id": dong.id,
+                "ten_xe": dong.ten_xe,
+                "ma_dong_xe": dong.ma_dong_xe,
+                "hop_dong_cho_giao": dong.hop_dong_cho_giao,
+                "so_ton": dong.ton_kho,
+                "chi_tieu": dong.chi_tieu,
+                "so_phan_bo": so_phan_bo_thuc_te,
+                "de_xuat_poq": dong.de_xuat_poq,
+                "de_xuat_nhap": dong.so_luong_nhap,
+            })
 
-        danh_sach.append({
-            "allocation_id": thong_tin["allocation_id"],
-            "ten_xe": ten_xe,
-            "so_ban": so_ban,
-            "so_ton": so_ton,
-            "so_phan_bo": so_phan_bo,
-            "de_xuat_nhap": de_xuat_nhap
-        })
 
-    return render(
-        request,
-        "ds_de_xuat.html",
-        {"danh_sach": danh_sach}
-    )
+    # 3. Truyền dữ liệu sang HTML
+    context = {
+        "danh_sach": danh_sach,
+        "phien": phien,
+    }
+
+    return render(request, "ds_de_xuat.html", context)
 
 
 
 @login_required
 def chi_tiet_de_xuat(request, id):
 
-    # 1. Lấy ngày hiện tại
-    today = timezone.localdate()
-
-    # 2. Lấy xe từ danh sách phân bổ tháng hiện tại
-    allocation = get_object_or_404(
-        Allocation,
-        id=id,
-        allocation_month__year=today.year,
-        allocation_month__month=today.month
+    # 1. Lấy dòng đề xuất theo ID
+    dong = get_object_or_404(
+        DongDuBao.objects.select_related("phien"),
+        id=id
     )
 
-    # 3. Xác định dòng xe
-    ten_xe = allocation.description
+    phien = dong.phien
 
-    # 4. Tính tổng số xe đã bán trong tháng
-    so_ban = (
-        ChiTietBan.objects
-        .filter(
-            xe__ten_xe=ten_xe,
-            hoa_don_ban__ngay_ban__year=today.year,
-            hoa_don_ban__ngay_ban__month=today.month
+    # 2. Kiểm tra phiên dự báo có còn hiệu lực
+    if not phien.san_sang:
+        messages.warning(
+            request,
+            "Phiên dự báo này đã hết hạn hoặc đã bị hủy."
         )
-        .aggregate(
-            total=Sum("so_luong_ban")
-        )["total"] or 0
+        return redirect("orders:proposal_list")
+
+    # 3. Lấy các xe phân bổ cùng tháng dự báo
+    allocations = Allocation.objects.filter(
+        allocation_month__year=phien.nam,
+        allocation_month__month=phien.thang
+    ).order_by("id")
+
+    # 4. Chỉ đối chiếu mã dòng xe khi mã trùng chính xác
+    xe_phu_hop = allocations.filter(
+        vehicle_code__iexact=dong.ma_dong_xe
     )
 
-    # 5. Tính tổng số lượng tồn kho
-    so_ton = (
-        TonKho.objects
-        .filter(
-            xe__ten_xe=ten_xe
-        )
-        .aggregate(
-            total=Sum("so_luong_ton")
-        )["total"] or 0
-    )
-
-    # 6. Tính tổng số lượng phân bổ theo dòng xe
-    # Không phân biệt mã màu
-    so_phan_bo = (
-        Allocation.objects
-        .filter(
-            description=ten_xe,
-            allocation_month__year=today.year,
-            allocation_month__month=today.month
-        )
-        .aggregate(
+    # 5. Tổng số lượng xe phân bổ khớp mã
+    so_phan_bo_thuc_te = (
+        xe_phu_hop.aggregate(
             total=Sum("quantity")
         )["total"] or 0
     )
 
-    # 7. Tính nhu cầu nhập xe
-    nhu_cau = max(0, so_ban - so_ton)
-
-    # 8. Số lượng đề xuất không vượt quá phân bổ
-    de_xuat_nhap = min(nhu_cau, so_phan_bo)
-
-    # 9. Truyền dữ liệu sang HTML
+    # 6. Dữ liệu hiển thị
     context = {
-        "allocation": allocation,
-        "ten_xe": ten_xe,
-        "so_ban": so_ban,
-        "so_ton": so_ton,
-        "so_phan_bo": so_phan_bo,
-        "nhu_cau": nhu_cau,
-        "de_xuat_nhap": de_xuat_nhap,
+        "dong": dong,
+        "phien": phien,
+        "ten_xe": dong.ten_xe,
+        "hop_dong_cho_giao": dong.hop_dong_cho_giao,
+        "so_ton": dong.ton_kho,
+        "chi_tieu": dong.chi_tieu,
+        "so_phan_bo": so_phan_bo_thuc_te,
+        "de_xuat_nhap": dong.so_luong_nhap,
+        "xe_phu_hop": xe_phu_hop,
     }
 
-    # 10. Hiển thị trang chi tiết
     return render(
         request,
         "chi_tiet_de_xuat.html",

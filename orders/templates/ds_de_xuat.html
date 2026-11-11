@@ -16,7 +16,7 @@
             <tr>
                 <th style="width: 50px; text-align: center;">STT</th>
                 <th>Tên dòng xe</th>
-                <th style="text-align: center;">Đã bán trong tháng</th>
+                <th style="text-align: center;">Hợp đồng chờ giao</th>
                 <th style="text-align: center;">Tồn kho hiện tại</th>
                 <th style="text-align: center;">Số lượng phân bổ</th>
                 <th style="text-align: center;">Đề xuất cần nhập</th>
@@ -28,7 +28,7 @@
             <tr>
                 <td style="text-align: center;">{{ forloop.counter }}</td>
                 <td><strong>{{ item.ten_xe }}</strong></td>
-                <td style="text-align: center; color: #475569;">{{ item.so_ban }}</td>
+                <td style="text-align: center; color: #475569;">{{ item.hop_dong_cho_giao }}</td>
                 <td style="text-align: center; color: #475569;">{{ item.so_ton }}</td>
                 <td style="text-align: center; color: #475569;">{{ item.so_phan_bo }}</td>
                 <td style="text-align: center;">
@@ -37,7 +37,7 @@
                     </span>
                 </td>
                 <td style="text-align: right;">
-                    <a class="btn btn--light" href="{% url 'orders:proposal_detail' item.allocation_id %}">
+                    <a class="btn btn--light" href="{% url 'orders:proposal_detail' item.id %}">
                         <i class="bi bi-eye"></i> Xem chi tiết
                     </a>
                 </td>

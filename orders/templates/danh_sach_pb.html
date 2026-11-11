@@ -102,8 +102,8 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
             <h2 class="section-title" style="margin: 0;">Danh sách xe phân bổ trong tháng hiện tại</h2>
             <span class="badge" style="font-size: 13px; padding: 6px 12px;">
-                Tổng số xe: <strong>{{ allocations|length }}</strong>
-            </span>
+    Tổng số xe: <strong>{{ tong_so_xe }}</strong>
+</span>
         </div>
 
         <div class="table-wrap">
@@ -117,6 +117,7 @@
                         <th>Số khung (VIN)</th>
                         <th>Mã màu</th>
                         <th>Màu ngoại thất</th>
+                        <th>Màu sắc</th>
                         <th>Số máy</th>
                         <th style="text-align: center;">Số lượng</th>
                         <th>Dự kiến ship</th>
@@ -134,6 +135,7 @@
                         <td style="font-family: monospace; font-weight: 700; color: #0b66c3;">{{ allocation.vin }}</td>
                         <td>{{ allocation.color_code }}</td>
                         <td>{{ allocation.exterior_color }}</td>
+                        <td>{{ allocation.mau_sac|default:"—" }}</td>
                         <td>{{ allocation.engine_number }}</td>
                         <td style="text-align: center; font-weight: 700;">{{ allocation.quantity }}</td>
                         <td>{{ allocation.expected_ship_date|date:"d/m/Y"|default:"—" }}</td>
@@ -142,7 +144,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="12" class="empty">
+                        <td colspan="13" class="empty">
                             <i class="bi bi-file-earmark-spreadsheet" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
                             <p style="margin: 0; color: #64748b;">Chưa có dữ liệu phân bổ nào trong tháng này. Hãy tải lên file Excel để bắt đầu.</p>
                         </td>

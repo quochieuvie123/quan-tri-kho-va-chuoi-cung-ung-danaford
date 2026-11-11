@@ -372,3 +372,22 @@
 .proposal-back-btn:hover {
     background-color: #0755a0;
 }
+
+
+/* Nút đặt xe bị vô hiệu hóa */
+.btn--disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Thông báo chưa có xe trong danh sách phân bổ */
+.booking-warning {
+    color: #dc2626;
+    font-size: 13px;
+}
+
+/* Thông báo không có nhu cầu nhập thêm */
+.booking-notice {
+    color: #64748b;
+    font-size: 13px;
+}
