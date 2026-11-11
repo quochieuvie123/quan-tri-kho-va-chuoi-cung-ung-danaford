@@ -255,8 +255,10 @@ def allocation_list(request):
                                 col_map["description"] = c_idx
                             elif c_name in ("COLOR CODE", "COLOR_CODE", "COLOUR CODE", "COLOUR_CODE", "MÃ MÀU", "MA MAU") and "color_code" not in col_map:
                                 col_map["color_code"] = c_idx
-                            elif c_name in ("EXTERIOR COLOUR", "EXTERIOR COLOR", "MÀU NGOẠI THẤT", "MAU NGOAI THAT", "MÀU SẮC", "MAU SAC", "COLOUR (FN)") and "exterior_color" not in col_map:
+                            elif c_name in ("EXTERIOR COLOUR", "EXTERIOR COLOR", "MÀU NGOẠI THẤT", "MAU NGOAI THAT", "COLOUR (FN)") and "exterior_color" not in col_map:
                                 col_map["exterior_color"] = c_idx
+                            elif c_name in ("MÀU SẮC", "MAU SAC", "MÀU", "MAU", "COLOR", "COLOUR") and "mau_sac" not in col_map:
+                                col_map["mau_sac"] = c_idx
                             elif c_name in ("ENGINE_NUMBER", "ENGINE NUMBER", "ENGINE NO", "SỐ MÁY", "SO MAY") and "engine_number" not in col_map:
                                 col_map["engine_number"] = c_idx
                             elif c_name in ("QUANTITY", "SỐ LƯỢNG", "SO LUONG", "QTY") and "quantity" not in col_map:
@@ -339,6 +341,7 @@ def allocation_list(request):
                             "description": chuyen_chuoi(get_col("description")),
                             "color_code": chuyen_chuoi(get_col("color_code")),
                             "exterior_color": chuyen_chuoi(get_col("exterior_color")),
+                            "mau_sac": chuyen_chuoi(get_col("mau_sac")) or chuyen_chuoi(get_col("exterior_color")),
                             "engine_number": chuyen_chuoi(get_col("engine_number")),
                             "quantity": chuyen_so_luong(get_col("quantity"), default=1),
                             "expected_ship_date": chuyen_ngay(get_col("expected_ship_date")),
@@ -409,9 +412,11 @@ def allocation_list(request):
         if cn_obj:
             cn_name = cn_obj.ten_cn
 
+    tong_so_xe = allocations.aggregate(total=Sum("quantity"))["total"] or 0
     return render(request, "danh_sach_pb.html", {
         "form": form,
         "allocations": allocations,
+        "tong_so_xe": tong_so_xe,
         "selected_month": selected_month,
         "month_options": month_options,
         "current_cn": current_cn,
@@ -727,7 +732,7 @@ def gui_phieu_yeu_cau(request, id):
 
         from_email=settings.DEFAULT_FROM_EMAIL,
 
-        to=["fordvn04@gmail.com"],
+        to=getattr(settings, "ORDER_RECEIVER_EMAILS", []) or ["fordvn04@gmail.com"],
     )
 
 
@@ -859,6 +864,8 @@ from collections import defaultdict
 from database.models import ChiTietBan, TonKho
 
 
+from analytics.models import PhienDuBao, DongDuBao, HOAN_TAT
+
 @login_required
 def danh_sach_de_xuat(request):
     allocations, selected_month, month_options, current_cn = xu_ly_loc_phan_bo(request)
@@ -869,81 +876,103 @@ def danh_sach_de_xuat(request):
         if cn_obj:
             cn_name = cn_obj.ten_cn
 
-    # 2. Tính tổng số xe bán theo dòng xe
-    doanh_so_qs = ChiTietBan.objects.all()
+    today = timezone.localdate()
+
+    # 1. Tìm phiên dự báo hoàn tất tương ứng với kỳ được chọn
+    phien_qs = PhienDuBao.objects.filter(trang_thai=HOAN_TAT)
     if selected_month and selected_month != "ALL" and "-" in selected_month:
         try:
             y, m = map(int, selected_month.split("-"))
-            doanh_so_qs = doanh_so_qs.filter(hoa_don_ban__ngay_ban__year=y, hoa_don_ban__ngay_ban__month=m)
+            phien_qs = phien_qs.filter(nam=y, thang=m)
         except ValueError:
             pass
-    if current_cn and current_cn != "ALL":
-        doanh_so_qs = doanh_so_qs.filter(hoa_don_ban__chi_nhanh__ma_cn=current_cn)
+    else:
+        phien_qs = phien_qs.filter(nam=today.year, thang=today.month)
 
-    doanh_so = (
-        doanh_so_qs
-        .values("xe__ten_xe")
-        .annotate(tong_ban=Sum("so_luong_ban"))
-    )
-
-    doanh_so_map = {
-        item["xe__ten_xe"]: item["tong_ban"]
-        for item in doanh_so
-    }
-
-    # 3. Tính tổng số xe tồn kho theo dòng xe
-    ton_kho_qs = TonKho.objects.all()
-    if current_cn and current_cn != "ALL":
-        ton_kho_qs = ton_kho_qs.filter(kho__chi_nhanh__ma_cn=current_cn)
-
-    ton_kho = (
-        ton_kho_qs
-        .values("xe__ten_xe")
-        .annotate(tong_ton=Sum("so_luong_ton"))
-    )
-
-    ton_kho_map = {
-        item["xe__ten_xe"]: item["tong_ton"]
-        for item in ton_kho
-    }
-
-    # 4. Gom phân bổ theo dòng xe, bỏ mã màu
-    phan_bo_map = defaultdict(lambda: {
-        "so_phan_bo": 0,
-        "allocation_id": None
-    })
-
-    for xe in allocations:
-        ten_xe = xe.description
-
-        phan_bo_map[ten_xe]["so_phan_bo"] += xe.quantity
-        phan_bo_map[ten_xe]["allocation_id"] = xe.id
-
-    # 5. Tính số lượng đề xuất nhập
+    phien = phien_qs.order_by("-tao_luc", "-id").first()
     danh_sach = []
 
-    for ten_xe, thong_tin in phan_bo_map.items():
-        so_ban = doanh_so_map.get(ten_xe, 0)
-        so_ton = ton_kho_map.get(ten_xe, 0)
-        so_phan_bo = thong_tin["so_phan_bo"]
+    # Ưu tiên lấy theo kết quả phân tích POQ của Module Dự báo nhu cầu nếu có
+    if phien and phien.san_sang and phien.dong.exists():
+        for dong in phien.dong.all().order_by("ten_xe"):
+            xe_phu_hop = allocations.filter(
+                Q(description__icontains=dong.ten_xe) |
+                Q(vehicle_code__iexact=getattr(dong, "ma_dong_xe", ""))
+            )
+            so_phan_bo_thuc_te = xe_phu_hop.aggregate(total=Sum("quantity"))["total"] or 0
+            first_xe = xe_phu_hop.first()
 
-        nhu_cau = max(0, so_ban - so_ton)
-        de_xuat_nhap = min(nhu_cau, so_phan_bo)
+            danh_sach.append({
+                "dong_id": dong.id,
+                "allocation_id": first_xe.id if first_xe else None,
+                "ten_xe": dong.ten_xe,
+                "ma_dong_xe": getattr(dong, "ma_dong_xe", ""),
+                "hop_dong_cho_giao": dong.hop_dong_cho_giao,
+                "so_ton": dong.ton_kho,
+                "chi_tieu": dong.chi_tieu,
+                "so_phan_bo": so_phan_bo_thuc_te,
+                "de_xuat_poq": dong.de_xuat_poq,
+                "de_xuat_nhap": dong.so_luong_nhap,
+            })
+    else:
+        # Dự phòng: Tự động tính toán theo Doanh số bán, Tồn kho và Phân bổ thực tế
+        doanh_so_qs = ChiTietBan.objects.all()
+        if selected_month and selected_month != "ALL" and "-" in selected_month:
+            try:
+                y, m = map(int, selected_month.split("-"))
+                doanh_so_qs = doanh_so_qs.filter(hoa_don_ban__ngay_ban__year=y, hoa_don_ban__ngay_ban__month=m)
+            except ValueError:
+                pass
+        if current_cn and current_cn != "ALL":
+            doanh_so_qs = doanh_so_qs.filter(hoa_don_ban__chi_nhanh__ma_cn=current_cn)
 
-        danh_sach.append({
-            "allocation_id": thong_tin["allocation_id"],
-            "ten_xe": ten_xe,
-            "so_ban": so_ban,
-            "so_ton": so_ton,
-            "so_phan_bo": so_phan_bo,
-            "de_xuat_nhap": de_xuat_nhap
-        })
+        doanh_so = (
+            doanh_so_qs
+            .values("xe__ten_xe")
+            .annotate(tong_ban=Sum("so_luong_ban"))
+        )
+        doanh_so_map = {item["xe__ten_xe"]: item["tong_ban"] for item in doanh_so}
+
+        ton_kho_qs = TonKho.objects.all()
+        if current_cn and current_cn != "ALL":
+            ton_kho_qs = ton_kho_qs.filter(kho__chi_nhanh__ma_cn=current_cn)
+
+        ton_kho = (
+            ton_kho_qs
+            .values("xe__ten_xe")
+            .annotate(tong_ton=Sum("so_luong_ton"))
+        )
+        ton_kho_map = {item["xe__ten_xe"]: item["tong_ton"] for item in ton_kho}
+
+        phan_bo_map = defaultdict(lambda: {"so_phan_bo": 0, "allocation_id": None})
+        for xe in allocations:
+            ten_xe = xe.description
+            phan_bo_map[ten_xe]["so_phan_bo"] += xe.quantity
+            phan_bo_map[ten_xe]["allocation_id"] = xe.id
+
+        for ten_xe, thong_tin in phan_bo_map.items():
+            so_ban = doanh_so_map.get(ten_xe, 0)
+            so_ton = ton_kho_map.get(ten_xe, 0)
+            so_phan_bo = thong_tin["so_phan_bo"]
+            nhu_cau = max(0, so_ban - so_ton)
+            de_xuat_nhap = min(nhu_cau, so_phan_bo)
+
+            danh_sach.append({
+                "dong_id": None,
+                "allocation_id": thong_tin["allocation_id"],
+                "ten_xe": ten_xe,
+                "so_ban": so_ban,
+                "so_ton": so_ton,
+                "so_phan_bo": so_phan_bo,
+                "de_xuat_nhap": de_xuat_nhap
+            })
 
     return render(
         request,
         "ds_de_xuat.html",
         {
             "danh_sach": danh_sach,
+            "phien": phien,
             "selected_month": selected_month,
             "month_options": month_options,
             "current_cn": current_cn,
@@ -955,63 +984,71 @@ def danh_sach_de_xuat(request):
 
 @login_required
 def chi_tiet_de_xuat(request, id):
-
-    # 1. Lấy ngày hiện tại
     today = timezone.localdate()
+    current_cn = request.session.get("current_cn", "ALL")
 
-    # 2. Lấy xe từ danh sách phân bổ
-    allocation = get_object_or_404(
-        Allocation,
-        id=id
-    )
+    # 1. Thử tìm kiếm theo DongDuBao (từ module dự báo POQ)
+    dong = DongDuBao.objects.select_related("phien").filter(id=id).first()
+    if dong:
+        phien = dong.phien
+        if not phien.san_sang:
+            messages.warning(request, "Phiên dự báo này đã hết hạn hoặc đã bị hủy.")
+            return redirect("orders:proposal_list")
 
-    # 3. Xác định dòng xe
+        allocations = Allocation.objects.filter(
+            allocation_month__year=phien.nam,
+            allocation_month__month=phien.thang
+        )
+        if current_cn and current_cn != "ALL":
+            allocations = allocations.filter(chi_nhanh__ma_cn=current_cn)
+
+        xe_phu_hop = allocations.filter(
+            Q(description__icontains=dong.ten_xe) |
+            Q(vehicle_code__iexact=getattr(dong, "ma_dong_xe", ""))
+        )
+        so_phan_bo_thuc_te = xe_phu_hop.aggregate(total=Sum("quantity"))["total"] or 0
+
+        context = {
+            "dong": dong,
+            "phien": phien,
+            "ten_xe": dong.ten_xe,
+            "hop_dong_cho_giao": dong.hop_dong_cho_giao,
+            "so_ton": dong.ton_kho,
+            "chi_tieu": dong.chi_tieu,
+            "so_phan_bo": so_phan_bo_thuc_te,
+            "nhu_cau": dong.de_xuat_poq,
+            "de_xuat_nhap": dong.so_luong_nhap,
+            "xe_phu_hop": xe_phu_hop,
+        }
+        return render(request, "chi_tiet_de_xuat.html", context)
+
+    # 2. Hoặc tìm theo Allocation ID (trực tiếp từ danh sách phân bổ)
+    allocation = get_object_or_404(Allocation, id=id)
     ten_xe = allocation.description
 
-    # 4. Tính tổng số xe đã bán trong tháng
-    so_ban = (
-        ChiTietBan.objects
-        .filter(
-            xe__ten_xe=ten_xe,
-            hoa_don_ban__ngay_ban__year=today.year,
-            hoa_don_ban__ngay_ban__month=today.month
+    doanh_so_qs = ChiTietBan.objects.filter(xe__ten_xe=ten_xe)
+    if allocation.allocation_month:
+        doanh_so_qs = doanh_so_qs.filter(
+            hoa_don_ban__ngay_ban__year=allocation.allocation_month.year,
+            hoa_don_ban__ngay_ban__month=allocation.allocation_month.month
         )
-        .aggregate(
-            total=Sum("so_luong_ban")
-        )["total"] or 0
-    )
+    if current_cn and current_cn != "ALL":
+        doanh_so_qs = doanh_so_qs.filter(hoa_don_ban__chi_nhanh__ma_cn=current_cn)
+    so_ban = doanh_so_qs.aggregate(total=Sum("so_luong_ban"))["total"] or 0
 
-    # 5. Tính tổng số lượng tồn kho
-    so_ton = (
-        TonKho.objects
-        .filter(
-            xe__ten_xe=ten_xe
-        )
-        .aggregate(
-            total=Sum("so_luong_ton")
-        )["total"] or 0
-    )
+    ton_kho_qs = TonKho.objects.filter(xe__ten_xe=ten_xe)
+    if current_cn and current_cn != "ALL":
+        ton_kho_qs = ton_kho_qs.filter(kho__chi_nhanh__ma_cn=current_cn)
+    so_ton = ton_kho_qs.aggregate(total=Sum("so_luong_ton"))["total"] or 0
 
-    # 6. Tính tổng số lượng phân bổ theo dòng xe
-    # Không phân biệt mã màu
-    so_phan_bo = (
-        Allocation.objects
-        .filter(
-            description=ten_xe,
-            allocation_month=allocation.allocation_month
-        )
-        .aggregate(
-            total=Sum("quantity")
-        )["total"] or 0
-    )
+    alloc_qs = Allocation.objects.filter(description=ten_xe, allocation_month=allocation.allocation_month)
+    if current_cn and current_cn != "ALL":
+        alloc_qs = alloc_qs.filter(chi_nhanh__ma_cn=current_cn)
+    so_phan_bo = alloc_qs.aggregate(total=Sum("quantity"))["total"] or 0
 
-    # 7. Tính nhu cầu nhập xe
     nhu_cau = max(0, so_ban - so_ton)
-
-    # 8. Số lượng đề xuất không vượt quá phân bổ
     de_xuat_nhap = min(nhu_cau, so_phan_bo)
 
-    # 9. Truyền dữ liệu sang HTML
     context = {
         "allocation": allocation,
         "ten_xe": ten_xe,
@@ -1021,10 +1058,4 @@ def chi_tiet_de_xuat(request, id):
         "nhu_cau": nhu_cau,
         "de_xuat_nhap": de_xuat_nhap,
     }
-
-    # 10. Hiển thị trang chi tiết
-    return render(
-        request,
-        "chi_tiet_de_xuat.html",
-        context
-    )
+    return render(request, "chi_tiet_de_xuat.html", context)

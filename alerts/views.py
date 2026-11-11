@@ -11,6 +11,7 @@ from django.views.decorators.http import require_http_methods
 from database.models import Kho, TonKho
 from .forms import BoLocCanhBaoForm, CapNhatTrangThaiForm
 from .models import CanhBao
+from .utils import cap_nhat_tat_ca_canh_bao
 
 
 def lay_kho_duoc_xem(user):
@@ -31,14 +32,23 @@ def danh_sach_canh_bao(request):
     danh_sach_kho = lay_kho_duoc_xem(request.user)
 
     if not danh_sach_kho.exists():
-        raise PermissionDenied("Tài khoản chưa được phân quyền xem kho.")
+        raise PermissionDenied(
+            "Tài khoản chưa được phân quyền xem kho."
+        )
+
+    cap_nhat_tat_ca_canh_bao()
 
     danh_sach = (
         CanhBao.objects.filter(
             con_hieu_luc=True,
-            kho__in=danh_sach_kho,
+        )
+        .filter(
+            Q(kho__in=danh_sach_kho)
+            | Q(cac_kho__in=danh_sach_kho)
         )
         .select_related("kho", "nguong", "xe")
+        .prefetch_related("cac_kho")
+        .distinct()
         .order_by("-ngay_phat_sinh")
     )
 
@@ -54,7 +64,9 @@ def danh_sach_canh_bao(request):
         mau_sac = form.cleaned_data["mau_sac"]
 
         if kho:
-            danh_sach = danh_sach.filter(kho=kho)
+            danh_sach = danh_sach.filter(
+                Q(kho=kho) | Q(cac_kho=kho)
+            ).distinct()
 
         if loai:
             danh_sach = danh_sach.filter(loai=loai)
@@ -80,7 +92,11 @@ def danh_sach_canh_bao(request):
         "tong_so": danh_sach.count(),
     }
 
-    return render(request, "alerts/danh_sach.html", context)
+    return render(
+        request,
+        "alerts/danh_sach.html",
+        context,
+    )
 
 
 @login_required
@@ -89,13 +105,26 @@ def danh_sach_canh_bao(request):
 def chi_tiet_canh_bao(request, pk):
     danh_sach_kho = lay_kho_duoc_xem(request.user)
 
+    if not danh_sach_kho.exists():
+        raise PermissionDenied(
+            "Tài khoản chưa được phân quyền xem kho."
+        )
+
+    cap_nhat_tat_ca_canh_bao()
+
     canh_bao = get_object_or_404(
         CanhBao.objects.select_related(
             "kho",
             "nguong",
             "xe",
             "nguoi_xu_ly",
-        ).filter(kho__in=danh_sach_kho),
+        )
+        .prefetch_related("cac_kho")
+        .filter(
+            Q(kho__in=danh_sach_kho)
+            | Q(cac_kho__in=danh_sach_kho)
+        )
+        .distinct(),
         pk=pk,
     )
 
@@ -106,12 +135,19 @@ def chi_tiet_canh_bao(request, pk):
 
     if request.method == "POST":
         if not request.user.has_perm("alerts.change_canhbao"):
-            raise PermissionDenied("Bạn không có quyền cập nhật cảnh báo.")
+            raise PermissionDenied(
+                "Bạn không có quyền cập nhật cảnh báo."
+            )
 
         if not canh_bao.con_hieu_luc:
             form.add_error(None, "Cảnh báo đã hết hiệu lực.")
+
         elif canh_bao.trang_thai == CanhBao.TrangThai.DA_XU_LY:
-            form.add_error(None, "Cảnh báo đã được ghi nhận xử lý.")
+            form.add_error(
+                None,
+                "Cảnh báo đã được ghi nhận xử lý.",
+            )
+
         elif form.is_valid():
             thoi_diem = timezone.now()
 
@@ -126,14 +162,19 @@ def chi_tiet_canh_bao(request, pk):
                     thoi_diem_xu_ly=thoi_diem,
                     ngay_cap_nhat=thoi_diem,
                 )
+
             except DatabaseError:
                 form.add_error(
                     None,
                     "Không thể lưu trạng thái. Vui lòng thử lại.",
                 )
+
             else:
                 if so_ban_ghi:
-                    messages.success(request, "Cập nhật trạng thái thành công.")
+                    messages.success(
+                        request,
+                        "Cập nhật trạng thái thành công.",
+                    )
                     return redirect(request.get_full_path())
 
                 form.add_error(
@@ -174,4 +215,8 @@ def chi_tiet_canh_bao(request, pk):
         "co_the_cap_nhat": co_the_cap_nhat,
     }
 
-    return render(request, "alerts/chi_tiet.html", context)
+    return render(
+        request,
+        "alerts/chi_tiet.html",
+        context,
+    )

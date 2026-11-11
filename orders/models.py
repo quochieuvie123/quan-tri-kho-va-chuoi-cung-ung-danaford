@@ -7,6 +7,7 @@ class Allocation(models.Model):
     vin = models.CharField(max_length=50,unique=True,verbose_name="VIN")
     color_code = models.CharField(max_length=20,verbose_name="Mã màu")
     exterior_color = models.CharField(max_length=100,verbose_name="Màu ngoại thất")
+    mau_sac = models.CharField(max_length=50, blank=True, default="", verbose_name="Màu sắc")
     engine_number = models.CharField(max_length=50,verbose_name="Số máy")
     expected_ship_date = models.DateField(null=True,blank=True,verbose_name="Ngày dự kiến ship")
     contractual_delivery_date = models.DateField(null=True,blank=True,verbose_name="Ngày dự kiến giao theo hợp đồng")

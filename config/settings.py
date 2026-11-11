@@ -15,6 +15,12 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / ".env")
+except ImportError:
+    pass
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
@@ -169,6 +175,12 @@ DEFAULT_FROM_EMAIL = os.environ.get(
 TRANSFER_RECEIVER_EMAILS = [
     e.strip()
     for e in os.environ.get("TRANSFER_RECEIVER_EMAILS", "").split(",")
+    if e.strip()
+]
+
+ORDER_RECEIVER_EMAILS = [
+    e.strip()
+    for e in os.environ.get("ORDER_RECEIVER_EMAILS", "").split(",")
     if e.strip()
 ]
 

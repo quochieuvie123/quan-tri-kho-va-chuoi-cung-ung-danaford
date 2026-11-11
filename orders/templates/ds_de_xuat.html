@@ -32,7 +32,7 @@
             <tr>
                 <th style="width: 50px; text-align: center;">STT</th>
                 <th>Tên dòng xe</th>
-                <th style="text-align: center;">Đã bán trong tháng</th>
+                <th style="text-align: center;">{% if phien %}Hợp đồng chờ giao{% else %}Đã bán trong tháng{% endif %}</th>
                 <th style="text-align: center;">Tồn kho hiện tại</th>
                 <th style="text-align: center;">Số lượng phân bổ</th>
                 <th style="text-align: center;">Đề xuất cần nhập</th>
@@ -44,8 +44,8 @@
             <tr>
                 <td style="text-align: center;">{{ forloop.counter }}</td>
                 <td><strong>{{ item.ten_xe }}</strong></td>
-                <td style="text-align: center; color: #475569;">{{ item.so_ban }}</td>
-                <td style="text-align: center; color: #475569;">{{ item.so_ton }}</td>
+                <td style="text-align: center; color: #475569;">{% if item.hop_dong_cho_giao is not None %}{{ item.hop_dong_cho_giao }}{% else %}{{ item.so_ban|default:0 }}{% endif %}</td>
+                <td style="text-align: center; color: #475569;">{{ item.so_ton|default:0 }}</td>
                 <td style="text-align: center; color: #475569;">{{ item.so_phan_bo }}</td>
                 <td style="text-align: center;">
                     <span class="badge {% if item.de_xuat_nhap > 0 %}badge--CHO_DUYET{% else %}badge--DA_DUYET{% endif %}" style="font-size: 13px; padding: 4px 12px;">
@@ -53,7 +53,7 @@
                     </span>
                 </td>
                 <td style="text-align: right;">
-                    <a class="btn btn--light" href="{% url 'orders:proposal_detail' item.allocation_id %}">
+                    <a class="btn btn--light" href="{% if item.dong_id %}{% url 'orders:proposal_detail' item.dong_id %}{% elif item.allocation_id %}{% url 'orders:proposal_detail' item.allocation_id %}{% else %}#{% endif %}">
                         <i class="bi bi-eye"></i> Xem chi tiết
                     </a>
                 </td>

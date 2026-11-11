@@ -2,10 +2,23 @@ from django import forms
 
 from database.models import Kho
 
+
 MAX_KHOANG_BAO_CAO_THANG = 120
 
+class LuaChonKho(forms.ModelChoiceField):
+    def label_from_instance(self, kho):
+        ten_chi_nhanh = kho.chi_nhanh.ten_cn
+
+        ten_khu_vuc = ten_chi_nhanh.replace(
+            "Dana Ford ",
+            "",
+            1,
+        ).strip()
+
+        return f"Kho {ten_khu_vuc} ({kho.ma_kho})"
+
 class BoLocBaoCaoForm(forms.Form):
-    kho = forms.ModelChoiceField(
+    kho = LuaChonKho(
         label="Kho",
         queryset=Kho.objects.none(),
         required=False,
@@ -40,25 +53,32 @@ class BoLocBaoCaoForm(forms.Form):
 
     def __init__(self, *args, danh_sach_kho, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["kho"].queryset = danh_sach_kho
+
+        self.fields["kho"].queryset = (
+            danh_sach_kho.select_related("chi_nhanh")
+        )
+
+        self.fields["ten_xe"].widget.attrs["placeholder"] = (
+            "Ví dụ: Ranger, Everest..."
+        )
 
     def clean(self):
-        data = super().clean()
+        du_lieu = super().clean()
 
-        start = data.get("tu_ngay")
-        end = data.get("den_ngay")
+        tu_ngay = du_lieu.get("tu_ngay")
+        den_ngay = du_lieu.get("den_ngay")
 
-        if start and end:
-            if start > end:
+        if tu_ngay and den_ngay:
+            if tu_ngay > den_ngay:
                 self.add_error(
                     "den_ngay",
                     "Đến ngày phải bằng hoặc sau Từ ngày.",
                 )
             else:
                 so_thang = (
-                    (end.year - start.year) * 12
-                    + end.month
-                    - start.month
+                    (den_ngay.year - tu_ngay.year) * 12
+                    + den_ngay.month
+                    - tu_ngay.month
                     + 1
                 )
 
@@ -68,4 +88,4 @@ class BoLocBaoCaoForm(forms.Form):
                         "Khoảng thời gian báo cáo không được vượt quá 120 tháng.",
                     )
 
-        return data
+        return du_lieu
