@@ -35,11 +35,20 @@
   </a>
   {% endif %}
   <div style="flex:1;"></div>
-  <!-- Trạng thái phiếu -->
-  <span style="font-family:Montserrat,sans-serif; font-size:13px; font-weight:600;
-               color: {% if phieu.trang_thai == 'DA_DUYET' %}#027A48{% elif phieu.trang_thai == 'DA_HUY' %}#667085{% else %}#B76E00{% endif %};">
+    <!-- Trạng thái phiếu -->
+  {% if phieu.trang_thai == 'DA_DUYET' %}
+  <span style="font-family:Montserrat,sans-serif; font-size:13px; font-weight:600; color:#027A48;">
     {{ phieu.get_trang_thai_display }}
   </span>
+  {% elif phieu.trang_thai == 'DA_HUY' %}
+  <span style="font-family:Montserrat,sans-serif; font-size:13px; font-weight:600; color:#667085;">
+    {{ phieu.get_trang_thai_display }}
+  </span>
+  {% else %}
+  <span style="font-family:Montserrat,sans-serif; font-size:13px; font-weight:600; color:#B76E00;">
+    {{ phieu.get_trang_thai_display }}
+  </span>
+  {% endif %}
   <a class="btn-figma-secondary" style="width:140px;"
      href="{% url 'warehouse:xuat' %}?kho={{ phieu.kho_id }}">
     Quay lại
