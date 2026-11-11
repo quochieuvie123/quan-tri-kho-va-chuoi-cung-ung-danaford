@@ -48,7 +48,9 @@ class InventoryService:
         """
         Nghiệp vụ UC-TK-01 & UC-TK-03: Xem danh sách & tra cứu xe tồn kho
         """
-        qs = TonKho.objects.filter(kho_id=ma_kho, so_luong_ton__gt=0).select_related('xe', 'kho')
+        qs = TonKho.objects.filter(so_luong_ton__gt=0).select_related('xe', 'kho', 'kho__chi_nhanh')
+        if ma_kho and ma_kho != "ALL":
+            qs = qs.filter(kho_id=ma_kho)
 
         if bo_loc:
             if bo_loc.get("loai_xe"):
@@ -75,7 +77,9 @@ class InventoryService:
                 "so_ngay_ton": tuoi["so_ngay_ton"],
                 "nhom_tuoi_ton": tuoi["nhom_tuoi_ton"],
                 "trang_thai": item.xe.trang_thai,
-                "trang_thai_display": item.xe.get_trang_thai_display()
+                "trang_thai_display": item.xe.get_trang_thai_display(),
+                "kho_id": item.kho_id,
+                "ten_kho": item.kho.chi_nhanh.ten_cn if hasattr(item.kho, 'chi_nhanh') and item.kho.chi_nhanh else item.kho_id
             })
         return ket_qua
 
@@ -85,9 +89,14 @@ class InventoryService:
         Nghiệp vụ UC-TK-02: Xem chi tiết xe tồn kho và lịch sử
         """
         try:
-            ton = TonKho.objects.select_related('xe', 'kho').get(xe__vin=vin, kho_id=ma_kho)
+            if ma_kho and ma_kho != "ALL":
+                ton = TonKho.objects.select_related('xe', 'kho', 'kho__chi_nhanh').get(xe__vin=vin, kho_id=ma_kho)
+            else:
+                ton = TonKho.objects.select_related('xe', 'kho', 'kho__chi_nhanh').filter(xe__vin=vin).first()
+                if not ton:
+                    raise TonKho.DoesNotExist
         except TonKho.DoesNotExist:
-            raise InventoryError(f"Xe có số VIN {vin} không tồn tại trong kho {ma_kho} (có thể đã xuất).")
+            raise InventoryError(f"Xe có số VIN {vin} không tồn tại trong kho (có thể đã xuất).")
 
         tuoi = cls.tinh_tuoi_ton(ton.ngay_vao_kho)
         return {

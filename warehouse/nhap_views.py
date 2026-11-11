@@ -24,6 +24,10 @@ def nhap(request):
     keyword = request.GET.get('q', '').strip()
     if keyword:
         rows = rows.filter(Q(ma_hdn__icontains=keyword) | Q(chitietnhap__xe_id__icontains=keyword)).distinct()
+    sess = getattr(request, 'session', {})
+    current_cn = sess.get('current_cn') if hasattr(sess, 'get') else None
+    if current_cn and current_cn != 'ALL':
+        rows = rows.filter(chi_nhanh_id=current_cn)
     return JsonResponse({'hoa_don_nhap': list(rows.values('ma_hdn', 'nha_cung_cap_id', 'chi_nhanh_id', 'ngay_nhap', 'so_hoa_don')),
                          'luu_y': 'Đây là hóa đơn nhập theo model hiện có, chưa có trạng thái duyệt phiếu nhập.'})
 
@@ -76,6 +80,11 @@ def receipt_list(request):
             if key == 'trang_thai' and value not in PhieuNhapKho.TrangThai.values:
                 return JsonResponse({'error': 'Trạng thái phiếu không hợp lệ.'}, status=400)
             rows = rows.filter(**{key: value})
+    if not request.GET.get('kho_id'):
+        sess = getattr(request, 'session', {})
+        current_kho = sess.get('current_kho') if hasattr(sess, 'get') else None
+        if current_kho and current_kho != 'ALL':
+            rows = rows.filter(kho_id=current_kho)
     if request.GET.get('ngay_lap'):
         try:
             day = date.fromisoformat(request.GET['ngay_lap'])

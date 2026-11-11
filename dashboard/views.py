@@ -228,3 +228,27 @@ def xoa_thong_bao(request, notif_id):
 
     messages.success(request, "Đã xóa bản ghi cập nhật thành công!")
     return redirect("dashboard:home")
+
+
+
+@login_required
+def doi_kho_hien_tai(request):
+    """
+    Cập nhật kho/chi nhánh đang chọn trên Header vào Session (Phương án 1: Global Warehouse Filter).
+    """
+    if request.method == "POST":
+        kho_id = request.POST.get("kho_id", "ALL").strip()
+        request.session["current_kho"] = kho_id
+
+        KHO_CN_MAP = {
+            "KHO01": "CN01",
+            "KHO02": "CN02",
+            "KHO03": "CN03",
+        }
+        request.session["current_cn"] = KHO_CN_MAP.get(kho_id, "ALL")
+
+        # Lấy trang trước đó để redirect về đúng vị trí người dùng đang đứng
+        next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "/"
+        return redirect(next_url)
+
+    return redirect("dashboard:home")

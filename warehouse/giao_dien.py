@@ -26,8 +26,11 @@ CHENH_LECH = [PhanLoaiKiemKe.THIEU, PhanLoaiKiemKe.THUA, PhanLoaiKiemKe.SAI_VI_T
 # ---------- tiện ích dùng chung ----------
 def _chon_kho(request):
     ma = request.GET.get("kho") or request.POST.get("kho")
-    if ma and Kho.objects.filter(pk=ma).exists():
+    if ma and (ma == "ALL" or Kho.objects.filter(pk=ma).exists()):
         return ma
+    sess_kho = request.session.get("current_kho")
+    if sess_kho and (sess_kho == "ALL" or Kho.objects.filter(pk=sess_kho).exists()):
+        return sess_kho
     nv = getattr(request.user, "nhan_vien", None)
     if nv:
         kho = Kho.objects.filter(chi_nhanh=nv.chi_nhanh).first()
@@ -79,7 +82,9 @@ def xuat_ds(request):
     tu_khoa = request.GET.get("q", "").strip()
     qs = PhieuXuatKho.objects.select_related(
         "chi_tiet_hop_dong__hop_dong__khach_hang", "chi_tiet_hop_dong__xe", "kho", "nguoi_lap",
-    ).filter(kho_id=ma_kho)
+    )
+    if ma_kho != "ALL":
+        qs = qs.filter(kho_id=ma_kho)
     if trang_thai:
         qs = qs.filter(trang_thai=trang_thai)
     if tu_khoa:
@@ -223,7 +228,9 @@ def ton_chi_tiet(request, vin):
 @login_required
 def kk_ds(request):
     ma_kho = _chon_kho(request)
-    qs = PhieuKiemKe.objects.filter(kho_id=ma_kho).select_related("nhan_vien", "nguoi_duyet")
+    qs = PhieuKiemKe.objects.select_related("kho", "nhan_vien", "nguoi_duyet")
+    if ma_kho != "ALL":
+        qs = qs.filter(kho_id=ma_kho)
     return render(request, "warehouse/kk_ds.html", _ngu_canh(request, "Kiểm kê tồn kho", ds=qs))
 
 
@@ -233,9 +240,12 @@ def kk_tao(request):
     nv = _nhan_vien(request)
     if nv is None:
         return redirect("warehouse:kk_ds")
+    tao_kho = _chon_kho(request)
+    if tao_kho == "ALL":
+        tao_kho = "KHO01"
     try:
         phieu = InventoryService.tao_phieu_kiem_ke(
-            ma_kho=_chon_kho(request), ma_nv=nv.ma_nv, ky_kiem_ke=request.POST.get("ky_kiem_ke", ""),
+            ma_kho=tao_kho, ma_nv=nv.ma_nv, ky_kiem_ke=request.POST.get("ky_kiem_ke", ""),
             pham_vi=request.POST.get("pham_vi", "").strip() or "Toàn kho", ghi_chu=request.POST.get("ghi_chu", ""))
         messages.success(request, f"Đã tạo phiếu kiểm kê {phieu.ma_pkk} và chụp số liệu tồn kho.")
         return redirect("warehouse:kk_chi_tiet", ma_pkk=phieu.ma_pkk)

@@ -66,6 +66,10 @@ def danh_sach_ton_kho(request):
     ).filter(
         so_luong_ton__gt=0
     )
+    sess = getattr(request, 'session', {})
+    current_kho = sess.get('current_kho') if hasattr(sess, 'get') else None
+    if current_kho and current_kho != "ALL":
+        ds_ton_kho = ds_ton_kho.filter(kho_id=current_kho)
 
     # 3. Lấy từ khóa tìm kiếm từ URL
     tu_khoa = request.GET.get('q', '').strip()
@@ -664,6 +668,10 @@ def danh_sach_lenh_luu_chuyen(request):
         "kho_nhap",
         "nguoi_lap"
     ).order_by("-ngay_lap")
+    sess = getattr(request, 'session', {})
+    current_kho = sess.get('current_kho') if hasattr(sess, 'get') else None
+    if current_kho and current_kho != "ALL":
+        ds_lenh = ds_lenh.filter(Q(kho_xuat_id=current_kho) | Q(kho_nhap_id=current_kho))
 
     if trang_thai in ["NHAP", "DA_GUI", "DA_XAC_NHAN"]:
         ds_lenh = ds_lenh.filter(trang_thai=trang_thai)

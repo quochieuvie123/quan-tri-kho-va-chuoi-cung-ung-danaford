@@ -33,8 +33,14 @@ def chuan_bi(request, kem_thong_ke=False):
             "Tài khoản chưa được phân công kho."
         )
 
+    params = request.GET.copy()
+    sess = getattr(request, 'session', {})
+    current_kho = sess.get('current_kho') if hasattr(sess, 'get') else None
+    if "kho" not in request.GET and current_kho and current_kho != "ALL":
+        params["kho"] = current_kho
+
     form = BoLocBaoCaoForm(
-        request.GET,
+        params,
         danh_sach_kho=kho,
     )
 

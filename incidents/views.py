@@ -78,6 +78,10 @@ def _ghi_lich_su(request, bb, hanh_dong, noi_dung=""):
 @login_required
 def danh_sach(request):
     form, qs = _loc(request.GET)
+    sess = getattr(request, 'session', {})
+    current_cn = sess.get('current_cn') if hasattr(sess, 'get') else None
+    if current_cn and current_cn != "ALL":
+        qs = qs.filter(hoa_don_nhap__chi_nhanh_id=current_cn)
     trang = Paginator(qs, SO_DONG).get_page(request.GET.get("page"))
     for bb in trang:
         bb.nhan_tt = nhan_trang_thai(bb.trang_thai_claim)
@@ -98,6 +102,10 @@ def xuat_bao_cao(request):
         qs = _ds_goc()
     else:
         _, qs = _loc(request.GET)
+    sess = getattr(request, 'session', {})
+    current_cn = sess.get('current_cn') if hasattr(sess, 'get') else None
+    if current_cn and current_cn != "ALL":
+        qs = qs.filter(hoa_don_nhap__chi_nhanh_id=current_cn)
     danh_sach_bb = list(qs)
     quay_lai = reverse("incidents:index")
     if not danh_sach_bb:  # E1

@@ -66,6 +66,10 @@ def index(request):
     for param, field in [('trang_thai', 'trang_thai'), ('chi_nhanh_id', 'chi_nhanh_id')]:
         if request.GET.get(param):
             rows = rows.filter(**{field: request.GET[param].strip()})
+    sess = getattr(request, 'session', {})
+    current_cn = sess.get('current_cn') if hasattr(sess, 'get') else None
+    if not request.GET.get('chi_nhanh_id') and current_cn and current_cn != "ALL":
+        rows = rows.filter(chi_nhanh_id=current_cn)
     if request.GET.get('ngay_du_kien_giao'):
         try:
             day = date.fromisoformat(request.GET['ngay_du_kien_giao'])
@@ -75,8 +79,12 @@ def index(request):
     filters = {key: request.GET[key].strip().casefold() for key in ('dong_xe', 'phien_ban', 'mau_sac') if request.GET.get(key, '').strip()}
     data = []
     for hd in rows:
-        if not is_da_nang_branch(hd.chi_nhanh):
-            continue
+        if current_cn and current_cn != "ALL":
+            if hd.chi_nhanh_id != current_cn:
+                continue
+        elif not current_cn and not request.GET.get('chi_nhanh_id'):
+            if not is_da_nang_branch(hd.chi_nhanh):
+                continue
         summary = contract_summary(hd, request.user)
         # Cùng bộ tiêu chí dùng cho hiển thị và lọc, kể cả hợp đồng cũ.
         # Một xe phải đáp ứng toàn bộ bộ lọc; không ghép dòng của hai xe khác nhau.
