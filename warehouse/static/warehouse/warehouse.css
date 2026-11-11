@@ -60,3 +60,179 @@ textarea.inp { width: 100%; }
 .filter .inp { width: 100%; margin-top: 4px; }
 @media (max-width: 800px) { .filter__grid { grid-template-columns: 1fr; } .filter__wide2 { grid-column: auto; } }
 @media print { .sidebar, .topbar, .page-title { display: none !important; } .app__content { padding: 0 !important; } }
+
+/* ========================================================
+   FIGMA DESIGN SYSTEM - QUẢN LÝ XUẤT KHO (M5)
+   ======================================================== */
+:root {
+  --primary: #0067C5;
+  --primary-hover: #00529E;
+  --bg-page: #F4F7FB;
+  --surface: #FFFFFF;
+  --text-heading: #102A43;
+  --text-main: #243B53;
+  --text-secondary: #627D98;
+  --border-color: #DCE6F0;
+  --banner-bg: #FFFBEB;
+  --banner-border: #FDE68A;
+  --banner-text: #92400E;
+}
+
+body {
+  font-family: 'Montserrat', sans-serif !important;
+  background-color: var(--bg-page) !important;
+  color: var(--text-main);
+}
+
+/* Tiêu đề trang chuẩn 28px / 600 */
+.page-title {
+  font-size: 28px !important;
+  font-weight: 600 !important;
+  line-height: 145% !important;
+  color: var(--text-heading) !important;
+  margin-bottom: 20px !important;
+}
+
+/* Tiêu đề khối chuẩn 18px / 600 */
+.card h3, .panel-title {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: var(--text-heading) !important;
+  margin: 0 0 16px 0 !important;
+}
+
+/* Thẻ thông tin chuẩn Figma: bo góc 14px, viền #DCE6F0, padding 24px */
+.card {
+  background: var(--surface) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 14px !important;
+  padding: 24px !important;
+  box-shadow: none !important;
+  margin-bottom: 20px !important;
+}
+
+/* Banner nhắc nhở màu vàng: bo góc 10px, padding 14px */
+.notice-banner {
+  background-color: var(--banner-bg) !important;
+  border: 1px solid var(--banner-border) !important;
+  color: var(--banner-text) !important;
+  border-radius: 10px !important;
+  padding: 14px 18px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  margin-bottom: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+/* Nút bấm chuẩn: bo góc 8px, cao 44px, font 13px/600 */
+.btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 10px 20px !important;
+  height: 44px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+  box-sizing: border-box !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn--primary {
+  background: var(--primary) !important;
+  border: 1px solid var(--primary) !important;
+  color: #FFFFFF !important;
+}
+
+.btn--primary:hover {
+  background: var(--primary-hover) !important;
+}
+
+.btn--secondary, .btn:not(.btn--primary) {
+  background: var(--surface) !important;
+  border: 1px solid var(--border-color) !important;
+  color: var(--primary) !important;
+}
+
+.btn--secondary:hover, .btn:not(.btn--primary):hover {
+  background: #F8FAFC !important;
+  border-color: #CBD5E1 !important;
+}
+
+/* Ô nhập dữ liệu chuẩn 8px */
+.inp, select.inp, textarea.inp {
+  width: 100% !important;
+  height: 44px !important;
+  padding: 8px 14px !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px !important;
+  background: #FFFFFF !important;
+  color: var(--text-main) !important;
+  font-size: 13px !important;
+  box-sizing: border-box !important;
+}
+
+.field-label {
+  display: block !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--text-secondary) !important;
+  margin-bottom: 7px !important;
+}
+
+/* Ô hiển thị thông tin Read-only */
+.readonly-field {
+  background: #F8FAFC !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px !important;
+  padding: 11px 14px !important;
+  font-size: 13px !important;
+  color: var(--text-main) !important;
+  min-height: 44px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Bảng dữ liệu */
+.tbl {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 13px !important;
+}
+
+.tbl th {
+  background: #F8FAFC !important;
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
+  padding: 12px 16px !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  text-align: left !important;
+}
+
+.tbl td {
+  padding: 14px 16px !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  color: var(--text-main) !important;
+}
+
+.tbl a {
+  color: var(--primary) !important;
+  text-decoration: underline !important;
+  font-weight: 500 !important;
+}
+
+.grid-3-col {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 16px 20px !important;
+}
+
+@media (max-width: 900px) {
+  .grid-3-col { grid-template-columns: 1fr !important; }
+}

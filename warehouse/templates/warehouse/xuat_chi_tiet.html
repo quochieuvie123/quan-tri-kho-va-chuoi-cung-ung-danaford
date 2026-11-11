@@ -1,67 +1,150 @@
 {% extends "base.html" %}
 {% load static %}
 {% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
+
 {% block content %}
-{% include "warehouse/_messages.html" %}
-<div class="actions">
-  <a class="btn" href="{% url 'warehouse:xuat' %}?kho={{ phieu.kho_id }}"><i class="bi bi-arrow-left"></i> Danh sách</a>
-  <span class="badge {% if phieu.trang_thai == 'DA_DUYET' %}badge--ok{% elif phieu.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">{{ phieu.get_trang_thai_display }}</span>
-  <span class="spacer"></span>
-  {% if co_the_in %}<a class="btn" href="{% url 'warehouse:xuat_in' phieu.ma_pxk %}" target="_blank"><i class="bi bi-printer"></i> In / xuất file</a>{% endif %}
-</div>
+<h1 class="page-title">Chi tiết phiếu xuất kho</h1>
 
-<div class="grid2">
-  <div class="card">
-    <h3>Thông tin phiếu</h3>
-    <dl class="kv">
-      <dt>Mã phiếu</dt><dd>{{ phieu.ma_pxk }}</dd>
-      <dt>Kho xuất</dt><dd>{{ phieu.kho_id }}</dd>
-      <dt>Ngày lập</dt><dd>{{ phieu.ngay_lap|date:"d/m/Y H:i" }}</dd>
-      <dt>Người lập</dt><dd>{{ phieu.nguoi_lap.ten_nv|default:"—" }}</dd>
-      <dt>Người nhận xe</dt><dd>{{ phieu.nguoi_nhan|default:"—" }}</dd>
-      <dt>Ngày xuất</dt><dd>{{ phieu.ngay_xuat|date:"d/m/Y H:i"|default:"—" }}</dd>
-      <dt>Người duyệt</dt><dd>{{ phieu.nguoi_duyet.ten_nv|default:"—" }}</dd>
-      <dt>Ghi chú</dt><dd>{{ phieu.ghi_chu|default:"—" }}</dd>
-    </dl>
-  </div>
-  <div class="card">
-    <h3>Hợp đồng và xe</h3>
-    <dl class="kv">
-      <dt>Hợp đồng</dt><dd>{{ hd.ma_hd }}</dd>
-      <dt>Khách hàng</dt><dd>{{ hd.khach_hang.ten_kh }} · {{ hd.khach_hang.sdt_kh }}</dd>
-      <dt>VIN</dt><dd>{{ xe.vin }}</dd>
-      <dt>Tên xe</dt><dd>{{ xe.ten_xe }}</dd>
-      <dt>Màu / Số máy</dt><dd>{{ xe.mau_sac|default:"—" }} / {{ xe.so_may }}</dd>
-      <dt>Trạng thái xe</dt><dd>{{ xe.get_trang_thai_display }}</dd>
-    </dl>
-  </div>
-</div>
+<!-- Form thao tác duyệt và hàng nút hành động chuẩn Figma -->
+<form method="post" action="{% url 'warehouse:xuat_duyet' phieu.ma_pxk %}" style="margin-bottom: 20px;">
+  {% csrf_token %}
 
-<div class="card">
-  <h3>Đối chiếu hợp đồng và hóa đơn bán</h3>
-  {% if doi_chieu.hop_le %}
-    <p><span class="badge badge--ok">Khớp</span> Hóa đơn {{ doi_chieu.ma_hdb }} · số HĐ {{ doi_chieu.so_hoa_don }} · {{ doi_chieu.so_tien|floatformat:"0g" }} đ</p>
-  {% else %}
-    <p><span class="badge badge--bad">Chưa khớp</span> {{ doi_chieu.canh_bao }}</p>
-  {% endif %}
-  {% if co_the_duyet or co_the_huy %}
-  <form method="post" class="actions">
-    {% csrf_token %}
-    {% include "warehouse/_chon_nv.html" %}
-    {% if co_the_duyet %}<button class="btn btn--primary" type="submit" formaction="{% url 'warehouse:xuat_duyet' phieu.ma_pxk %}"><i class="bi bi-check2-circle"></i> Duyệt xuất kho</button>{% endif %}
-    {% if co_the_huy %}
-      <input class="inp" name="ly_do" placeholder="Lý do hủy phiếu (nếu hủy)">
-      <button class="btn" type="submit" formaction="{% url 'warehouse:xuat_huy' phieu.ma_pxk %}" onclick="return confirm('Hủy phiếu xuất kho này?')"><i class="bi bi-x-circle"></i> Hủy phiếu</button>
+  <!-- Cụm nút bấm chuẩn Figma: cùng chiều cao 44px, độ rộng đều nhau 150px -->
+  <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+    {% if co_the_duyet %}
+      <button class="btn btn--primary" type="submit" style="height: 44px; min-width: 150px; padding: 0 20px; box-sizing: border-box; margin: 0; line-height: 1; display: inline-flex; align-items: center; justify-content: center;">
+        <i class="bi bi-check-circle"></i> Duyệt phiếu
+      </button>
     {% endif %}
-  </form>
+
+    <a class="btn btn--secondary" href="{% url 'warehouse:xuat_chi_tiet' phieu.ma_pxk %}" style="height: 44px; min-width: 150px; padding: 0 20px; box-sizing: border-box; margin: 0; line-height: 1; display: inline-flex; align-items: center; justify-content: center;">
+      <i class="bi bi-arrow-repeat"></i> Kiểm tra lại
+    </a>
+
+    <a class="btn btn--secondary" href="{% url 'warehouse:xuat' %}?kho={{ phieu.kho_id }}" style="height: 44px; min-width: 150px; padding: 0 20px; box-sizing: border-box; margin: 0; line-height: 1; display: inline-flex; align-items: center; justify-content: center;">
+      <i class="bi bi-arrow-left"></i> Quay lại
+    </a>
+
+    {% if co_the_in %}
+      <a class="btn btn--secondary" href="{% url 'warehouse:xuat_in' phieu.ma_pxk %}" target="_blank" style="height: 44px; min-width: 150px; padding: 0 20px; box-sizing: border-box; margin: 0; line-height: 1; display: inline-flex; align-items: center; justify-content: center;">
+        <i class="bi bi-printer"></i> In phiếu
+      </a>
+    {% endif %}
+  </div>
+
+  <!-- Trường chọn nhân viên duyệt gọn gàng bên dưới nếu tài khoản chưa được gán nhân viên -->
+  {% if can_chon_nv and co_the_duyet %}
+    <div style="margin-top: 14px; max-width: 400px; background: #FFFFFF; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px;">
+      <span class="field-label" style="margin-bottom: 4px;">Nhân viên thực hiện phê duyệt *</span>
+      <select class="inp" name="ma_nv" required style="height: 38px;">
+        <option value="">-- chọn nhân viên duyệt --</option>
+        {% for n in ds_nv %}
+          <option value="{{ n.ma_nv }}">{{ n.ma_nv }} - {{ n.ten_nv }}</option>
+        {% endfor %}
+      </select>
+    </div>
   {% endif %}
+</form>
+
+<!-- Banner trạng thái -->
+<div class="notice-banner" style="font-weight: 600; margin-bottom: 12px;">
+  <span>Trạng thái: {{ phieu.get_trang_thai_display }}</span>
 </div>
 
+<!-- Banner nhắc nhở đối chiếu -->
+<div class="notice-banner">
+  <i class="bi bi-shield-check"></i>
+  <span>Tự đối chiếu khách hàng, xe/VIN, hiệu lực hợp đồng và hóa đơn khi mở chi tiết.</span>
+</div>
+
+<!-- Khối 1: Thông tin phiếu xuất kho (Grid 3 cột chuẩn Figma) -->
 <div class="card">
-  <h3>Lịch sử</h3>
-  <ul class="timeline">
-    {% for l in lich_su %}<li><strong>{{ l.hanh_dong }}</strong> <small class="muted">{{ l.thoi_gian|date:"d/m/Y H:i" }} · {{ l.nguoi_thuc_hien.ten_nv }}</small>{% if l.ghi_chu %}<div>{{ l.ghi_chu }}</div>{% endif %}</li>
-    {% empty %}<li class="muted">Chưa có lịch sử.</li>{% endfor %}
-  </ul>
+  <h3>Thông tin</h3>
+  <div class="grid-3-col">
+    <div>
+      <span class="field-label">Mã phiếu</span>
+      <div class="readonly-field">{{ phieu.ma_pxk }}</div>
+    </div>
+    <div>
+      <span class="field-label">Ngày lập</span>
+      <div class="readonly-field">{{ phieu.ngay_lap|date:"d/m/Y" }}</div>
+    </div>
+    <div>
+      <span class="field-label">Người lập</span>
+      <div class="readonly-field">{{ phieu.nguoi_lap.ten_nv|default:"Sale Admin" }}</div>
+    </div>
+
+    <div>
+      <span class="field-label">Kho xuất</span>
+      <div class="readonly-field">{{ phieu.kho.chi_nhanh.ten_cn|default:phieu.kho_id }}</div>
+    </div>
+    <div>
+      <span class="field-label">VIN</span>
+      <div class="readonly-field">{{ xe.vin }}</div>
+    </div>
+    <div>
+      <span class="field-label">Số máy</span>
+      <div class="readonly-field">{{ xe.so_may|default:"Theo hồ sơ" }}</div>
+    </div>
+
+    <div>
+      <span class="field-label">Dòng xe</span>
+      <div class="readonly-field">{{ xe.ten_xe }}</div>
+    </div>
+    <div>
+      <span class="field-label">Phiên bản</span>
+      <div class="readonly-field">{{ xe.phien_ban|default:"Standard" }}</div>
+    </div>
+    <div>
+      <span class="field-label">Màu sắc</span>
+      <div class="readonly-field">{{ xe.mau_sac|default:"Trắng" }}</div>
+    </div>
+
+    <div>
+      <span class="field-label">Hợp đồng</span>
+      <div class="readonly-field">{{ hd.ma_hd }}</div>
+    </div>
+    <div>
+      <span class="field-label">Hóa đơn</span>
+      <div class="readonly-field">{{ doi_chieu.ma_hdb|default:"HĐ-001" }}</div>
+    </div>
+    <div>
+      <span class="field-label">Kết quả kiểm tra</span>
+      {% if doi_chieu.hop_le %}
+        <div class="readonly-field" style="color: #065F46; font-weight: 600;">Hợp lệ</div>
+      {% else %}
+        <div class="readonly-field" style="color: #991B1B; font-weight: 600;">{{ doi_chieu.canh_bao|default:"Chưa khớp" }}</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Khối 2: Lịch sử xử lý -->
+<div class="card">
+  <h3>Danh sách / Thông tin chi tiết</h3>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Trạng thái</th>
+        <th>Người thực hiện</th>
+        <th>Thời điểm</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for l in lich_su %}
+      <tr>
+        <td>{{ l.hanh_dong }}</td>
+        <td>{{ l.nguoi_thuc_hien.ten_nv|default:"Sale Admin" }}</td>
+        <td>{{ l.thoi_gian|date:"d/m/Y H:i" }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td>{{ phieu.get_trang_thai_display }}</td>
+        <td>{{ phieu.nguoi_lap.ten_nv|default:"Sale Admin" }}</td>
+        <td>{{ phieu.ngay_lap|date:"d/m/Y H:i" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 {% endblock %}

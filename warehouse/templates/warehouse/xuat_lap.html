@@ -1,43 +1,126 @@
 {% extends "base.html" %}
 {% load static %}
 {% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
+
 {% block content %}
-{% include "warehouse/_messages.html" %}
+<h1 class="page-title">Chọn hợp đồng để xuất xe</h1>
+
+<!-- Hàng nút hành động -->
+<div style="display: flex; gap: 12px; margin-bottom: 20px;">
+  <a class="btn btn--secondary" href="{% url 'warehouse:xuat' %}">
+    <i class="bi bi-x-circle"></i> Hủy
+  </a>
+</div>
+
+<!-- Banner điều kiện chọn hợp đồng -->
+<div class="notice-banner">
+  <i class="bi bi-info-circle-fill"></i>
+  <span>Chỉ hiển thị hợp đồng đã ký, đã thanh toán, chưa xuất kho và chưa có phiếu xuất.</span>
+</div>
+
+<!-- Bước 1: Bộ lọc chọn hợp đồng -->
 <form method="get" class="card">
-  <h3>1. Chọn hợp đồng</h3>
-  <div class="actions">
-    <select name="ma_hd" class="inp" required>
-      <option value="">-- chọn hợp đồng --</option>
-      {% for h in ds_hop_dong %}<option value="{{ h.ma_hd }}" {% if h.ma_hd == ma_hd %}selected{% endif %}>{{ h.ma_hd }} - {{ h.khach_hang.ten_kh }} ({{ h.get_trang_thai_display }})</option>{% endfor %}
-    </select>
-    <select name="kho" class="inp">{% for k in ds_kho %}<option value="{{ k.ma_kho }}" {% if k.ma_kho == ma_kho %}selected{% endif %}>{{ k.ma_kho }} - {{ k.chi_nhanh.ten_cn }}</option>{% endfor %}</select>
-    <button class="btn btn--primary" type="submit">Kiểm tra hợp đồng và tìm xe</button>
-    <a class="btn" href="{% url 'warehouse:xuat' %}">Quay lại</a>
+  <h3>Thông tin</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 16px;">
+    <div>
+      <span class="field-label">Mã hợp đồng</span>
+      <select name="ma_hd" class="inp" required>
+        <option value="">Chọn / nhập thông tin</option>
+        {% for h in ds_hop_dong %}
+          <option value="{{ h.ma_hd }}" {% if h.ma_hd == ma_hd %}selected{% endif %}>
+            {{ h.ma_hd }} - {{ h.khach_hang.ten_kh }} ({{ h.get_trang_thai_display }})
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <span class="field-label">Kho lấy xe</span>
+      <select name="kho" class="inp">
+        {% for k in ds_kho %}
+          <option value="{{ k.ma_kho }}" {% if k.ma_kho == ma_kho %}selected{% endif %}>
+            {{ k.ma_kho }} - {{ k.chi_nhanh.ten_cn }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
   </div>
+  <button class="btn btn--primary" type="submit">
+    <i class="bi bi-check2-circle"></i> Chọn hợp đồng & Kiểm tra xe
+  </button>
 </form>
 
+<!-- Bước 2: Hiển thị kết quả kiểm tra & Chọn xe VIN -->
 {% if ma_hd %}
-<form method="post" class="card form">
+<form method="post" class="card">
   {% csrf_token %}
-  <input type="hidden" name="ma_hd" value="{{ ma_hd }}"><input type="hidden" name="kho" value="{{ ma_kho }}">
-  <h3>2. Đối chiếu hóa đơn</h3>
+  <input type="hidden" name="ma_hd" value="{{ ma_hd }}">
+  <input type="hidden" name="kho" value="{{ ma_kho }}">
+
+  <h3>Danh sách xe khả dụng trong kho</h3>
+
   {% if doi_chieu.hop_le %}
-    <p><span class="badge badge--ok">Khớp</span> Hóa đơn {{ doi_chieu.ma_hdb }} · {{ doi_chieu.so_tien|floatformat:"0g" }} đ · khách {{ doi_chieu.khach_hang }}</p>
+    <div class="notice-banner" style="background: #ECFDF5; border-color: #A7F3D0; color: #065F46;">
+      <i class="bi bi-check-circle-fill"></i>
+      <span>Khớp hóa đơn: {{ doi_chieu.ma_hdb }} · Số tiền: {{ doi_chieu.so_tien|floatformat:0 }} đ · Khách: {{ doi_chieu.khach_hang }}</span>
+    </div>
   {% else %}
-    <p><span class="badge badge--bad">Chưa khớp</span> {{ doi_chieu.canh_bao }}</p>
+    <div class="notice-banner" style="background: #FEF2F2; border-color: #FECACA; color: #991B1B;">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ doi_chieu.canh_bao|default:"Chưa khớp hóa đơn bán" }}</span>
+    </div>
   {% endif %}
-  <h3>3. Chọn xe trong kho {{ ma_kho }}</h3>
-  {% for x in xe_kha_dung %}
-    <label class="radio-row"><input type="radio" name="vin" value="{{ x.vin }}" required> {{ x.vin }} · {{ x.ten_xe }} · {{ x.mau_sac|default:"—" }} · {{ x.so_may }}</label>
-  {% empty %}
-    <p class="muted">Không có xe khả dụng phù hợp (xe phải ở trạng thái Sẵn sàng, không có sự cố chưa đóng và chưa nằm trong phiếu chờ duyệt).</p>
-  {% endfor %}
+
+  <table class="tbl" style="margin-bottom: 20px;">
+    <thead>
+      <tr>
+        <th style="width: 50px;">Chọn</th>
+        <th>Số VIN</th>
+        <th>Dòng xe</th>
+        <th>Phiên bản</th>
+        <th>Màu sắc</th>
+        <th>Số máy</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for x in xe_kha_dung %}
+      <tr>
+        <td>
+          <input type="radio" name="vin" value="{{ x.vin }}" required style="width: 18px; height: 18px; cursor: pointer;">
+        </td>
+        <td><strong>{{ x.vin }}</strong></td>
+        <td>{{ x.ten_xe }}</td>
+        <td>{{ x.phien_ban|default:"Standard" }}</td>
+        <td>{{ x.mau_sac|default:"—" }}</td>
+        <td>{{ x.so_may }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 24px;">
+          Không có xe khả dụng phù hợp trong kho này.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
   {% if xe_kha_dung %}
-  <h3>4. Người nhận xe</h3>
-  <div class="field"><label>Người nhận xe</label><input class="inp" name="nguoi_nhan" required></div>
-  <div class="field"><label>Ghi chú</label><textarea class="inp" name="ghi_chu" rows="2"></textarea></div>
-  {% include "warehouse/_chon_nv.html" %}
-  <div class="actions"><button class="btn btn--primary" type="submit">Lập phiếu xuất kho</button></div>
+  <div style="border-top: 1px solid var(--border-color); padding-top: 20px; margin-top: 20px;">
+    <h3>Thông tin giao nhận</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 16px;">
+      <div>
+        <span class="field-label">Người nhận xe *</span>
+        <input class="inp" name="nguoi_nhan" placeholder="Họ và tên người nhận" required>
+      </div>
+      <div>
+        <span class="field-label">Ghi chú</span>
+        <input class="inp" name="ghi_chu" placeholder="Ghi chú phiếu xuất kho">
+      </div>
+    </div>
+    {% include "warehouse/_chon_nv.html" %}
+    <button class="btn btn--primary" type="submit" style="margin-top: 12px;">
+      <i class="bi bi-box-arrow-up-right"></i> Xác nhận lập phiếu xuất kho
+    </button>
+  </div>
   {% endif %}
 </form>
 {% endif %}

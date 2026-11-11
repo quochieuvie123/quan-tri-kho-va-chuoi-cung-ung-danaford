@@ -1,52 +1,77 @@
 {% extends "base.html" %}
 {% load static %}
 {% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
+
 {% block content %}
-{% include "warehouse/_messages.html" %}
-<form method="get" class="card">
-  <div class="filter__grid">
-    <label>Kho
-      <select name="kho" class="inp">{% for k in ds_kho %}<option value="{{ k.ma_kho }}" {% if k.ma_kho == ma_kho %}selected{% endif %}>{{ k.ma_kho }} - {{ k.chi_nhanh.ten_cn }}</option>{% endfor %}</select></label>
-    <label>Trạng thái
-      <select name="trang_thai" class="inp"><option value="">Tất cả</option>{% for v, t in ds_trang_thai %}<option value="{{ v }}" {% if v == trang_thai %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></label>
-    <label class="filter__wide2">Từ khóa
-      <input class="inp" name="q" value="{{ q }}" placeholder="Mã phiếu, mã hợp đồng, VIN, khách hàng"></label>
-  </div>
-  <div class="actions">
-    <button class="btn btn--primary" type="submit"><i class="bi bi-search"></i> Tìm kiếm</button>
-    <a class="btn" href="{% url 'warehouse:xuat' %}">Xóa bộ lọc</a>
-    <span class="spacer"></span>
-    <a class="btn btn--primary" href="{% url 'warehouse:xuat_lap' %}?kho={{ ma_kho }}"><i class="bi bi-plus-lg"></i> Lập phiếu xuất kho</a>
-  </div>
-</form>
+<h1 class="page-title">Danh sách phiếu xuất kho</h1>
+
+<!-- Nút hành động đầu trang -->
+<div style="margin-bottom: 20px;">
+  <a class="btn btn--secondary" href="{% url 'warehouse:xuat_lap' %}?kho={{ ma_kho }}">
+    <i class="bi bi-file-earmark-plus"></i> Lập phiếu xuất
+  </a>
+</div>
+
+<!-- Banner nhắc nhở màu vàng theo Figma -->
+<div class="notice-banner">
+  <i class="bi bi-info-circle-fill"></i>
+  <span>Sắp xếp mới nhất trước.</span>
+</div>
+
+<!-- Khối danh sách dữ liệu -->
 <div class="card">
-  <p class="muted">{{ tong }} phiếu xuất kho{% if co_loc %} phù hợp bộ lọc{% endif %}.</p>
+  <h3>Danh sách / Thông tin chi tiết</h3>
+
   <div class="scroll">
-  <table class="tbl">
-    <thead><tr><th>Mã phiếu</th><th>Hợp đồng</th><th>Khách hàng</th><th>VIN</th><th>Tên xe</th><th>Ngày lập</th><th>Người lập</th><th>Trạng thái</th></tr></thead>
-    <tbody>
-    {% for p in trang %}
-      <tr>
-        <td><a href="{% url 'warehouse:xuat_chi_tiet' p.ma_pxk %}"><strong>{{ p.ma_pxk }}</strong></a></td>
-        <td>{{ p.chi_tiet_hop_dong.hop_dong.ma_hd }}</td>
-        <td>{{ p.chi_tiet_hop_dong.hop_dong.khach_hang.ten_kh }}</td>
-        <td>{{ p.chi_tiet_hop_dong.xe.vin }}</td>
-        <td>{{ p.chi_tiet_hop_dong.xe.ten_xe }}</td>
-        <td>{{ p.ngay_lap|date:"d/m/Y H:i" }}</td>
-        <td>{{ p.nguoi_lap.ten_nv|default:"—" }}</td>
-        <td><span class="badge {% if p.trang_thai == 'DA_DUYET' %}badge--ok{% elif p.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">{{ p.get_trang_thai_display }}</span></td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="8" class="none">{% if co_loc %}Không tìm thấy phiếu phù hợp{% else %}Chưa có phiếu xuất kho nào ở kho này{% endif %}</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Mã phiếu</th>
+          <th>Hợp đồng</th>
+          <th>Khách hàng</th>
+          <th>Xe/VIN</th>
+          <th>Ngày lập</th>
+          <th>Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for p in trang %}
+        <tr>
+          <td>
+            <a href="{% url 'warehouse:xuat_chi_tiet' p.ma_pxk %}">
+              {{ p.ma_pxk }}
+            </a>
+          </td>
+          <td>{{ p.chi_tiet_hop_dong.hop_dong.ma_hd }}</td>
+          <td>{{ p.chi_tiet_hop_dong.hop_dong.khach_hang.ten_kh }}</td>
+          <td>{{ p.chi_tiet_hop_dong.xe.vin }}</td>
+          <td>{{ p.ngay_lap|date:"d/m/Y" }}</td>
+          <td>
+            <span class="badge {% if p.trang_thai == 'DA_DUYET' %}badge--ok{% elif p.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">
+              {{ p.get_trang_thai_display }}
+            </span>
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 30px;">
+            Chưa có phiếu xuất kho nào.
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
   </div>
+
   {% if trang.paginator.num_pages > 1 %}
-  <div class="pager">
-    {% if trang.has_previous %}<a href="?{{ query }}&page={{ trang.previous_page_number }}">&laquo; Trước</a>{% endif %}
-    <span>Trang {{ trang.number }} / {{ trang.paginator.num_pages }}</span>
-    {% if trang.has_next %}<a href="?{{ query }}&page={{ trang.next_page_number }}">Sau &raquo;</a>{% endif %}
+  <div class="pager" style="margin-top: 20px; display: flex; justify-content: center; gap: 12px; align-items: center;">
+    {% if trang.has_previous %}
+      <a class="btn btn--secondary" style="height: 36px; padding: 6px 14px;" href="?page={{ trang.previous_page_number }}">&laquo; Trước</a>
+    {% endif %}
+    <span style="font-size: 13px; color: var(--text-secondary);">Trang {{ trang.number }} / {{ trang.paginator.num_pages }}</span>
+    {% if trang.has_next %}
+      <a class="btn btn--secondary" style="height: 36px; padding: 6px 14px;" href="?page={{ trang.next_page_number }}">Sau &raquo;</a>
+    {% endif %}
   </div>
   {% endif %}
 </div>
