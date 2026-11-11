@@ -1,12 +1,28 @@
 {% extends "ql_dat_xe.html" %}
 
 {% block booking_content %}
-<div class="toolbar" style="margin-bottom: 16px;">
+<div class="toolbar" style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
     <div>
         <h2 class="section-title" style="margin: 0;">Danh sách đề xuất nhập xe theo nhu cầu</h2>
         <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">
             Tự động tính toán nhu cầu nhập dựa trên lượng bán trong tháng, số lượng tồn kho và phân bổ thực tế từ nhà máy Ford
         </p>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <form method="GET" style="display: flex; gap: 8px; align-items: center; margin: 0;">
+            <label for="month-select" style="font-size: 13px; font-weight: 600; color: #102a43; margin: 0;">Kỳ phân bổ:</label>
+            <select name="month" id="month-select" onchange="this.form.submit()" style="padding: 7px 12px; font-size: 13px; font-weight: 600; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #102a43; cursor: pointer;">
+                <option value="ALL" {% if selected_month == 'ALL' %}selected{% endif %}>📅 Tất cả các tháng</option>
+                {% for opt in month_options %}
+                    <option value="{{ opt.value }}" {% if selected_month == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        {% if current_cn and current_cn != 'ALL' %}
+        <span class="badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 12px; padding: 6px 12px;">
+            <i class="bi bi-geo-alt-fill"></i> {{ current_cn_name }}
+        </span>
+        {% endif %}
     </div>
 </div>
 

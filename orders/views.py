@@ -21,6 +21,7 @@ from django.template.loader import render_to_string
 from xhtml2pdf import pisa
 
 from .models import Allocation, VehicleRequest, VehicleRequestItem
+from database.models import ChiNhanh
 
 import os
 from django.contrib.staticfiles import finders
@@ -137,6 +138,63 @@ def order_index(request):
     return redirect('orders:vehicle_orders')
 
 
+def lay_danh_sach_thang_phan_bo(current_cn="ALL"):
+    qs = Allocation.objects.filter(allocation_month__isnull=False)
+    if current_cn and current_cn != "ALL":
+        qs = qs.filter(chi_nhanh__ma_cn=current_cn)
+    
+    months = qs.values_list("allocation_month", flat=True).distinct().order_by("-allocation_month")
+    res = []
+    seen = set()
+    for m in months:
+        val = m.strftime("%Y-%m")
+        if val not in seen:
+            seen.add(val)
+            cnt = qs.filter(allocation_month__year=m.year, allocation_month__month=m.month).count()
+            res.append({
+                "value": val,
+                "label": f"Tháng {m.month:02d}/{m.year} ({cnt} xe)",
+                "year": m.year,
+                "month": m.month
+            })
+    return res
+
+def xu_ly_loc_phan_bo(request):
+    current_cn = request.session.get("current_cn", "ALL")
+    allocations = Allocation.objects.all().select_related("chi_nhanh").order_by("-allocation_month", "id")
+
+    # Lọc theo chi nhánh từ Header
+    if current_cn and current_cn != "ALL":
+        allocations = allocations.filter(chi_nhanh__ma_cn=current_cn)
+
+    month_options = lay_danh_sach_thang_phan_bo(current_cn)
+    selected_month = request.GET.get("month", "").strip()
+
+    if selected_month == "ALL":
+        # Xem tất cả các tháng
+        pass
+    elif selected_month and "-" in selected_month:
+        try:
+            y, m = map(int, selected_month.split("-"))
+            allocations = allocations.filter(allocation_month__year=y, allocation_month__month=m)
+        except ValueError:
+            pass
+    else:
+        # Nếu chưa chọn tháng: ưu tiên tháng hiện tại nếu có xe, nếu không thì lấy tháng gần nhất
+        today = timezone.localdate()
+        cur_key = f"{today.year}-{today.month:02d}"
+        has_cur = any(opt["value"] == cur_key for opt in month_options)
+        if has_cur:
+            selected_month = cur_key
+            allocations = allocations.filter(allocation_month__year=today.year, allocation_month__month=today.month)
+        elif month_options:
+            selected_month = month_options[0]["value"]
+            allocations = allocations.filter(allocation_month__year=month_options[0]["year"], allocation_month__month=month_options[0]["month"])
+        else:
+            selected_month = "ALL"
+
+    return allocations, selected_month, month_options, current_cn
+
 @login_required
 def allocation_list(request):
     today = timezone.localdate()
@@ -209,6 +267,12 @@ def allocation_list(request):
                                 col_map["contractual_delivery_date"] = c_idx
                             elif c_name in ("ALLOCATION MONTH", "ALLOCATION_MONTH", "THÁNG PHÂN BỔ", "THANG PHAN BO", "ALLOCATION") and "allocation_month" not in col_map:
                                 col_map["allocation_month"] = c_idx
+                            elif c_name in ("DEALER NAME", "DEALER_NAME", "DEALER", "TÊN ĐẠI LÝ", "TEN DAI LY", "ĐẠI LÝ", "DAI LY", "CHI NHÁNH", "CHI NHANH") and "dealer_name" not in col_map:
+                                col_map["dealer_name"] = c_idx
+                            elif c_name in ("DEALER CODE", "DEALER_CODE", "MÃ ĐẠI LÝ", "MA DAI LY", "MÃ ĐL", "MA DL") and "dealer_code" not in col_map:
+                                col_map["dealer_code"] = c_idx
+                            elif c_name in ("SHIP TO", "SHIP_TO", "NƠI GIAO", "NOI GIAO", "ĐIỂM GIAO", "DIEM GIAO") and "ship_to" not in col_map:
+                                col_map["ship_to"] = c_idx
 
                         start_data_idx = header_row_idx + 1
                     else:
@@ -251,6 +315,23 @@ def allocation_list(request):
 
                         alloc_month = chuyen_thang(get_col("allocation_month"), default_date=default_month)
 
+                        d_name_val = chuyen_chuoi(get_col("dealer_name"))
+                        d_code_val = chuyen_chuoi(get_col("dealer_code"))
+                        shipto_val = chuyen_chuoi(get_col("ship_to"))
+
+                        combined_br = f"{d_name_val} {d_code_val} {shipto_val}".upper()
+                        if any(k in combined_br for k in ("GIA LAI", "GL")):
+                            target_ma_cn = "CN03"
+                            d_lbl = "Dana Ford Gia Lai"
+                        elif any(k in combined_br for k in ("BINH DINH", "BÌNH ĐỊNH", "V20011")):
+                            target_ma_cn = "CN02"
+                            d_lbl = "Dana Ford Bình Định"
+                        else:
+                            target_ma_cn = "CN01"
+                            d_lbl = "Dana Ford Đà Nẵng"
+
+                        cn_obj = ChiNhanh.objects.filter(ma_cn=target_ma_cn).first()
+
                         data.append({
                             "vin": vin,
                             "order_number": chuyen_chuoi(get_col("order_number")),
@@ -263,6 +344,9 @@ def allocation_list(request):
                             "expected_ship_date": chuyen_ngay(get_col("expected_ship_date")),
                             "contractual_delivery_date": chuyen_ngay(get_col("contractual_delivery_date")),
                             "allocation_month": alloc_month,
+                            "dealer_name": d_name_val or d_lbl,
+                            "dealer_code": d_code_val or ("V20011" if target_ma_cn == "CN02" else ("V20012" if target_ma_cn == "CN03" else "VD2001")),
+                            "chi_nhanh": cn_obj,
                         })
 
                     if not data:
@@ -317,23 +401,21 @@ def allocation_list(request):
     else:
         form = AllocationUploadForm()
 
-    # Hiển thị danh sách phân bổ: Ưu tiên tháng hiện tại, nếu chưa có thì lấy tháng phân bổ gần nhất
-    allocations = Allocation.objects.filter(
-        allocation_month__year=today.year,
-        allocation_month__month=today.month
-    ).order_by("id")
+    allocations, selected_month, month_options, current_cn = xu_ly_loc_phan_bo(request)
 
-    if not allocations.exists():
-        latest_allocation = Allocation.objects.order_by("-allocation_month").first()
-        if latest_allocation and latest_allocation.allocation_month:
-            allocations = Allocation.objects.filter(
-                allocation_month__year=latest_allocation.allocation_month.year,
-                allocation_month__month=latest_allocation.allocation_month.month
-            ).order_by("id")
+    cn_name = "Tất cả các chi nhánh"
+    if current_cn and current_cn != "ALL":
+        cn_obj = ChiNhanh.objects.filter(ma_cn=current_cn).first()
+        if cn_obj:
+            cn_name = cn_obj.ten_cn
 
     return render(request, "danh_sach_pb.html", {
         "form": form,
-        "allocations": allocations
+        "allocations": allocations,
+        "selected_month": selected_month,
+        "month_options": month_options,
+        "current_cn": current_cn,
+        "current_cn_name": cn_name,
     })
 
 # Đặt xe
@@ -345,32 +427,30 @@ def dat_xe(request):
         # Lấy ngày hiện tại theo múi giờ Django
         today = timezone.localdate()
 
-        # Ưu tiên lấy xe thuộc tháng hiện tại, nếu chưa có thì lấy tháng phân bổ gần nhất
-        allocations = Allocation.objects.filter(
-            allocation_month__year=today.year,
-            allocation_month__month=today.month
-        ).order_by("id")
-
-        if not allocations.exists():
-            latest_alloc = Allocation.objects.order_by("-allocation_month").first()
-            if latest_alloc and latest_alloc.allocation_month:
-                allocations = Allocation.objects.filter(
-                    allocation_month__year=latest_alloc.allocation_month.year,
-                    allocation_month__month=latest_alloc.allocation_month.month
-                ).order_by("id")
+        allocations, selected_month, month_options, current_cn = xu_ly_loc_phan_bo(request)
 
         # Tìm kiếm theo VIN, mô tả, mã xe, màu sắc
         if keyword:
-            allocations = Allocation.objects.filter(
+            allocations = allocations.filter(
                 Q(vin__icontains=keyword) |
                 Q(description__icontains=keyword) |
                 Q(vehicle_code__icontains=keyword) |
                 Q(exterior_color__icontains=keyword)
-            ).order_by("-allocation_month", "id")
+            )
+
+        cn_name = "Tất cả các chi nhánh"
+        if current_cn and current_cn != "ALL":
+            cn_obj = ChiNhanh.objects.filter(ma_cn=current_cn).first()
+            if cn_obj:
+                cn_name = cn_obj.ten_cn
 
         context = {
             "keyword": keyword,
-            "allocations": allocations
+            "allocations": allocations,
+            "selected_month": selected_month,
+            "month_options": month_options,
+            "current_cn": current_cn,
+            "current_cn_name": cn_name,
         }
         # Lấy danh sách xe đã chọn trong Session
         danh_sach = request.session.get("selected_vehicles", {})
@@ -781,28 +861,27 @@ from database.models import ChiTietBan, TonKho
 
 @login_required
 def danh_sach_de_xuat(request):
-    today = timezone.localdate()
+    allocations, selected_month, month_options, current_cn = xu_ly_loc_phan_bo(request)
 
-    # 1. Lấy danh sách phân bổ (ưu tiên tháng hiện tại, nếu chưa có thì lấy tháng gần nhất)
-    allocations = Allocation.objects.filter(
-        allocation_month__year=today.year,
-        allocation_month__month=today.month
-    )
-    if not allocations.exists():
-        latest_pb = Allocation.objects.order_by("-allocation_month").first()
-        if latest_pb and latest_pb.allocation_month:
-            allocations = Allocation.objects.filter(
-                allocation_month__year=latest_pb.allocation_month.year,
-                allocation_month__month=latest_pb.allocation_month.month
-            )
+    cn_name = "Tất cả các chi nhánh"
+    if current_cn and current_cn != "ALL":
+        cn_obj = ChiNhanh.objects.filter(ma_cn=current_cn).first()
+        if cn_obj:
+            cn_name = cn_obj.ten_cn
 
     # 2. Tính tổng số xe bán theo dòng xe
+    doanh_so_qs = ChiTietBan.objects.all()
+    if selected_month and selected_month != "ALL" and "-" in selected_month:
+        try:
+            y, m = map(int, selected_month.split("-"))
+            doanh_so_qs = doanh_so_qs.filter(hoa_don_ban__ngay_ban__year=y, hoa_don_ban__ngay_ban__month=m)
+        except ValueError:
+            pass
+    if current_cn and current_cn != "ALL":
+        doanh_so_qs = doanh_so_qs.filter(hoa_don_ban__chi_nhanh__ma_cn=current_cn)
+
     doanh_so = (
-        ChiTietBan.objects
-        .filter(
-            hoa_don_ban__ngay_ban__year=today.year,
-            hoa_don_ban__ngay_ban__month=today.month
-        )
+        doanh_so_qs
         .values("xe__ten_xe")
         .annotate(tong_ban=Sum("so_luong_ban"))
     )
@@ -813,8 +892,12 @@ def danh_sach_de_xuat(request):
     }
 
     # 3. Tính tổng số xe tồn kho theo dòng xe
+    ton_kho_qs = TonKho.objects.all()
+    if current_cn and current_cn != "ALL":
+        ton_kho_qs = ton_kho_qs.filter(kho__chi_nhanh__ma_cn=current_cn)
+
     ton_kho = (
-        TonKho.objects
+        ton_kho_qs
         .values("xe__ten_xe")
         .annotate(tong_ton=Sum("so_luong_ton"))
     )
@@ -859,7 +942,13 @@ def danh_sach_de_xuat(request):
     return render(
         request,
         "ds_de_xuat.html",
-        {"danh_sach": danh_sach}
+        {
+            "danh_sach": danh_sach,
+            "selected_month": selected_month,
+            "month_options": month_options,
+            "current_cn": current_cn,
+            "current_cn_name": cn_name,
+        }
     )
 
 

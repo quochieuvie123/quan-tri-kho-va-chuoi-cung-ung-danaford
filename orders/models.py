@@ -12,6 +12,15 @@ class Allocation(models.Model):
     contractual_delivery_date = models.DateField(null=True,blank=True,verbose_name="Ngày dự kiến giao theo hợp đồng")
     allocation_month = models.DateField(null=True,blank=True,verbose_name="Tháng phân bổ")
     quantity = models.PositiveIntegerField(default=1,verbose_name="Số lượng")
+    dealer_name = models.CharField(max_length=150, blank=True, default="", verbose_name="Tên đại lý / Chi nhánh")
+    dealer_code = models.CharField(max_length=50, blank=True, default="", verbose_name="Mã đại lý")
+    chi_nhanh = models.ForeignKey(
+        "database.ChiNhanh",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Chi nhánh"
+    )
 #ặt xe
 
 class VehicleRequest(models.Model):

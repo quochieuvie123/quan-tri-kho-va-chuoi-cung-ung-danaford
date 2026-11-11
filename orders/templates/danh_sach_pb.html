@@ -99,11 +99,33 @@
 
     <!-- KHỐI 2: BẢNG DỮ LIỆU PHÂN BỔ ĐÃ TẢI -->
     <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-            <h2 class="section-title" style="margin: 0;">Danh sách xe phân bổ trong tháng hiện tại</h2>
-            <span class="badge" style="font-size: 13px; padding: 6px 12px;">
-                Tổng số xe: <strong>{{ allocations|length }}</strong>
-            </span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+            <form method="GET" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin: 0;">
+                <label for="month-select" style="font-size: 13px; font-weight: 700; color: #102a43; margin: 0; display: flex; align-items: center; gap: 6px;">
+                    <i class="bi bi-calendar3" style="color: #0067c5;"></i> Kỳ phân bổ:
+                </label>
+                <select name="month" id="month-select" onchange="this.form.submit()" style="padding: 7px 12px; font-size: 13px; font-weight: 600; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; color: #102a43; cursor: pointer;">
+                    <option value="ALL" {% if selected_month == 'ALL' %}selected{% endif %}>📅 Tất cả các tháng (Toàn bộ lịch sử)</option>
+                    {% for opt in month_options %}
+                        <option value="{{ opt.value }}" {% if selected_month == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                {% if current_cn and current_cn != 'ALL' %}
+                <span class="badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 12px; padding: 6px 12px;">
+                    <i class="bi bi-geo-alt-fill"></i> Đang lọc: <strong>{{ current_cn_name }}</strong>
+                </span>
+                {% else %}
+                <span class="badge" style="background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; font-size: 12px; padding: 6px 12px;">
+                    <i class="bi bi-buildings"></i> Cả 3 chi nhánh
+                </span>
+                {% endif %}
+                <span class="badge" style="font-size: 13px; padding: 6px 14px; background: #0067c5; color: #ffffff;">
+                    Tổng số: <strong>{{ allocations|length }}</strong> xe
+                </span>
+            </div>
         </div>
 
         <div class="table-wrap">
@@ -114,6 +136,7 @@
                         <th>Số đơn đặt hàng</th>
                         <th>Mã dòng xe</th>
                         <th>Mô tả phiên bản</th>
+                        <th>Chi nhánh nhận</th>
                         <th>Số khung (VIN)</th>
                         <th>Mã màu</th>
                         <th>Màu ngoại thất</th>
@@ -131,6 +154,17 @@
                         <td><strong>{{ allocation.order_number }}</strong></td>
                         <td><span class="badge">{{ allocation.vehicle_code }}</span></td>
                         <td>{{ allocation.description }}</td>
+                        <td>
+                            {% if allocation.chi_nhanh.ma_cn == 'CN01' %}
+                                <span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size: 11px;">Đà Nẵng</span>
+                            {% elif allocation.chi_nhanh.ma_cn == 'CN02' %}
+                                <span class="badge" style="background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; font-size: 11px;">Bình Định</span>
+                            {% elif allocation.chi_nhanh.ma_cn == 'CN03' %}
+                                <span class="badge" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-size: 11px;">Gia Lai</span>
+                            {% else %}
+                                <span class="badge" style="font-size: 11px;">{{ allocation.dealer_name|default:"Dana Ford" }}</span>
+                            {% endif %}
+                        </td>
                         <td style="font-family: monospace; font-weight: 700; color: #0067c5;">{{ allocation.vin }}</td>
                         <td>{{ allocation.color_code }}</td>
                         <td>{{ allocation.exterior_color }}</td>

@@ -5,25 +5,34 @@
     <!-- KHUNG TÌM KIẾM XE -->
     <div>
         <h2 class="section-title">Tra cứu & Đặt xe từ nguồn phân bổ</h2>
-        <form method="GET" class="filters" style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px;">
-            <div class="field" style="flex: 2;">
-                <label for="keyword">Nhập số khung VIN hoặc mô tả dòng xe:</label>
+        <form method="GET" class="filters" style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 20px; display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end;">
+            <div class="field" style="flex: 2; min-width: 240px; margin: 0;">
+                <label for="keyword" style="font-weight: 600; font-size: 13px; color: #102a43; margin-bottom: 6px; display: block;">Tra cứu số khung VIN hoặc mô tả dòng xe:</label>
                 <input
                     type="text"
                     id="keyword"
                     name="keyword"
                     class="input"
-                    placeholder="Ví dụ: Everest, Territory, VIN..."
+                    placeholder="Ví dụ: Everest, Territory, RL05..."
                     value="{{ keyword }}"
                 >
             </div>
+            <div class="field" style="flex: 1; min-width: 200px; margin: 0;">
+                <label for="month-select" style="font-weight: 600; font-size: 13px; color: #102a43; margin-bottom: 6px; display: block;">Kỳ phân bổ:</label>
+                <select name="month" id="month-select" class="input" onchange="this.form.submit()" style="padding: 9px 12px; font-size: 13px; font-weight: 600; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; color: #102a43; cursor: pointer; width: 100%;">
+                    <option value="ALL" {% if selected_month == 'ALL' %}selected{% endif %}>📅 Tất cả các tháng (Toàn bộ)</option>
+                    {% for opt in month_options %}
+                        <option value="{{ opt.value }}" {% if selected_month == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <div style="display: flex; gap: 8px; align-items: flex-end;">
                 <button type="submit" class="btn btn--primary">
-                    <i class="bi bi-search"></i> Tìm kiếm xe
+                    <i class="bi bi-search"></i> Lọc & Tìm kiếm
                 </button>
-                {% if keyword %}
-                <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--light">
-                    <i class="bi bi-x-circle"></i> Xóa tìm kiếm
+                {% if keyword or selected_month != 'ALL' %}
+                <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--light" title="Đặt lại bộ lọc">
+                    <i class="bi bi-arrow-counterclockwise"></i> Đặt lại
                 </a>
                 {% endif %}
             </div>
@@ -40,11 +49,18 @@
                     Nguồn xe phân bổ khả dụng sẵn sàng đặt hàng
                 {% endif %}
             </h3>
-            {% if allocations %}
-            <span style="font-size: 13px; color: #64748b; font-weight: 500;">
-                Có <strong>{{ allocations|length }}</strong> xe sẵn sàng
-            </span>
-            {% endif %}
+            <div style="display: flex; gap: 8px; align-items: center;">
+                {% if current_cn and current_cn != 'ALL' %}
+                <span class="badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 12px; padding: 4px 10px;">
+                    <i class="bi bi-geo-alt-fill"></i> {{ current_cn_name }}
+                </span>
+                {% endif %}
+                {% if allocations %}
+                <span class="badge" style="font-size: 13px; padding: 5px 12px; background: #0067c5; color: #fff;">
+                    Có <strong>{{ allocations|length }}</strong> xe sẵn sàng
+                </span>
+                {% endif %}
+            </div>
         </div>
         {% if allocations %}
             <div class="table-wrap">
@@ -53,6 +69,7 @@
                         <tr>
                             <th>Mã xe</th>
                             <th>Mô tả phiên bản</th>
+                            <th>Chi nhánh</th>
                             <th>Số khung (VIN)</th>
                             <th>Mã màu</th>
                             <th>Màu ngoại thất</th>
@@ -66,7 +83,18 @@
                         <tr>
                             <td><span class="badge">{{ xe.vehicle_code }}</span></td>
                             <td><strong>{{ xe.description }}</strong></td>
-                            <td>{{ xe.vin }}</td>
+                            <td>
+                                {% if xe.chi_nhanh.ma_cn == 'CN01' %}
+                                    <span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size: 11px;">Đà Nẵng</span>
+                                {% elif xe.chi_nhanh.ma_cn == 'CN02' %}
+                                    <span class="badge" style="background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; font-size: 11px;">Bình Định</span>
+                                {% elif xe.chi_nhanh.ma_cn == 'CN03' %}
+                                    <span class="badge" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-size: 11px;">Gia Lai</span>
+                                {% else %}
+                                    <span class="badge" style="font-size: 11px;">{{ xe.dealer_name|default:"Dana Ford" }}</span>
+                                {% endif %}
+                            </td>
+                            <td style="font-family: monospace; font-weight: 700; color: #0067c5;">{{ xe.vin }}</td>
                             <td>{{ xe.color_code }}</td>
                             <td>{{ xe.exterior_color }}</td>
                             <td>{{ xe.engine_number }}</td>
