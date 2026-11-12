@@ -4,7 +4,18 @@
 {% block content %}
 {% include "warehouse/_messages.html" %}
 
-{% if phieu.trang_thai == 'CHO_DUYET' %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">Phiếu xuất kho {{ phieu.ma_pxk }}</h1>
+    <p class="page-header__subtitle">Chi tiết hợp đồng, thông tin phương tiện và quy trình phê duyệt bàn giao xe</p>
+  </div>
+  <div class="actions" style="margin: 0;">
+    <a class="btn" href="{% url 'warehouse:xuat' %}?kho={{ phieu.kho_id }}"><i class="bi bi-arrow-left"></i> Danh sách phiếu xuất</a>
+    {% if co_the_in %}<a class="btn" href="{% url 'warehouse:xuat_in' phieu.ma_pxk %}" target="_blank"><i class="bi bi-printer"></i> In phiếu xuất</a>{% endif %}
+  </div>
+</div>
+
+{% if phieu.trang_thai == 'CHO_DUYET' and is_sale_admin %}
 <div class="card" style="border-left: 5px solid #d97706; background: #fffbeb; padding: 16px 20px; margin-bottom: 20px;">
   <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
     <div style="display: flex; align-items: center; gap: 10px;">

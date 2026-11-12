@@ -3,6 +3,14 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
 {% block content %}
 {% include "warehouse/_messages.html" %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">Lập phiếu xuất kho</h1>
+    <p class="page-header__subtitle">Chọn hợp đồng, đối chiếu hóa đơn bán và kiểm tra xe sẵn sàng xuất bán</p>
+  </div>
+  <a class="btn" href="{% url 'warehouse:xuat' %}"><i class="bi bi-arrow-left"></i> Quay lại danh sách</a>
+</div>
 <form method="get" class="card">
   <h3>1. Chọn hợp đồng</h3>
   <div class="actions">

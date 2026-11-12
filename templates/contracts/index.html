@@ -93,7 +93,7 @@
               <td>{{ hd.ngay_ky|date:"d/m/Y" }}</td>
               <td>{{ hd.ngay_du_kien_giao|date:"d/m/Y"|default:"—" }}</td>
               <td style="text-align: center;">
-                <span class="badge {% if hd.trang_thai == 'HOAN_TAT' %}badge--DA_DUYET{% elif hd.trang_thai == 'DANG_XUAT_KHO' or hd.trang_thai == 'DU_DIEU_KIEN_XUAT' %}badge--CHO_DUYET{% elif hd.trang_thai == 'Hủy' %}badge--KHONG_DAT{% else %}badge--NHAP{% endif %}">
+                <span class="badge {% if hd.trang_thai == 'HOAN_TAT' or hd.trang_thai_hien_thi == 'Hoàn tất' %}badge--DA_DUYET{% elif hd.trang_thai == 'DANG_XUAT_KHO' or hd.trang_thai == 'DU_DIEU_KIEN_XUAT' %}badge--CHO_DUYET{% elif hd.trang_thai == 'Hủy' %}badge--KHONG_DAT{% else %}badge--NHAP{% endif %}">
                   {{ hd.trang_thai_hien_thi }}
                 </span>
               </td>

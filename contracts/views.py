@@ -1,4 +1,4 @@
-from .matching import car_matches_criterion, matches_contract_smart
+from .matching import car_matches_criterion, matches_contract_smart, get_model, get_trim, colors_match
 from database.models import PhieuXuatKho, LichSuXuatKho, NhanVien, TrangThaiPhieuXuat, Kho
 from django.utils import timezone
 """Backend III; GET chỉ tra cứu, không gán VIN hoặc giữ xe."""
@@ -15,7 +15,7 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from core.iii_iv_api import api_errors
 from core.iii_iv_access import role_required, has_role, is_da_nang_branch, SALE_ADMIN, WAREHOUSE
-from database.models import HopDong, ChiTietHopDong, TonKho, HoaDonBan, TrangThaiHopDong, TrangThaiXe
+from database.models import HopDong, ChiTietHopDong, TonKho, HoaDonBan, TrangThaiHopDong, TrangThaiXe, Xe
 from .presentation import stock_data
 
 
@@ -338,6 +338,63 @@ def wait_allocation(request, ma_hd):
     return redirect('contracts:xe_phu_hop', ma_hd=ma_hd)
 
 
+def find_allocation_vehicles(hd, criteria):
+    """
+    Tra cứu danh sách xe phân bổ từ nhà máy của các tháng tiếp theo (demo kỳ Tháng 11/2026),
+    so khớp với tiêu chí dòng xe, phiên bản và màu sắc của hợp đồng.
+    """
+    from orders.models import Allocation
+    alloc_qs = Allocation.objects.filter(
+        Q(allocation_month__gte=date(2026, 11, 1)) | Q(allocation_month=date(2026, 11, 1))
+    ).order_by('allocation_month', 'id')
+
+    matched_allocs = []
+    for alloc in alloc_qs:
+        if ChiTietHopDong.objects.filter(xe__vin=alloc.vin).exclude(hop_dong=hd).exists():
+            continue
+
+        m_car = get_model(alloc.description) or get_model(alloc.vehicle_code)
+        tr_car = get_trim(alloc.description) or get_trim(alloc.vehicle_code)
+
+        matched_any = False
+        is_exact_color = False
+        for crit in criteria:
+            m_req = get_model(crit.get('dong_xe', ''))
+            tr_req = get_trim(crit.get('phien_ban', '')) or get_trim(crit.get('dong_xe', ''))
+            req_mau = crit.get('mau_sac', '')
+
+            if m_req and m_car and m_req != m_car:
+                continue
+            if tr_req and tr_car and tr_req != tr_car:
+                continue
+
+            matched_any = True
+            c_match = colors_match(req_mau, alloc.mau_sac or alloc.exterior_color)
+            if c_match:
+                is_exact_color = True
+
+        if matched_any:
+            matched_allocs.append({
+                'id': alloc.id,
+                'order_number': alloc.order_number or f'ORD-{alloc.id}',
+                'vin': alloc.vin,
+                'vehicle_code': alloc.vehicle_code,
+                'description': alloc.description,
+                'mau_sac': alloc.mau_sac or alloc.exterior_color or 'Tiêu chuẩn',
+                'color_code': alloc.color_code or '',
+                'allocation_month': alloc.allocation_month,
+                'ky_phan_bo': alloc.allocation_month.strftime('Tháng %m/%Y') if alloc.allocation_month else 'Tháng 11/2026',
+                'expected_ship_date': alloc.expected_ship_date,
+                'contractual_delivery_date': alloc.contractual_delivery_date,
+                'dealer_name': alloc.dealer_name or alloc.chi_nhanh or 'Dana Ford',
+                'is_exact_color': is_exact_color,
+                'phuong_an': 'Xe theo lịch phân bổ (Khớp màu)' if is_exact_color else f'Xe theo lịch phân bổ (Màu: {alloc.mau_sac or alloc.exterior_color})',
+            })
+
+    matched_allocs.sort(key=lambda x: (not x['is_exact_color'], x['allocation_month'], x['order_number']))
+    return matched_allocs
+
+
 @login_required
 @api_errors
 @role_required(SALE_ADMIN, WAREHOUSE)
@@ -349,6 +406,10 @@ def suitable_vehicles(request, ma_hd):
         from django.http import Http404
         raise Http404
     criteria, results, error = find_suitable(hd)
+
+    # Tra cứu xe theo lịch phân bổ cho kỳ tiếp theo (Tháng 11/2026)
+    xe_phan_bo = find_allocation_vehicles(hd, criteria) if criteria else []
+
     if error:
         if wants_html(request):
             return render(request, 'contracts/suitable.html', {
@@ -360,19 +421,39 @@ def suitable_vehicles(request, ma_hd):
                 'nhom_xe': [
                     {'id': 'xe-da-nang', 'tieu_de': 'Xe tại kho Đà Nẵng', 'xe': []},
                     {'id': 'xe-chi-nhanh', 'tieu_de': 'Xe tại kho Bình Định / Gia Lai', 'xe': []},
+                    {'id': 'xe-phan-bo', 'tieu_de': 'Xe theo lịch phân bổ', 'xe': xe_phan_bo},
                 ],
+                'xe_da_nang': [],
+                'xe_chi_nhanh': [],
+                'xe_phan_bo': xe_phan_bo,
                 'message': error,
                 'canh_bao_du_lieu': error,
                 'canh_bao': '',
             })
         return JsonResponse({'error': error}, status=400)
-    payload = {'ma_hd': hd.pk, 'co_the_xem_hop_dong': has_role(request.user, SALE_ADMIN), 'tieu_chi_xac_nhan': criteria,
-                         'xe_phu_hop': results, 'message': '' if results else 'Cả ba kho chưa có xe phù hợp. Hợp đồng chờ xe; nhu cầu được dùng để đối chiếu kỳ phân bổ tiếp theo.'}
+
+    # Thông báo tình trạng xe
+    if not results and xe_phan_bo:
+        info_msg = f'Cả ba kho hiện không có xe sẵn sàng. Hệ thống đã tự động đối chiếu và tìm thấy {len(xe_phan_bo)} xe phù hợp trong lịch phân bổ kỳ tiếp theo (Tháng 11/2026).'
+    elif not results and not xe_phan_bo:
+        info_msg = 'Cả ba kho và lịch phân bổ kỳ tiếp theo đều chưa có xe phù hợp. Hợp đồng tiếp tục chờ phân bổ các đợt tiếp theo.'
+    else:
+        info_msg = ''
+
+    payload = {
+        'ma_hd': hd.pk,
+        'co_the_xem_hop_dong': has_role(request.user, SALE_ADMIN),
+        'tieu_chi_xac_nhan': criteria,
+        'xe_phu_hop': results,
+        'message': info_msg,
+    }
     payload['xe_da_nang'] = [row for row in results if row['uu_tien'] in (0, 2)]
     payload['xe_chi_nhanh'] = [row for row in results if row['uu_tien'] in (1, 3)]
+    payload['xe_phan_bo'] = xe_phan_bo
     payload['nhom_xe'] = [
         {'id': 'xe-da-nang', 'tieu_de': 'Xe tại kho Đà Nẵng', 'xe': payload['xe_da_nang']},
         {'id': 'xe-chi-nhanh', 'tieu_de': 'Xe tại kho Bình Định / Gia Lai', 'xe': payload['xe_chi_nhanh']},
+        {'id': 'xe-phan-bo', 'tieu_de': 'Xe theo lịch phân bổ', 'xe': xe_phan_bo},
         {'id': 'xe-pyc', 'tieu_de': 'Xe đang chờ PDI', 'xe': [row for row in results if row.get('nguon_pyc')]},
     ]
     payload['co_the_cho_phan_bo'] = not results and has_role(request.user, SALE_ADMIN)
@@ -380,6 +461,59 @@ def suitable_vehicles(request, ma_hd):
         payload['page_title'] = f'Xe phù hợp hợp đồng {hd.pk}'
         return render(request, 'contracts/suitable.html', payload)
     return JsonResponse(payload)
+
+
+@login_required
+@role_required(SALE_ADMIN)
+@permission_required('database.change_hopdong', raise_exception=True)
+@require_POST
+def choose_allocation_vehicle(request, ma_hd, alloc_id):
+    """
+    Chọn xe đề xuất từ lịch phân bổ nhà máy cho hợp đồng bán.
+    Gán số khung VIN, cập nhật ngày giao dự kiến và chuyển hợp đồng sang CHO_XE_VE_KHO.
+    """
+    from orders.models import Allocation
+    hd = get_object_or_404(HopDong, pk=ma_hd)
+    alloc = get_object_or_404(Allocation, pk=alloc_id)
+
+    if ChiTietHopDong.objects.filter(xe__vin=alloc.vin).exclude(hop_dong=hd).exists():
+        messages.error(request, f'Xe VIN {alloc.vin} từ lịch phân bổ đã được gán cho một hợp đồng khác.')
+        return redirect('contracts:xe_phu_hop', ma_hd=ma_hd)
+
+    ten_xe = alloc.description or alloc.vehicle_code
+    car, created = Xe.objects.get_or_create(
+        vin=alloc.vin,
+        defaults={
+            'ten_xe': ten_xe,
+            'loai_xe': alloc.vehicle_code or ten_xe,
+            'phien_ban': alloc.description or '',
+            'mau_sac': alloc.mau_sac or alloc.exterior_color or 'Tiêu chuẩn',
+            'so_may': alloc.engine_number or f"ENG-{alloc.vin[-8:]}",
+            'nam_sx': 2026,
+            'trang_thai': TrangThaiXe.GIU_CHO_XUAT,
+        }
+    )
+
+    ct_hd, ct_created = ChiTietHopDong.objects.get_or_create(hop_dong=hd, xe=car)
+
+    update_fields = ['trang_thai']
+    if alloc.contractual_delivery_date:
+        hd.ngay_du_kien_giao = alloc.contractual_delivery_date
+        update_fields.append('ngay_du_kien_giao')
+    elif alloc.expected_ship_date:
+        hd.ngay_du_kien_giao = alloc.expected_ship_date
+        update_fields.append('ngay_du_kien_giao')
+
+    hd.trang_thai = TrangThaiHopDong.CHO_XE_VE_KHO
+    hd.save(update_fields=update_fields)
+
+    ky_str = alloc.allocation_month.strftime('%m/%Y') if alloc.allocation_month else '11/2026'
+    messages.success(
+        request,
+        f'Đã chọn xe VIN {alloc.vin} ({alloc.description}) từ lịch phân bổ Kỳ Tháng {ky_str} cho hợp đồng {hd.ma_hd}. '
+        f'Trạng thái hợp đồng: {hd.get_trang_thai_display()}.'
+    )
+    return redirect('contracts:detail', ma_hd=ma_hd)
 
 
 @login_required

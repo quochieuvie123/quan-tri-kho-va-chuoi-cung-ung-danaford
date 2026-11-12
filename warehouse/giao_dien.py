@@ -17,6 +17,7 @@ from database.models import (
 
 from .inventory_services import InventoryError, InventoryService
 from .services import XuatKhoError, XuatKhoService
+from core.roles import is_sale_admin
 
 MA_KHO_MAC_DINH = "KHO01"
 SO_DONG = 15
@@ -101,20 +102,29 @@ def xuat_ds(request):
             | Q(chi_tiet_hop_dong__hop_dong__khach_hang__ten_kh__icontains=tu_khoa))
     trang = _phan_trang(request, qs)
 
-    # Danh sách phiếu chờ duyệt để ghim thông báo lên đầu cho Sale Admin
-    qs_cho_duyet = PhieuXuatKho.objects.filter(trang_thai=TrangThaiPhieuXuat.CHO_DUYET).select_related(
-        "chi_tiet_hop_dong__hop_dong__khach_hang", "chi_tiet_hop_dong__xe", "kho", "nguoi_lap"
-    ).order_by("-ngay_lap", "-ma_pxk")
-    if ma_kho != "ALL":
-        qs_cho_duyet = qs_cho_duyet.filter(kho_id=ma_kho)
-    ds_cho_duyet = list(qs_cho_duyet[:10])
-    so_luong_cho_duyet = qs_cho_duyet.count()
+    sale_admin = is_sale_admin(request.user)
+    if sale_admin:
+        qs_cho_duyet = PhieuXuatKho.objects.filter(
+            trang_thai=TrangThaiPhieuXuat.CHO_DUYET
+        ).exclude(
+            chi_tiet_hop_dong__hop_dong__trang_thai=TrangThaiHopDong.HOAN_TAT
+        ).select_related(
+            "chi_tiet_hop_dong__hop_dong__khach_hang", "chi_tiet_hop_dong__xe", "kho", "nguoi_lap"
+        ).order_by("-ngay_lap", "-ma_pxk")
+        if ma_kho != "ALL":
+            qs_cho_duyet = qs_cho_duyet.filter(kho_id=ma_kho)
+        ds_cho_duyet = list(qs_cho_duyet[:10])
+        so_luong_cho_duyet = qs_cho_duyet.count()
+    else:
+        ds_cho_duyet = []
+        so_luong_cho_duyet = 0
 
     return render(request, "warehouse/xuat_ds.html", _ngu_canh(
         request, "Quản lý xuất kho", trang=trang, tong=trang.paginator.count, q=tu_khoa,
         trang_thai=trang_thai, ds_trang_thai=TrangThaiPhieuXuat.choices, query=_giu_loc(request),
         co_loc=bool(trang_thai or tu_khoa),
-        ds_cho_duyet=ds_cho_duyet, so_luong_cho_duyet=so_luong_cho_duyet))
+        ds_cho_duyet=ds_cho_duyet, so_luong_cho_duyet=so_luong_cho_duyet,
+        is_sale_admin=sale_admin))
 
 
 @login_required
@@ -130,11 +140,15 @@ def xuat_chi_tiet(request, ma_pxk):
         doi_chieu = XuatKhoService.doi_chieu_hop_dong_hoa_don(hd.ma_hd)
     except XuatKhoError as e:
         doi_chieu = {"hop_le": False, "canh_bao": str(e)}
+    sale_admin = is_sale_admin(request.user)
     cho_duyet = phieu.trang_thai == TrangThaiPhieuXuat.CHO_DUYET
     return render(request, "warehouse/xuat_chi_tiet.html", _ngu_canh(
         request, f"Phiếu xuất kho {phieu.ma_pxk}", phieu=phieu, hd=hd, xe=phieu.chi_tiet_hop_dong.xe,
-        doi_chieu=doi_chieu, co_the_duyet=cho_duyet and doi_chieu.get("hop_le", False), co_the_huy=cho_duyet,
+        doi_chieu=doi_chieu,
+        co_the_duyet=sale_admin and cho_duyet and doi_chieu.get("hop_le", False),
+        co_the_huy=sale_admin and cho_duyet,
         co_the_in=phieu.trang_thai == TrangThaiPhieuXuat.DA_DUYET,
+        is_sale_admin=sale_admin,
         lich_su=LichSuXuatKho.objects.filter(phieu_xuat=phieu).select_related("nguoi_thuc_hien")))
 
 
@@ -176,6 +190,9 @@ def xuat_lap(request):
 @login_required
 @require_POST
 def xuat_duyet(request, ma_pxk):
+    if not is_sale_admin(request.user):
+        messages.error(request, "Bạn không có quyền phê duyệt phiếu xuất kho. Chức năng này chỉ dành cho Sale Admin.")
+        return redirect("warehouse:xuat_chi_tiet", ma_pxk=ma_pxk)
     nv = _nhan_vien(request)
     if nv is not None:
         try:
@@ -189,6 +206,9 @@ def xuat_duyet(request, ma_pxk):
 @login_required
 @require_POST
 def xuat_huy(request, ma_pxk):
+    if not is_sale_admin(request.user):
+        messages.error(request, "Bạn không có quyền hủy phiếu xuất kho. Chức năng này chỉ dành cho Sale Admin.")
+        return redirect("warehouse:xuat_chi_tiet", ma_pxk=ma_pxk)
     nv = _nhan_vien(request)
     if nv is not None:
         try:

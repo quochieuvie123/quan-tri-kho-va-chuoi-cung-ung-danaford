@@ -114,7 +114,7 @@
         <div class="transfer-info-grid">
             <div class="transfer-info-item">
                 <strong>Người lập lệnh:</strong>
-                <span>{{ lenh.nguoi_lap.get_full_name|default:lenh.nguoi_lap.username }}</span>
+                <span>{{ lenh.ten_nguoi_lap }}</span>
             </div>
             <div class="transfer-info-item">
                 <strong>Kho xuất xe:</strong>
@@ -139,7 +139,7 @@
             {% if lenh.nguoi_duyet %}
             <div class="transfer-info-item">
                 <strong>Người phê duyệt:</strong>
-                <span>{{ lenh.nguoi_duyet.get_full_name|default:lenh.nguoi_duyet.username }} ({{ lenh.ngay_duyet|date:"d/m/Y H:i" }})</span>
+                <span>{{ lenh.ten_nguoi_duyet }} ({{ lenh.ngay_duyet|date:"d/m/Y H:i" }})</span>
             </div>
             {% endif %}
 
@@ -153,9 +153,9 @@
                     <div><strong>Biển số xe lồng:</strong> <span style="font-family: monospace; font-weight: 700;">{{ lenh.bien_so_xe }}</span></div>
                     <div><strong>Tài xế:</strong> {{ lenh.tai_xe }} {% if lenh.sdt_tai_xe %}(SĐT: {{ lenh.sdt_tai_xe }}){% endif %}</div>
                     <div><strong>Dự kiến đến ĐN:</strong> <span style="color: #0b66c3; font-weight: 700;">{{ lenh.ngay_du_kien_den|date:"d/m/Y" }}</span></div>
-                    <div><strong>Xuất kho nguồn:</strong> {{ lenh.nguoi_xuat.get_full_name|default:lenh.nguoi_xuat.username }} ({{ lenh.ngay_xuat|date:"d/m/Y H:i" }})</div>
+                    <div><strong>Xuất kho nguồn:</strong> {{ lenh.ten_nguoi_xuat }} ({{ lenh.ngay_xuat|date:"d/m/Y H:i" }})</div>
                     {% if lenh.nguoi_giao %}
-                    <div><strong>Tiếp nhận tại ĐN:</strong> {{ lenh.nguoi_giao.get_full_name|default:lenh.nguoi_giao.username }} ({{ lenh.ngay_giao|date:"d/m/Y H:i" }})</div>
+                    <div><strong>Tiếp nhận tại ĐN:</strong> {{ lenh.ten_nguoi_giao }} ({{ lenh.ngay_giao|date:"d/m/Y H:i" }})</div>
                     {% endif %}
                 </div>
             </div>
@@ -226,19 +226,19 @@
                 <strong>Người lập lệnh</strong><br>
                 <small style="color: #64748b;">(Ký, ghi rõ họ tên)</small>
                 <div style="height: 50px;"></div>
-                <div style="font-weight: 600;">{{ lenh.nguoi_lap.get_full_name|default:lenh.nguoi_lap.username }}</div>
+                <div style="font-weight: 600;">{{ lenh.ten_nguoi_lap }}</div>
             </div>
             <div>
                 <strong>Thủ kho xuất</strong><br>
                 <small style="color: #64748b;">(Ký, ghi rõ họ tên)</small>
                 <div style="height: 50px;"></div>
-                <div style="font-weight: 600;">{{ lenh.nguoi_xuat.get_full_name|default:lenh.nguoi_xuat.username|default:"........................" }}</div>
+                <div style="font-weight: 600;">{{ lenh.ten_nguoi_xuat|default:"........................" }}</div>
             </div>
             <div>
                 <strong>Thủ kho nhận (Đà Nẵng)</strong><br>
                 <small style="color: #64748b;">(Ký, ghi rõ họ tên)</small>
                 <div style="height: 50px;"></div>
-                <div style="font-weight: 600;">{{ lenh.nguoi_giao.get_full_name|default:lenh.nguoi_giao.username|default:"........................" }}</div>
+                <div style="font-weight: 600;">{{ lenh.ten_nguoi_giao|default:"........................" }}</div>
             </div>
         </div>
     </div>

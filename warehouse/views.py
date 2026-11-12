@@ -1,3 +1,4 @@
+from core.roles import is_sale_admin
 # warehouse/views.py
 import json
 from django.db import models
@@ -103,7 +104,7 @@ class ChiTietPhieuXuatView(LoginRequiredMixin, View):
                     "sdt_khach": hd.khach_hang.sdt_kh,
                 },
                 "doi_chieu": doi_chieu_info,
-                "co_the_duyet": phieu.trang_thai == TrangThaiPhieuXuat.CHO_DUYET and doi_chieu_info.get("hop_le", False)
+                "co_the_duyet": is_sale_admin(request.user) and phieu.trang_thai == TrangThaiPhieuXuat.CHO_DUYET and doi_chieu_info.get("hop_le", False)
             }
         })
 
@@ -168,6 +169,8 @@ class LapPhieuXuatKhoActionView(LoginRequiredMixin, View):
 class DuyetPhieuXuatKhoActionView(LoginRequiredMixin, View):
     """UC-PXK-03: Duyệt phiếu xuất kho và tự động cập nhật tồn kho"""
     def post(self, request, ma_pxk, *args, **kwargs):
+        if not is_sale_admin(request.user):
+            return JsonResponse({"status": "error", "message": "Bạn không có quyền phê duyệt phiếu xuất kho. Chỉ Sale Admin mới được duyệt."}, status=403)
         try:
             nhan_vien = getattr(request.user, "nhan_vien", None)
             if not nhan_vien:
@@ -190,6 +193,8 @@ class DuyetPhieuXuatKhoActionView(LoginRequiredMixin, View):
 class HuyPhieuXuatKhoActionView(LoginRequiredMixin, View):
     """Hủy phiếu xuất kho"""
     def post(self, request, ma_pxk, *args, **kwargs):
+        if not is_sale_admin(request.user):
+            return JsonResponse({"status": "error", "message": "Bạn không có quyền hủy phiếu xuất kho. Chỉ Sale Admin mới được thao tác."}, status=403)
         try:
             payload = json.loads(request.body or "{}")
             ly_do = payload.get("ly_do", "Người dùng yêu cầu hủy")

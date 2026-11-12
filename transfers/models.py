@@ -124,6 +124,31 @@ class LenhLuuChuyen(models.Model):
         return self.ma_lenh or f"Lệnh lưu chuyển #{self.pk}"
 
     @property
+    def ten_nguoi_lap(self):
+        if not self.nguoi_lap:
+            return ""
+        return self.nguoi_lap.get_full_name() or self.nguoi_lap.username
+
+    @property
+    def ten_nguoi_duyet(self):
+        if not self.nguoi_duyet:
+            return ""
+        return self.nguoi_duyet.get_full_name() or self.nguoi_duyet.username
+
+    @property
+    def ten_nguoi_xuat(self):
+        if not self.nguoi_xuat:
+            return ""
+        return self.nguoi_xuat.get_full_name() or self.nguoi_xuat.username
+
+    @property
+    def ten_nguoi_giao(self):
+        if not self.nguoi_giao:
+            return ""
+        return self.nguoi_giao.get_full_name() or self.nguoi_giao.username
+
+
+    @property
     def is_open(self):
         """Lệnh đang mở nếu chưa hoàn tất hoặc chưa hủy/từ chối."""
         return self.trang_thai in [

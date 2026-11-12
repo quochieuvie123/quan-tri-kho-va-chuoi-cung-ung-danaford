@@ -96,6 +96,25 @@
       </a>
     </div>
   </div>
+  {% elif hop_dong.trang_thai == 'CHO_XE_VE_KHO' %}
+  <div class="card" style="border-left: 5px solid #7c3aed; background: #f5f3ff; padding: 16px 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <i class="bi bi-calendar2-check-fill" style="color: #6d28d9; font-size: 22px;"></i>
+        <div>
+          <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #5b21b6;">
+            Đã chọn xe theo lịch phân bổ nhà máy — Đang chờ xe về kho
+          </h3>
+          <p style="margin: 3px 0 0; font-size: 13px; color: #6d28d9;">
+            Hợp đồng đã được gán số khung theo kế hoạch phân bổ của nhà máy Ford. Khi xe được bàn giao đến kho và hoàn tất nhập kho / PDI, hệ thống sẽ tiến hành các bước xuất xe giao khách.
+          </p>
+        </div>
+      </div>
+      <a class="btn btn--light" href="{% url 'orders:ds_phan_bo' %}" style="font-weight: 600; color: #6d28d9; border-color: #ddd6fe;">
+        <i class="bi bi-calendar3"></i> Xem nguồn phân bổ
+      </a>
+    </div>
+  </div>
   {% endif %}
 
   <div class="card">
@@ -123,7 +142,7 @@
 
       <dt>Trạng thái</dt>
       <dd>
-        {% if hop_dong.trang_thai == 'HOAN_TAT' %}
+        {% if hop_dong.trang_thai == 'HOAN_TAT' or hop_dong.trang_thai_hien_thi == 'Hoàn tất' %}
           <span class="badge badge--DA_DUYET">Hoàn tất</span>
         {% elif hop_dong.phieu_xuat and hop_dong.phieu_xuat.trang_thai == 'CHO_DUYET' %}
           <span class="badge badge--CHO_DUYET">Đang xuất kho (Chờ Sale Admin duyệt)</span>

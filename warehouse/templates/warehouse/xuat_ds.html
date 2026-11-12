@@ -4,7 +4,15 @@
 {% block content %}
 {% include "warehouse/_messages.html" %}
 
-{% if so_luong_cho_duyet > 0 %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">Quản lý xuất kho</h1>
+    <p class="page-header__subtitle">Theo dõi, lập và phê duyệt phiếu xuất kho giao xe cho khách hàng theo hợp đồng</p>
+  </div>
+  <a class="btn btn--primary" href="{% url 'warehouse:xuat_lap' %}?kho={{ ma_kho }}"><i class="bi bi-plus-lg"></i> Lập phiếu xuất kho</a>
+</div>
+
+{% if is_sale_admin and so_luong_cho_duyet > 0 %}
 <div class="card" style="border-left: 5px solid #d97706; background: #fffbeb; padding: 18px 24px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.12);">
   <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
     <div style="display: flex; align-items: center; gap: 12px;">
@@ -72,8 +80,6 @@
   <div class="actions">
     <button class="btn btn--primary" type="submit"><i class="bi bi-search"></i> Tìm kiếm</button>
     <a class="btn" href="{% url 'warehouse:xuat' %}">Xóa bộ lọc</a>
-    <span class="spacer"></span>
-    <a class="btn btn--primary" href="{% url 'warehouse:xuat_lap' %}?kho={{ ma_kho }}"><i class="bi bi-plus-lg"></i> Lập phiếu xuất kho</a>
   </div>
 </form>
 <div class="card">

@@ -17,66 +17,64 @@
 
 {% block content %}
 <div class="stack">
-    <div class="card" style="margin-bottom: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                <a href="{% url 'transfers:danh_sach_lenh' %}{% if tu_khoa %}?q={{ tu_khoa }}{% endif %}"
-                   class="btn {% if not trang_thai %}btn--primary{% else %}btn--light{% endif %}" style="padding: 7px 14px; font-size: 13px;">
-                    Tất cả
-                </a>
-                <a href="{% url 'transfers:danh_sach_lenh' %}?trang_thai=NHAP{% if tu_khoa %}&q={{ tu_khoa }}{% endif %}"
-                   class="btn {% if trang_thai == 'NHAP' %}btn--primary{% else %}btn--light{% endif %}" style="padding: 7px 14px; font-size: 13px;">
-                    Bản nháp
-                </a>
-                <a href="{% url 'transfers:danh_sach_lenh' %}?trang_thai=CHO_DUYET{% if tu_khoa %}&q={{ tu_khoa }}{% endif %}"
-                   class="btn {% if trang_thai == 'CHO_DUYET' or trang_thai == 'DA_GUI' %}btn--primary{% else %}btn--light{% endif %}" style="padding: 7px 14px; font-size: 13px;">
-                    Chờ duyệt
-                </a>
-                <a href="{% url 'transfers:danh_sach_lenh' %}?trang_thai=DA_DUYET{% if tu_khoa %}&q={{ tu_khoa }}{% endif %}"
-                   class="btn {% if trang_thai == 'DA_DUYET' %}btn--primary{% else %}btn--light{% endif %}" style="padding: 7px 14px; font-size: 13px;">
-                    Đã duyệt
-                </a>
-                <a href="{% url 'transfers:danh_sach_lenh' %}?trang_thai=DANG_VAN_CHUYEN{% if tu_khoa %}&q={{ tu_khoa }}{% endif %}"
-                   class="btn {% if trang_thai == 'DANG_VAN_CHUYEN' %}btn--primary{% else %}btn--light{% endif %}" style="padding: 7px 14px; font-size: 13px;">
-                    Đang vận chuyển
-                </a>
-                <a href="{% url 'transfers:danh_sach_lenh' %}?trang_thai=DA_GIAO_DEN_DA_NANG{% if tu_khoa %}&q={{ tu_khoa }}{% endif %}"
-                   class="btn {% if trang_thai == 'DA_GIAO_DEN_DA_NANG' %}btn--primary{% else %}btn--light{% endif %}" style="padding: 7px 14px; font-size: 13px;">
-                    Chờ nhập kho
-                </a>
-                <a href="{% url 'transfers:danh_sach_lenh' %}?trang_thai=HOAN_TAT{% if tu_khoa %}&q={{ tu_khoa }}{% endif %}"
-                   class="btn {% if trang_thai == 'HOAN_TAT' or trang_thai == 'DA_XAC_NHAN' %}btn--primary{% else %}btn--light{% endif %}" style="padding: 7px 14px; font-size: 13px;">
-                    Hoàn tất
-                </a>
+    <div class="page-header">
+        <div>
+            <h1 class="page-header__title">Danh sách lệnh lưu chuyển</h1>
+            <p class="page-header__subtitle">Theo dõi tiến trình luân chuyển xe giữa các chi nhánh Dana Ford</p>
+        </div>
+        <a href="{% url 'transfers:index' %}" class="btn btn--primary">
+            <i class="bi bi-plus-lg"></i> Lập lệnh lưu chuyển mới
+        </a>
+    </div>
+        <div class="card" style="margin-bottom: 16px;">
+        <form method="GET" action="{% url 'transfers:danh_sach_lenh' %}" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin: 0;">
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <label for="trang-thai-select" style="font-weight: 600; font-size: 13px; color: #102a43; margin: 0; white-space: nowrap;">
+                    <i class="bi bi-funnel"></i> Trạng thái lệnh:
+                </label>
+                <select
+                    id="trang-thai-select"
+                    name="trang_thai"
+                    class="select"
+                    onchange="this.form.submit()"
+                    style="min-width: 220px; padding: 8px 14px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; color: #102a43; cursor: pointer;"
+                >
+                    <option value="" {% if not trang_thai %}selected{% endif %}>📋 Tất cả trạng thái</option>
+                    <option value="NHAP" {% if trang_thai == 'NHAP' %}selected{% endif %}>Bản nháp</option>
+                    <option value="CHO_DUYET" {% if trang_thai == 'CHO_DUYET' or trang_thai == 'DA_GUI' %}selected{% endif %}>Chờ duyệt</option>
+                    <option value="DA_DUYET" {% if trang_thai == 'DA_DUYET' %}selected{% endif %}>Đã duyệt</option>
+                    <option value="DANG_VAN_CHUYEN" {% if trang_thai == 'DANG_VAN_CHUYEN' %}selected{% endif %}>Đang vận chuyển</option>
+                    <option value="DA_GIAO_DEN_DA_NANG" {% if trang_thai == 'DA_GIAO_DEN_DA_NANG' %}selected{% endif %}>Chờ nhập kho (Đã đến ĐN)</option>
+                    <option value="HOAN_TAT" {% if trang_thai == 'HOAN_TAT' or trang_thai == 'DA_XAC_NHAN' %}selected{% endif %}>Hoàn tất</option>
+                    <option value="TU_CHOI" {% if trang_thai == 'TU_CHOI' %}selected{% endif %}>Từ chối</option>
+                    <option value="HUY" {% if trang_thai == 'HUY' %}selected{% endif %}>Đã hủy</option>
+                </select>
             </div>
 
-            <form method="GET" action="{% url 'transfers:danh_sach_lenh' %}" style="display: flex; gap: 8px; margin: 0;">
-                {% if trang_thai %}
-                <input type="hidden" name="trang_thai" value="{{ trang_thai }}">
-                {% endif %}
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
                 <input
                     type="text"
                     name="q"
                     value="{{ tu_khoa }}"
                     placeholder="Tìm mã lệnh, kho, người lập, biển số..."
                     class="input"
-                    style="min-width: 260px; padding: 7px 12px; font-size: 13px;"
+                    style="min-width: 280px; padding: 8px 12px; font-size: 13px; border-radius: 8px; border: 1px solid #cbd5e1;"
                 >
-                <button type="submit" class="btn btn--primary" style="padding: 7px 14px; font-size: 13px;">
-                    <i class="bi bi-search"></i> Tìm
+                <button type="submit" class="btn btn--primary" style="padding: 8px 16px; font-size: 13px;">
+                    <i class="bi bi-search"></i> Tìm kiếm
                 </button>
-                {% if tu_khoa %}
-                <a href="{% url 'transfers:danh_sach_lenh' %}{% if trang_thai %}?trang_thai={{ trang_thai }}{% endif %}" class="btn btn--light" style="padding: 7px 14px; font-size: 13px;">
-                    <i class="bi bi-x-circle"></i>
+                {% if tu_khoa or trang_thai %}
+                <a href="{% url 'transfers:danh_sach_lenh' %}" class="btn btn--light" style="padding: 8px 14px; font-size: 13px;" title="Xóa bộ lọc">
+                    <i class="bi bi-arrow-counterclockwise"></i> Đặt lại
                 </a>
                 {% endif %}
-            </form>
-        </div>
+            </div>
+        </form>
     </div>
 
     <div class="card">
-        <div class="table-wrap">
-            <table class="data-table">
+        <div class="table-wrap table-wrap--scroll">
+            <table class="data-table" style="min-width: 1050px;">
                 <thead>
                     <tr>
                         <th style="width: 45px; text-align: center;">STT</th>
@@ -101,7 +99,7 @@
                         <td>{{ lenh.ngay_lap|date:"d/m/Y H:i" }}</td>
                         <td><span class="badge">{{ lenh.kho_xuat.ma_kho }}</span> {{ lenh.kho_xuat.chi_nhanh }}</td>
                         <td><span class="badge">{{ lenh.kho_nhap.ma_kho }}</span> {{ lenh.kho_nhap.chi_nhanh }}</td>
-                        <td>{{ lenh.nguoi_lap.username }}</td>
+                        <td>{{ lenh.ten_nguoi_lap|default:"—" }}</td>
                         <td>
                             {% if lenh.don_vi_van_chuyen %}
                                 <small style="font-weight: 600; color: #334155;">{{ lenh.don_vi_van_chuyen.ten_dvvc }}</small><br>

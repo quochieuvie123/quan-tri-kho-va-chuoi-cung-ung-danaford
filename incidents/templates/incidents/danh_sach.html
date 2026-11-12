@@ -4,6 +4,14 @@
 {% block content %}
 {% include "incidents/_messages.html" %}
 
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+  <div>
+    <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #0b2a4a;">Quản lý sự cố vận chuyển</h1>
+    <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Ghi nhận, xử lý claim bồi thường và theo dõi khắc phục sự cố phát sinh từ kiểm định PDI</p>
+  </div>
+  <a class="btn btn--primary" href="{% url 'incidents:ghi_nhan' %}"><i class="bi bi-plus-lg"></i> Ghi nhận sự cố</a>
+</div>
+
 <form method="get" class="card filter">
   <div class="filter__grid">
     <label class="filter__wide">{{ form.q.label }}{{ form.q }}</label>

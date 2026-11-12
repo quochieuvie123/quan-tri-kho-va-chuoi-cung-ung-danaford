@@ -114,19 +114,27 @@
         <i class="bi bi-truck"></i> 2. Bình Định / Gia Lai
         <span class="count-badge">{{ xe_chi_nhanh|length }} xe</span>
       </a>
-      <form method="post" action="{% url 'contracts:wait_allocation' ma_hd %}" style="margin: 0; margin-left: auto;">
-        {% csrf_token %}
-        <button class="btn btn--light" type="submit" style="color: #475569; border-color: #cbd5e1;">
-          <i class="bi bi-clock-history"></i> 3. Chờ lịch phân bổ tháng sau
-        </button>
-      </form>
+      <a class="source-jump" href="#xe-phan-bo" id="tab-xe-phan-bo">
+        <i class="bi bi-calendar2-check"></i> 3. Theo lịch phân bổ
+        <span class="count-badge">{{ xe_phan_bo|length }} xe</span>
+      </a>
     </div>
 
     {% if message %}
+      {% if not xe_da_nang and not xe_chi_nhanh and xe_phan_bo %}
+      <div style="margin: 16px 20px 0; background: #f5f3ff; border: 1px solid #ddd6fe; border-left: 4px solid #7c3aed; color: #5b21b6; border-radius: 8px; padding: 12px 18px; display: flex; align-items: center; gap: 12px;">
+        <i class="bi bi-info-circle-fill" style="font-size: 20px; color: #7c3aed;"></i>
+        <div>
+          <strong style="display: block; font-size: 14px; margin-bottom: 2px;">Tự động đối chiếu nguồn phân bổ</strong>
+          <span style="font-size: 13px; color: #6d28d9;">{{ message }} Vui lòng kiểm tra và chọn xe tại tab <strong>3. Theo lịch phân bổ</strong> bên dưới.</span>
+        </div>
+      </div>
+      {% else %}
       <div class="empty" style="padding: 40px 20px;">
         <i class="bi bi-car-front" style="font-size: 40px; color: #94a3b8; display: block; margin-bottom: 12px;"></i>
         <p style="font-size: 15px; font-weight: 600; color: #334155; margin: 0 0 6px;">{{ message }}</p>
       </div>
+      {% endif %}
     {% endif %}
 
     <!-- 1. KHO ĐÀ NẴNG -->
@@ -238,6 +246,90 @@
         <p class="source-empty">Kho Bình Định và Gia Lai hiện không có xe phù hợp tiêu chí.</p>
       {% endif %}
     </section>
+
+    <!-- 3. THEO LỊCH PHÂN BỔ -->
+    <section id="xe-phan-bo" class="source-section" hidden>
+      <div class="source-header">
+        <div class="source-title" style="color: #7c3aed;">
+          <i class="bi bi-calendar2-check"></i> Xe theo lịch phân bổ nhà máy (Kỳ Tháng 11/2026: {{ xe_phan_bo|length }} xe phù hợp)
+        </div>
+        <p class="source-desc">
+          Nguồn xe từ danh sách phân bổ của nhà máy Ford cho các tháng tiếp theo. Khi cả kho Đà Nẵng và các kho chi nhánh đều không có sẵn xe trong kho, Sale Admin có thể chọn xe đề xuất theo lịch phân bổ để gán cho hợp đồng và xác nhận kế hoạch bàn giao.
+        </p>
+      </div>
+
+      {% if xe_phan_bo %}
+      <div class="table-wrap table-wrap--scroll">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width: 50px; text-align: center;">STT</th>
+              <th>Số đơn đặt hàng</th>
+              <th>Số khung (VIN)</th>
+              <th>Dòng xe & Phiên bản</th>
+              <th>Màu ngoại thất</th>
+              <th style="text-align: center;">Kỳ phân bổ</th>
+              <th>Dự kiến giao / Ship</th>
+              <th>Phương án</th>
+              <th style="text-align: right;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for xe in xe_phan_bo %}
+            <tr>
+              <td style="text-align: center; color: #64748b; font-weight: 600;">{{ forloop.counter }}</td>
+              <td><strong>{{ xe.order_number }}</strong></td>
+              <td><span style="font-family: monospace; font-weight: 700; color: #0f172a; font-size: 13px;">{{ xe.vin }}</span></td>
+              <td><strong>{{ xe.description|default:xe.vehicle_code }}</strong></td>
+              <td>
+                <span class="badge" style="background: #f1f5f9; color: #334155;">{{ xe.mau_sac }}</span>
+                {% if xe.is_exact_color %}
+                <span class="badge badge--ok" style="font-size: 11px; margin-left: 4px;">Khớp màu</span>
+                {% endif %}
+              </td>
+              <td style="text-align: center;">
+                <span class="badge" style="background: #ede9fe; color: #6d28d9; border-color: #ddd6fe; font-weight: 600;">
+                  <i class="bi bi-calendar3"></i> {{ xe.ky_phan_bo }}
+                </span>
+              </td>
+              <td>
+                {% if xe.contractual_delivery_date %}
+                  <strong>{{ xe.contractual_delivery_date|date:"d/m/Y" }}</strong>
+                {% elif xe.expected_ship_date %}
+                  {{ xe.expected_ship_date|date:"d/m/Y" }} <small style="color: #64748b;">(Dự kiến ship)</small>
+                {% else %}
+                  <span style="color: #94a3b8;">Chờ cập nhật</span>
+                {% endif %}
+              </td>
+              <td><span class="badge" style="background: #f3e8ff; color: #7e22ce;">{{ xe.phuong_an }}</span></td>
+              <td style="text-align: right;">
+                <form method="post" action="{% url 'contracts:choose_allocation_vehicle' ma_hd xe.id %}" style="margin: 0;"
+                      onsubmit="return confirm('Xác nhận chọn xe VIN {{ xe.vin }} từ kế hoạch phân bổ {{ xe.ky_phan_bo }} cho hợp đồng {{ ma_hd }}?');">
+                  {% csrf_token %}
+                  <button class="btn btn--primary" type="submit" style="background: #7c3aed; border-color: #7c3aed; font-weight: 600; white-space: nowrap;">
+                    <i class="bi bi-check2-circle"></i> Chọn xe theo lịch phân bổ
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <p class="source-empty">Lịch phân bổ các kỳ tiếp theo hiện chưa có xe phù hợp với tiêu chí của hợp đồng này.</p>
+        {% if co_the_cho_phan_bo %}
+        <div style="text-align: center; margin-top: 16px;">
+          <form method="post" action="{% url 'contracts:wait_allocation' ma_hd %}" style="display: inline-block;">
+            {% csrf_token %}
+            <button class="btn btn--light" type="submit" style="color: #475569; border-color: #cbd5e1;">
+              <i class="bi bi-clock-history"></i> Chuyển trạng thái sang Chờ lịch phân bổ
+            </button>
+          </form>
+        </div>
+        {% endif %}
+      {% endif %}
+    </section>
   </div>
 </div>
 {% endblock %}
@@ -257,8 +349,15 @@ document.querySelectorAll('.source-jump').forEach(link => {
   });
 });
 
-// Nếu kho Đà Nẵng 0 xe mà chi nhánh có xe, tự động mở tab chi nhánh
-{% if not xe_da_nang and xe_chi_nhanh %}
+// Điều hướng tự động:
+// 1. Nếu cả kho Đà Nẵng và chi nhánh đều 0 xe nhưng có xe phân bổ -> tự động mở tab Theo lịch phân bổ
+// 2. Nếu kho Đà Nẵng 0 xe mà chi nhánh có xe -> mở tab Chi nhánh
+{% if not xe_da_nang and not xe_chi_nhanh and xe_phan_bo %}
+const tabPb = document.getElementById('tab-xe-phan-bo');
+if (tabPb) {
+  tabPb.click();
+}
+{% elif not xe_da_nang and xe_chi_nhanh %}
 const tabCn = document.getElementById('tab-xe-chi-nhanh');
 if (tabCn) {
   tabCn.click();

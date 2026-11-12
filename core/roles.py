@@ -209,6 +209,18 @@ def get_user_role_info(user):
     return role_info
 
 
+def is_sale_admin(user):
+    """Kiểm tra người dùng có quyền Sale Admin hay không dựa trên role_info."""
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    role_info = get_user_role_info(user)
+    if role_info and role_info.get("code") in ("ADMIN", "SALE_ADMIN"):
+        return True
+    return False
+
+
 def get_user_allowed_modules(user):
     """Trả về danh sách các module mà user được quyền truy cập."""
     role_info = get_user_role_info(user)

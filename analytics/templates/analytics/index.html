@@ -3,6 +3,13 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'analytics/analytics.css' %}">{% endblock %}
 {% block content %}
 {% include "analytics/_messages.html" %}
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+  <div>
+    <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #0b2a4a;">Dự báo nhu cầu & Đề xuất nhập xe</h1>
+    <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Ứng dụng mô hình dự báo chuỗi thời gian SARIMA và tính toán số lượng đặt hàng kinh tế POQ</p>
+  </div>
+</div>
 <form method="post" action="{% url 'analytics:phan_tich' %}" class="card">
   {% csrf_token %}
   <h3>Chọn kỳ kế hoạch nhập xe</h3>

@@ -220,3 +220,76 @@ class ContractWorkflowTests(TestCase):
 
         self.hd1.refresh_from_db()
         self.assertEqual(self.hd1.trang_thai, TrangThaiHopDong.DU_DIEU_KIEN_XUAT)
+
+    def test_07_theo_lich_phan_bo_hien_thi_khi_cac_kho_khong_co_xe(self):
+        """Khi cả kho Đà Nẵng và chi nhánh đều không có xe, tab Theo lịch phân bổ hiển thị danh sách xe phân bổ."""
+        from orders.models import Allocation
+        # Tạo allocation cho tháng 11/2026
+        alloc = Allocation.objects.create(
+            order_number='ORD-TEST-001',
+            vehicle_code='EVEREST-TITANIUM+',
+            description='Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT',
+            vin='RL2TESTVIN0000099',
+            mau_sac='Trắng Tuyết',
+            exterior_color='Trắng Tuyết',
+            allocation_month=date(2026, 11, 1),
+            contractual_delivery_date=date(2026, 11, 20),
+            quantity=1,
+            chi_nhanh=self.cn_dn
+        )
+
+        # Hợp đồng tìm Everest Titanium+ nhưng trong kho không có sẵn xe
+        hd_new = HopDong.objects.create(
+            ma_hd='HD-TEST-ALLOC',
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau='Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT',
+            phien_ban_yeu_cau='Titanium+',
+            mau_sac_yeu_cau='Trắng Tuyết',
+            trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=date(2026, 10, 1)
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(f'/hop-dong/{hd_new.pk}/xe-phu-hop/', HTTP_ACCEPT='text/html')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('3. Theo lịch phân bổ', response.content.decode('utf-8'))
+        self.assertIn('RL2TESTVIN0000099', response.content.decode('utf-8'))
+        self.assertIn('ORD-TEST-001', response.content.decode('utf-8'))
+        self.assertEqual(len(response.context['xe_phan_bo']), 1)
+
+    def test_08_chon_xe_theo_lich_phan_bo_thanh_cong(self):
+        """Khi chọn xe từ lịch phân bổ, xe được tạo/gán vào hợp đồng và trạng thái chuyển CHO_XE_VE_KHO."""
+        from orders.models import Allocation
+        alloc = Allocation.objects.create(
+            order_number='ORD-TEST-002',
+            vehicle_code='EVEREST-TITANIUM+',
+            description='Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT',
+            vin='RL2TESTVIN0000100',
+            mau_sac='Trắng Tuyết',
+            exterior_color='Trắng Tuyết',
+            allocation_month=date(2026, 11, 1),
+            contractual_delivery_date=date(2026, 11, 25),
+            quantity=1,
+            chi_nhanh=self.cn_dn
+        )
+
+        hd_new = HopDong.objects.create(
+            ma_hd='HD-TEST-ALLOC-CHON',
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau='Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT',
+            phien_ban_yeu_cau='Titanium+',
+            mau_sac_yeu_cau='Trắng Tuyết',
+            trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=date(2026, 10, 1)
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.post(f'/hop-dong/{hd_new.pk}/chon-xe-phan-bo/{alloc.id}/')
+        self.assertEqual(response.status_code, 302)
+
+        hd_new.refresh_from_db()
+        self.assertEqual(hd_new.trang_thai, TrangThaiHopDong.CHO_XE_VE_KHO)
+        self.assertEqual(hd_new.ngay_du_kien_giao, date(2026, 11, 25))
+        self.assertTrue(ChiTietHopDong.objects.filter(hop_dong=hd_new, xe__vin='RL2TESTVIN0000100').exists())

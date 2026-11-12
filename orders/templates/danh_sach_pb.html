@@ -128,15 +128,14 @@
             </div>
         </div>
 
-        <div class="table-wrap">
-            <table class="data-table">
+        <div class="table-wrap table-wrap--scroll">
+            <table class="data-table" style="min-width: 1300px;">
                 <thead>
                     <tr>
                         <th style="width: 50px; text-align: center;">STT</th>
                         <th>Số đơn đặt hàng</th>
                         <th>Mã dòng xe</th>
                         <th>Mô tả phiên bản</th>
-                        <th>Chi nhánh nhận</th>
                         <th>Số khung (VIN)</th>
                         <th>Mã màu</th>
                         <th>Màu ngoại thất</th>
@@ -154,17 +153,6 @@
                         <td><strong>{{ allocation.order_number|default:"—" }}</strong></td>
                         <td><span class="badge">{{ allocation.vehicle_code }}</span></td>
                         <td>{{ allocation.description }}</td>
-                        <td>
-                            {% if allocation.chi_nhanh.ma_cn == 'CN01' %}
-                                <span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size: 11px;">Đà Nẵng</span>
-                            {% elif allocation.chi_nhanh.ma_cn == 'CN02' %}
-                                <span class="badge" style="background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; font-size: 11px;">Bình Định</span>
-                            {% elif allocation.chi_nhanh.ma_cn == 'CN03' %}
-                                <span class="badge" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-size: 11px;">Gia Lai</span>
-                            {% else %}
-                                <span class="badge" style="font-size: 11px;">{{ allocation.dealer_name|default:"Dana Ford" }}</span>
-                            {% endif %}
-                        </td>
                         <td style="font-family: monospace; font-weight: 700; color: #0067c5;">{{ allocation.vin }}</td>
                         <td>{{ allocation.color_code }}</td>
                         <td>{{ allocation.exterior_color }}</td>

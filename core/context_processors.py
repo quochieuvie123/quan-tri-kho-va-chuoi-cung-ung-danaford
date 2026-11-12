@@ -1,5 +1,5 @@
 from django.urls import reverse
-from core.roles import get_user_role_info, user_can_access_url_name
+from core.roles import get_user_role_info, user_can_access_url_name, is_sale_admin
 
 MENU = [
     {
@@ -76,6 +76,8 @@ def layout(request):
         {"ma_kho": "KHO03", "ten": "Kho Gia Lai (KHO03)"},
     ]
 
+    is_sale_admin_user = is_sale_admin(user)
+
     # Số lượng phiếu yêu cầu đặt xe đang chờ Sale Admin (Quốc Hiếu) phê duyệt
     try:
         from orders.models import VehicleRequest
@@ -90,11 +92,15 @@ def layout(request):
     except Exception:
         pending_exports_count = 0
 
-    total_pending_admin = pending_orders_count + pending_exports_count
+    total_pending_admin = (pending_orders_count + pending_exports_count) if is_sale_admin_user else 0
+    if not is_sale_admin_user:
+        pending_orders_count = 0
+        pending_exports_count = 0
 
     return {
         "menu_items": items,
         "role_info": role_info,
+        "is_sale_admin": is_sale_admin_user,
         "pending_orders_count": pending_orders_count,
         "pending_exports_count": pending_exports_count,
         "total_pending_admin": total_pending_admin,

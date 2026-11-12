@@ -102,14 +102,17 @@ def them_bieu_do(
                 "color": "#243b53",
             },
             margin={
-                "l": 20,
+                "l": 30,
                 "r": 20,
-                "t": 35,
-                "b": 45,
+                "t": 60,
+                "b": 50,
             },
             legend={
                 "orientation": "h",
-                "y": 1.15,
+                "yanchor": "bottom",
+                "y": 1.02,
+                "xanchor": "center",
+                "x": 0.5,
             },
         )
 
@@ -131,7 +134,10 @@ def them_bieu_do(
 
 
 def them_bieu_do_bo_sung(cac_bieu_do, data):
-    mau_sac = ["#829ab1", "#f3b340", "#0866c6"]
+    mau_sac = [
+        "#0866c6", "#23825c", "#f3b340", "#e12d39", "#829ab1",
+        "#627d98", "#9f7aea", "#ed64a6", "#38b2ac", "#dd6b20"
+    ]
 
     for key in ["dat_xe", "luu_chuyen"]:
         if key not in data:
@@ -144,12 +150,16 @@ def them_bieu_do_bo_sung(cac_bieu_do, data):
         if thong_ke["thang"]:
             figure = go.Figure()
 
-            for vi_tri, nhom in enumerate(thong_ke["cac_nhom"]):
+            # Lọc chỉ hiển thị các trạng thái có số lượng > 0 trong kỳ để chú thích ngắn gọn, không che biểu đồ
+            nhom_co_du_lieu = [nhom for nhom in thong_ke["cac_nhom"] if any(v > 0 for v in nhom.get("so_luong", []))]
+            nhom_ve = nhom_co_du_lieu if nhom_co_du_lieu else thong_ke["cac_nhom"]
+
+            for vi_tri, nhom in enumerate(nhom_ve):
                 figure.add_trace(go.Bar(
                     name=nhom["ten"],
                     x=thong_ke["thang"],
                     y=nhom["so_luong"],
-                    marker_color=mau_sac[vi_tri],
+                    marker_color=mau_sac[vi_tri % len(mau_sac)],
                 ))
 
             figure.update_layout(barmode="stack")
