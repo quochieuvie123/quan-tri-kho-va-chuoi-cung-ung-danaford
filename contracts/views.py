@@ -154,6 +154,12 @@ def detail(request, ma_hd):
     })
     result['vin_hien_thi'] = [line['xe_id'] for line in result['xe']]
     result['hoa_don_canh_bao'] = None if result['hoa_don'] else 'Chưa có hóa đơn liên kết trực tiếp với hợp đồng hoặc phiếu xuất kho.'
+    result['phieu_xuat'] = PhieuXuatKho.objects.filter(chi_tiet_hop_dong__hop_dong=hd).select_related('kho', 'nguoi_lap', 'nguoi_duyet').first()
+    try:
+        from transfers.models import LenhLuuChuyen
+        result['lenh_luu_chuyen'] = LenhLuuChuyen.objects.filter(chi_tiet__xe__chitiethopdong__hop_dong=hd).select_related('kho_xuat', 'kho_nhap').first()
+    except Exception:
+        result['lenh_luu_chuyen'] = None
     if wants_html(request):
         return render(request, 'contracts/detail.html', {'page_title': f'Hợp đồng {hd.pk}', 'hop_dong': result})
     return JsonResponse(result)
@@ -215,9 +221,7 @@ def find_suitable(hd):
                 item['uu_tien'] = 3
         results.append(item)
 
-    local_counts = {i: sum(row['uu_tien'] in (0, 2) and i in row['tieu_chi_chi_so'] for row in results) for i in range(len(criteria))}
-    results = [row for row in results if row['uu_tien'] in (0, 2) or any(
-        local_counts[i] < criteria[i].get('so_luong', 1) for i in row['tieu_chi_chi_so'])]
+    # Không lọc bỏ xe ở chi nhánh để hiển thị đầy đủ số lượng xe ở Đà Nẵng và Bình Định / Gia Lai
     results.sort(key=lambda item: (item['uu_tien'], item['kho_id'], item['vin']))
 
     # PYC đã sinh phiếu nhập nháp cũng là nguồn xe dự kiến, chưa phải tồn kho.
@@ -243,9 +247,15 @@ def choose_suggested_vehicle(request, ma_hd, vin):
     from .workflow import choose_vehicle
     try:
         contract = choose_vehicle(ma_hd, vin, request.user)
-        messages.success(request, f'Đã chốt VIN {vin}; hợp đồng chuyển sang {contract.get_trang_thai_display()}.')
-    except (ValidationError, HopDong.DoesNotExist):
-        messages.error(request, 'VIN không thể được chốt cho hợp đồng ở thời điểm này.')
+        pxk = PhieuXuatKho.objects.filter(chi_tiet_hop_dong__hop_dong=contract, chi_tiet_hop_dong__xe_id=vin).first()
+        if pxk and pxk.trang_thai == TrangThaiPhieuXuat.CHO_DUYET:
+            messages.success(request, f'Đã chốt xe VIN {vin} tại Kho Đà Nẵng. Đã gửi yêu cầu xuất kho ({pxk.ma_pxk}) sang Quản lý xuất kho để Sale Admin phê duyệt.')
+        elif contract.trang_thai == TrangThaiHopDong.CHO_XE_VE_KHO:
+            messages.success(request, f'Đã chốt xe VIN {vin} tại chi nhánh. Đã tạo lệnh lưu chuyển xe về Đà Nẵng, chờ Sale Admin duyệt.')
+        else:
+            messages.success(request, f'Đã chốt VIN {vin}; hợp đồng chuyển sang {contract.get_trang_thai_display()}.')
+    except (ValidationError, HopDong.DoesNotExist) as e:
+        messages.error(request, str(e) if isinstance(e, ValidationError) else 'VIN không thể được chốt cho hợp đồng ở thời điểm này.')
     return redirect('contracts:detail', ma_hd=ma_hd)
 
 
@@ -375,12 +385,9 @@ def suggested_vehicle_detail(request, ma_hd, vin):
 def hoan_tat_hop_dong(request, ma_hd):
     """
     Xác nhận giao xe và hoàn tất hợp đồng:
-    1. Trừ tồn kho về 0 (nhưng giữ bản ghi TonKho trong DB).
-    2. Cập nhật trạng thái xe thành DA_XUAT.
-    3. Tạo phiếu xuất kho & lưu lịch sử xuất kho để phục vụ báo cáo và thống kê.
-    4. Cập nhật hợp đồng thành HOAN_TAT.
-    5. Phát thông báo hoạt động hệ thống.
+    Ủy quyền qua XuatKhoService.duyet_phieu_xuat_kho để đảm bảo đồng bộ 100% nghiệp vụ xuất kho.
     """
+    from warehouse.services import XuatKhoService, XuatKhoError
     hd = get_object_or_404(HopDong.objects.select_for_update(), pk=ma_hd)
     if hd.trang_thai == TrangThaiHopDong.HOAN_TAT:
         messages.info(request, f'Hợp đồng {ma_hd} đã ở trạng thái hoàn tất.')
@@ -391,9 +398,23 @@ def hoan_tat_hop_dong(request, ma_hd):
         messages.error(request, f'Hợp đồng {ma_hd} chưa được chốt xe. Vui lòng chọn xe đề xuất trước khi hoàn tất.')
         return redirect('contracts:detail', ma_hd=ma_hd)
 
-    now = timezone.now()
-    nv = getattr(request.user, 'nhan_vien', None) or NhanVien.objects.first()
+    nv = getattr(request.user, 'nhan_vien', None)
+    if not nv and request.user.username in ('hieu', 'admin', 'phanquochieu'):
+        nv = NhanVien.objects.filter(ma_nv='NV10').first()
+    if not nv:
+        nv = NhanVien.objects.first()
 
+    pxk = PhieuXuatKho.objects.filter(chi_tiet_hop_dong__hop_dong=hd, trang_thai=TrangThaiPhieuXuat.CHO_DUYET).first()
+    if pxk:
+        try:
+            XuatKhoService.duyet_phieu_xuat_kho(pxk.ma_pxk, nv.ma_nv)
+            messages.success(request, f'Đã duyệt phiếu xuất kho {pxk.ma_pxk} và hoàn tất hợp đồng {ma_hd}. Tồn kho đã trừ và lưu báo cáo.')
+            return redirect('contracts:detail', ma_hd=ma_hd)
+        except XuatKhoError as e:
+            messages.error(request, f'Không thể duyệt xuất kho: {e}')
+            return redirect('contracts:detail', ma_hd=ma_hd)
+
+    now = timezone.now()
     for line in lines:
         car = line.xe
         # 1. Trừ tồn kho (giữ lại bản ghi trong danh sách tồn kho với so_luong_ton = 0)
@@ -421,6 +442,7 @@ def hoan_tat_hop_dong(request, ma_hd):
                 'ma_pxk': ma_pxk,
                 'kho': kho_xuat,
                 'nguoi_nhan': hd.khach_hang.ten_kh,
+                'nguoi_lap': nv,
                 'nguoi_duyet': nv,
                 'ngay_duyet': now,
                 'ngay_xuat': now,
@@ -440,7 +462,7 @@ def hoan_tat_hop_dong(request, ma_hd):
             phieu_xuat=pxk,
             xe=car,
             kho=kho_xuat,
-            hanh_dong="XUAT_KHO_BAN_XE",
+            hanh_dong="DUYET_XUAT_KHO",
             nguoi_thuc_hien=nv,
             ghi_chu=f"Đã xuất bán xe {car.vin} cho hợp đồng {hd.ma_hd}. Tồn kho đã trừ và chuyển sang Đã xuất."
         )
@@ -466,8 +488,5 @@ def hoan_tat_hop_dong(request, ma_hd):
     except Exception:
         pass
 
-    messages.success(
-        request,
-        f"Đã xác nhận xuất kho giao xe và hoàn tất hợp đồng {hd.ma_hd} thành công! Số lượng tồn kho đã được trừ và cập nhật vào thống kê báo cáo."
-    )
+    messages.success(request, f'Hợp đồng {ma_hd} đã hoàn tất. Xe đã xuất kho và cập nhật báo cáo.')
     return redirect('contracts:detail', ma_hd=ma_hd)

@@ -41,10 +41,13 @@ def _chon_kho(request):
 
 def _ngu_canh(request, tieu_de, **them):
     ma_kho = _chon_kho(request)
+    nv = getattr(request.user, "nhan_vien", None)
+    if not nv and request.user.username in ("hieu", "admin", "phanquochieu"):
+        nv = NhanVien.objects.filter(ma_nv="NV10").first() or NhanVien.objects.first()
     ctx = {
         "page_title": tieu_de, "ma_kho": ma_kho,
         "ds_kho": Kho.objects.select_related("chi_nhanh").order_by("ma_kho"),
-        "can_chon_nv": getattr(request.user, "nhan_vien", None) is None,
+        "can_chon_nv": nv is None,
         "ds_nv": NhanVien.objects.order_by("ma_nv"),
     }
     ctx.update(them)
@@ -56,6 +59,10 @@ def _nhan_vien(request):
     nv = getattr(request.user, "nhan_vien", None)
     if nv:
         return nv
+    if request.user.username in ("hieu", "admin", "phanquochieu"):
+        nv = NhanVien.objects.filter(ma_nv="NV10").first() or NhanVien.objects.first()
+        if nv:
+            return nv
     ma = request.POST.get("ma_nv")
     nv = NhanVien.objects.filter(pk=ma).first() if ma else None
     if nv is None:
@@ -93,10 +100,21 @@ def xuat_ds(request):
             | Q(chi_tiet_hop_dong__xe__vin__icontains=tu_khoa)
             | Q(chi_tiet_hop_dong__hop_dong__khach_hang__ten_kh__icontains=tu_khoa))
     trang = _phan_trang(request, qs)
+
+    # Danh sách phiếu chờ duyệt để ghim thông báo lên đầu cho Sale Admin
+    qs_cho_duyet = PhieuXuatKho.objects.filter(trang_thai=TrangThaiPhieuXuat.CHO_DUYET).select_related(
+        "chi_tiet_hop_dong__hop_dong__khach_hang", "chi_tiet_hop_dong__xe", "kho", "nguoi_lap"
+    ).order_by("-ngay_lap", "-ma_pxk")
+    if ma_kho != "ALL":
+        qs_cho_duyet = qs_cho_duyet.filter(kho_id=ma_kho)
+    ds_cho_duyet = list(qs_cho_duyet[:10])
+    so_luong_cho_duyet = qs_cho_duyet.count()
+
     return render(request, "warehouse/xuat_ds.html", _ngu_canh(
         request, "Quản lý xuất kho", trang=trang, tong=trang.paginator.count, q=tu_khoa,
         trang_thai=trang_thai, ds_trang_thai=TrangThaiPhieuXuat.choices, query=_giu_loc(request),
-        co_loc=bool(trang_thai or tu_khoa)))
+        co_loc=bool(trang_thai or tu_khoa),
+        ds_cho_duyet=ds_cho_duyet, so_luong_cho_duyet=so_luong_cho_duyet))
 
 
 @login_required
