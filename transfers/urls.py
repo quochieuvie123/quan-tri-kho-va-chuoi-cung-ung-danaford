@@ -38,6 +38,11 @@ path(
     name="chi_tiet_lenh"
 ),
 path(
+    "lenh/<int:id>/",
+    views.chi_tiet_lenh_luu_chuyen,
+    name="chi_tiet"
+),
+path(
     "danh-sach-lenh/<int:id>/cap-nhat-trang-thai/",
     views.cap_nhat_trang_thai_lenh,
     name="cap_nhat_trang_thai"

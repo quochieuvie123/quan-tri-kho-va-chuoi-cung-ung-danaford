@@ -154,14 +154,15 @@ def detail(request, ma_hd):
     })
     result['vin_hien_thi'] = [line['xe_id'] for line in result['xe']]
     result['hoa_don_canh_bao'] = None if result['hoa_don'] else 'Chưa có hóa đơn liên kết trực tiếp với hợp đồng hoặc phiếu xuất kho.'
-    result['phieu_xuat'] = PhieuXuatKho.objects.filter(chi_tiet_hop_dong__hop_dong=hd).select_related('kho', 'nguoi_lap', 'nguoi_duyet').first()
-    try:
-        from transfers.models import LenhLuuChuyen
-        result['lenh_luu_chuyen'] = LenhLuuChuyen.objects.filter(chi_tiet__xe__chitiethopdong__hop_dong=hd).select_related('kho_xuat', 'kho_nhap').first()
-    except Exception:
-        result['lenh_luu_chuyen'] = None
     if wants_html(request):
-        return render(request, 'contracts/detail.html', {'page_title': f'Hợp đồng {hd.pk}', 'hop_dong': result})
+        ctx = dict(result)
+        ctx['phieu_xuat'] = PhieuXuatKho.objects.filter(chi_tiet_hop_dong__hop_dong=hd).select_related('kho', 'nguoi_lap', 'nguoi_duyet').first()
+        try:
+            from transfers.models import LenhLuuChuyen
+            ctx['lenh_luu_chuyen'] = LenhLuuChuyen.objects.filter(chi_tiet__xe__chitiethopdong__hop_dong=hd).select_related('kho_xuat', 'kho_nhap').first()
+        except Exception:
+            ctx['lenh_luu_chuyen'] = None
+        return render(request, 'contracts/detail.html', {'page_title': f'Hợp đồng {hd.pk}', 'hop_dong': ctx})
     return JsonResponse(result)
 
 

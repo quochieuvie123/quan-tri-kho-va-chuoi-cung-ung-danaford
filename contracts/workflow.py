@@ -160,7 +160,7 @@ def choose_vehicle(contract_id, vin, user):
                 tieu_de=f"Lệnh lưu chuyển mới: {transfer.ma_lenh}",
                 noi_dung=f"Hợp đồng {contract.ma_hd} cần lưu chuyển xe {car.vin} từ {available_here.kho.ten_kho} về Đà Nẵng. Cần Sale Admin duyệt.",
                 loai='THONG_TIN',
-                duong_dan=f"/transfers/{transfer.ma_lenh}/",
+                duong_dan=f"/transfers/danh-sach-lenh/{transfer.id}/",
                 module='transfers'
             )
         except Exception:
