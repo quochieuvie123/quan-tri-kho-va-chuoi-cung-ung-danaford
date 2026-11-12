@@ -29,7 +29,7 @@ class GhiNhanForm(forms.Form):
     hoa_don_nhap = forms.ModelChoiceField(
         HoaDonNhap.objects.order_by("-ngay_nhap"), label="Lô hàng nhập (hóa đơn nhập)",
         widget=forms.Select(attrs=CSS))
-    xe = forms.ModelChoiceField(Xe.objects.order_by("vin"), label="Xe (số khung VIN)",
+    xe = forms.ModelChoiceField(Xe.objects.order_by("vin"), label="Xe",
                                 widget=forms.Select(attrs=CSS))
     nhan_vien = forms.ModelChoiceField(NhanVien.objects.order_by("ma_nv"), label="Nhân viên ghi nhận",
                                        required=False, widget=forms.Select(attrs=CSS))
