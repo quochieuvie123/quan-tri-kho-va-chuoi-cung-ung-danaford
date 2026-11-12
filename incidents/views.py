@@ -233,7 +233,7 @@ def ghi_nhan(request):
     return render(request, "incidents/ghi_nhan.html", {
         "page_title": "Ghi nhận sự cố vận chuyển",
         "form": form,
-        "xe_theo_hdn": json.dumps(xe_theo_hdn),
+        "xe_theo_hdn": xe_theo_hdn,
         "ban_dau_xe": target_vin,
         "xe_obj": xe_obj,
         "pdi_obj": pdi_obj,

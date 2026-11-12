@@ -46,7 +46,12 @@
 {% block extra_js %}
 <script>
   // Chỉ cho chọn xe thuộc lô hàng nhập đã chọn & Tự động chọn đúng VIN khi trích xuất từ PDI
-  const map = JSON.parse(document.getElementById('xe-theo-hdn').textContent);
+  let mapRaw = document.getElementById('xe-theo-hdn').textContent;
+  let map = {};
+  try {
+    map = JSON.parse(mapRaw);
+    if (typeof map === 'string') map = JSON.parse(map);
+  } catch(e) {}
   const hdn = document.getElementById('id_hoa_don_nhap'), xe = document.getElementById('id_xe');
   const targetVin = "{{ ban_dau_xe|default:'' }}" || new URLSearchParams(window.location.search).get('xe') || new URLSearchParams(window.location.search).get('vin');
 
@@ -56,10 +61,11 @@
     let foundTarget = false;
     for (const o of xe.options) {
       if (!o.value) continue;
-      const show = !hdn.value || (ok && ok.includes(o.value));
+      const isTarget = targetVin && o.value === targetVin;
+      const show = !hdn.value || (ok && ok.includes(o.value)) || isTarget;
       o.hidden = o.disabled = !show;
       if (show && !first) first = o;
-      if (show && targetVin && o.value === targetVin) {
+      if (isTarget) {
         foundTarget = true;
       }
     }
