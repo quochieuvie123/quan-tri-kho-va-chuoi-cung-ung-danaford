@@ -1,7 +1,10 @@
 """State changes caused by a manager explicitly choosing a proposed VIN."""
 from decimal import Decimal
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 from core.iii_iv_access import is_da_nang_branch
@@ -58,9 +61,11 @@ def choose_vehicle(contract_id, vin, user):
        - Phát thông báo cho Sale Admin để kiểm tra và phê duyệt.
        - KHÔNG xuất kho ngay và KHÔNG đi qua lưu chuyển.
     2. Nếu xe tại Bình Định / Gia Lai:
-       - Tạo lệnh lưu chuyển về Đà Nẵng (LenhLuuChuyen: DA_GUI).
+       - Giữ chỗ xe (GIU_CHO_XUAT) để không hợp đồng/phiếu xuất khác lấy mất.
+       - Lập lệnh lưu chuyển qua service transfers (LenhLuuChuyen: CHO_DUYET).
+       - Kho nhận lấy từ cấu hình hoặc kho trung tâm Đà Nẵng thay vì hard-code 'KHO01'.
        - Hợp đồng chuyển sang CHO_XE_VE_KHO.
-       - Thông báo Sale Admin duyệt lưu chuyển.
+       - Phát thông báo cho Sale Admin để duyệt lưu chuyển.
     """
     contract = HopDong.objects.select_for_update().select_related('chi_nhanh', 'khach_hang').get(pk=contract_id)
     car = Xe.objects.select_for_update().get(pk=vin)
@@ -68,20 +73,30 @@ def choose_vehicle(contract_id, vin, user):
         raise ValidationError('Hợp đồng đang xuất kho hoặc đã hoàn tất.')
     if not matches_contract(car, contract):
         raise ValidationError('VIN không khớp dòng xe, phiên bản và màu sắc của hợp đồng.')
+
     other = ChiTietHopDong.objects.filter(xe=car).exclude(hop_dong=contract).exists()
     if other:
         raise ValidationError('VIN đã được giữ cho hợp đồng khác.')
 
+    if car.trang_thai in (TrangThaiXe.DA_XUAT, TrangThaiXe.GIU_CHO_XUAT):
+        if not ChiTietHopDong.objects.filter(hop_dong=contract, xe=car).exists():
+            raise ValidationError('Xe đã xuất hoặc đang giữ chỗ cho phiếu xuất / hợp đồng khác.')
+
     ct_hd, _ = ChiTietHopDong.objects.get_or_create(hop_dong=contract, xe=car)
     available_here = TonKho.objects.filter(
-        xe=car, so_luong_ton__gt=0, xe__trang_thai=TrangThaiXe.SAN_SANG,
+        xe=car, so_luong_ton__gt=0
     ).select_related('kho__chi_nhanh').first()
+
+    if not available_here:
+        raise ValidationError('Xe không còn tồn kho tại bất kỳ chi nhánh nào.')
 
     nv = getattr(user, 'nhan_vien', None)
     if not nv:
-        nv = NhanVien.objects.filter(ma_nv='NV10').first() or NhanVien.objects.first()
+        nv = NhanVien.objects.filter(chi_nhanh=contract.chi_nhanh).first() or NhanVien.objects.first()
 
-    if available_here and is_da_nang_branch(available_here.kho.chi_nhanh):
+    dn_branch_ids = getattr(settings, 'III_IV_DA_NANG_BRANCH_IDS', ['CN01'])
+
+    if is_da_nang_branch(available_here.kho.chi_nhanh):
         # 1. Xe tại kho Đà Nẵng: Giữ chỗ xe & chuyển trạng thái hợp đồng
         car.trang_thai = TrangThaiXe.GIU_CHO_XUAT
         car.save(update_fields=['trang_thai'])
@@ -122,52 +137,52 @@ def choose_vehicle(contract_id, vin, user):
             ghi_chu=f"Chốt xe Đà Nẵng {car.vin} cho HĐ {contract.ma_hd}. Đã gửi yêu cầu xuất kho chờ Sale Admin duyệt."
         )
 
-        # 5. Phát thông báo hệ thống cho Sale Admin
-        try:
-            from activity_log.services import ThongBaoService
-            ThongBaoService.tao_thong_bao(
-                tieu_de=f"Yêu cầu xuất kho mới: {phieu_xuat.ma_pxk}",
-                noi_dung=f"Hợp đồng {contract.ma_hd} đã chốt xe {car.ten_xe} ({car.vin}) tại {available_here.kho.ten_kho}. Cần Sale Admin duyệt xuất kho.",
-                loai='THONG_TIN',
-                duong_dan=f"/kho/xuat/{phieu_xuat.ma_pxk}/",
-                module='warehouse'
-            )
-        except Exception:
-            pass
-
-    elif available_here:
-        # Xe ở Bình Định / Gia Lai: Lập lệnh lưu chuyển về Đà Nẵng
-        from transfers.models import ChiTietLenhLuuChuyen, LenhLuuChuyen
-        target_warehouse = Kho.objects.get(pk='KHO01')
-        code = f'LC-{contract.pk}-{car.pk[-10:]}'[:30]
-        transfer, _ = LenhLuuChuyen.objects.get_or_create(
-            ma_lenh=code,
-            defaults={
-                'kho_xuat': available_here.kho,
-                'kho_nhap': target_warehouse,
-                'nguoi_lap': user,
-                'trang_thai': 'DA_GUI',
-                'ngay_gui': timezone.now()
-            },
+        # 5. Phát thông báo hệ thống minh bạch
+        from dashboard.models import ThongBaoHoatDong
+        ten_kho = available_here.kho.chi_nhanh.ten_cn if available_here.kho and available_here.kho.chi_nhanh else available_here.kho.ma_kho
+        ThongBaoHoatDong.objects.create(
+            user=user if user and user.is_authenticated else None,
+            ten_nhan_vien=nv.ten_nv if nv else "Hệ thống",
+            chuc_vu="Nhân viên kinh doanh",
+            hanh_dong=f"Tạo phiếu xuất kho {phieu_xuat.ma_pxk}",
+            chi_tiet=f"Hợp đồng {contract.ma_hd} đã chốt xe {car.ten_xe} ({car.vin}) tại {ten_kho}. Chờ Sale Admin duyệt xuất kho.",
+            module="warehouse",
+            loai="THONG_TIN"
         )
-        ChiTietLenhLuuChuyen.objects.get_or_create(lenh=transfer, xe=car, defaults={'so_luong': 1})
+
+    else:
+        # Xe ở Bình Định / Gia Lai:
+        # 1. Giữ chỗ xe để không hợp đồng hay phiếu xuất khác lấy mất
+        car.trang_thai = TrangThaiXe.GIU_CHO_XUAT
+        car.save(update_fields=['trang_thai'])
+
+        # 2. Xác định kho tiếp nhận từ cấu hình hoặc kho trung tâm Đà Nẵng thay vì hard-code 'KHO01'
+        target_warehouse = Kho.objects.filter(chi_nhanh_id__in=dn_branch_ids).first()
+        if not target_warehouse:
+            target_warehouse = Kho.objects.filter(ma_kho='KHO01').first() or Kho.objects.first()
+
+        # 3. Lập lệnh lưu chuyển qua service của transfers (trạng thái: CHO_DUYET)
+        from transfers.services import tao_lenh_luu_chuyen, gui_lenh_luu_chuyen
+        transfer = tao_lenh_luu_chuyen(user, available_here.kho, target_warehouse, ds_xe=[car])
+        transfer = gui_lenh_luu_chuyen(user, transfer.pk)
+
+        # 4. Hợp đồng chuyển sang CHO_XE_VE_KHO
         contract.trang_thai = TrangThaiHopDong.CHO_XE_VE_KHO
         contract.save(update_fields=['trang_thai'])
 
-        try:
-            from activity_log.services import ThongBaoService
-            ThongBaoService.tao_thong_bao(
-                tieu_de=f"Lệnh lưu chuyển mới: {transfer.ma_lenh}",
-                noi_dung=f"Hợp đồng {contract.ma_hd} cần lưu chuyển xe {car.vin} từ {available_here.kho.ten_kho} về Đà Nẵng. Cần Sale Admin duyệt.",
-                loai='THONG_TIN',
-                duong_dan=f"/transfers/danh-sach-lenh/{transfer.id}/",
-                module='transfers'
-            )
-        except Exception:
-            pass
-    else:
-        contract.trang_thai = TrangThaiHopDong.CHO_XE_VE_KHO
-        contract.save(update_fields=['trang_thai'])
+        # 5. Phát thông báo hệ thống minh bạch
+        from dashboard.models import ThongBaoHoatDong
+        ten_kho_xuat = available_here.kho.chi_nhanh.ten_cn if available_here.kho and available_here.kho.chi_nhanh else available_here.kho.ma_kho
+        ten_kho_nhap = target_warehouse.chi_nhanh.ten_cn if target_warehouse and target_warehouse.chi_nhanh else target_warehouse.ma_kho
+        ThongBaoHoatDong.objects.create(
+            user=user if user and user.is_authenticated else None,
+            ten_nhan_vien=nv.ten_nv if nv else "Hệ thống",
+            chuc_vu="Nhân viên kinh doanh",
+            hanh_dong=f"Tạo lệnh lưu chuyển xe {transfer.ma_lenh}",
+            chi_tiet=f"Hợp đồng {contract.ma_hd} đã chốt xe {car.ten_xe} ({car.vin}) từ {ten_kho_xuat} về {ten_kho_nhap}. Trạng thái lệnh: Chờ duyệt.",
+            module="transfers",
+            loai="THONG_TIN"
+        )
 
     return contract
 
@@ -175,14 +190,65 @@ def choose_vehicle(contract_id, vin, user):
 @transaction.atomic
 def sync_contract_for_vin(vin):
     """After PDI/receipt puts a chosen VIN in Đà Nẵng stock, enable export."""
+    from django.conf import settings
     car = Xe.objects.select_for_update().get(pk=vin)
-    if not TonKho.objects.filter(xe=car, so_luong_ton__gt=0, xe__trang_thai=TrangThaiXe.SAN_SANG,
-                                  kho__chi_nhanh_id='CN01').exists():
+    dn_branch_ids = getattr(settings, 'III_IV_DA_NANG_BRANCH_IDS', ['CN01'])
+    if not TonKho.objects.filter(
+        xe=car, so_luong_ton__gt=0, xe__trang_thai=TrangThaiXe.SAN_SANG,
+        kho__chi_nhanh_id__in=dn_branch_ids
+    ).exists():
         return 0
     updated = 0
-    for contract in HopDong.objects.select_for_update().filter(chitiethopdong__xe=car,
-        trang_thai__in=[TrangThaiHopDong.CHO_XE_VE_KHO, TrangThaiHopDong.CHO_PHAN_BO]).distinct():
+    for contract in HopDong.objects.select_for_update().filter(
+        chitiethopdong__xe=car,
+        trang_thai__in=[TrangThaiHopDong.CHO_XE_VE_KHO, TrangThaiHopDong.CHO_PHAN_BO]
+    ).distinct():
         contract.trang_thai = TrangThaiHopDong.DU_DIEU_KIEN_XUAT
         contract.save(update_fields=['trang_thai'])
+        # Đảm bảo có hóa đơn bán hàng sẵn sàng
+        ensure_invoice_for_contract(contract, car)
         updated += 1
     return updated
+
+
+@transaction.atomic
+def handle_transfer_rejected_or_cancelled(lenh, user=None):
+    """Khi lệnh lưu chuyển bị từ chối hoặc hủy: hợp đồng quay lại trạng thái phù hợp và nhả xe."""
+    from dashboard.models import ThongBaoHoatDong
+    for item in lenh.chi_tiet.select_related("xe").all():
+        car = Xe.objects.select_for_update().get(pk=item.xe_id)
+        contracts = list(HopDong.objects.select_for_update().filter(
+            chitiethopdong__xe=car,
+            trang_thai=TrangThaiHopDong.CHO_XE_VE_KHO
+        ))
+        for contract in contracts:
+            ChiTietHopDong.objects.filter(hop_dong=contract, xe=car).delete()
+            contract.trang_thai = TrangThaiHopDong.CHO_PHAN_BO
+            contract.save(update_fields=['trang_thai'])
+
+            ten_user = user.get_full_name() or user.username if user and user.is_authenticated else "Hệ thống"
+            ThongBaoHoatDong.objects.create(
+                user=user if user and user.is_authenticated else None,
+                ten_nhan_vien=ten_user,
+                chuc_vu="Quản trị viên (Sale Admin)",
+                hanh_dong=f"Nhả xe hợp đồng {contract.ma_hd}",
+                chi_tiet=f"Lệnh lưu chuyển {lenh.ma_lenh} đã bị {lenh.get_trang_thai_display().lower()}. Đã hủy gán xe {car.vin} và chuyển hợp đồng {contract.ma_hd} về trạng thái Chờ lịch phân bổ.",
+                module="contracts",
+                loai="CANH_BAO"
+            )
+
+        # Nhả giữ chỗ xe về SẴN SÀNG nếu không còn hợp đồng active nào khác
+        still_held = ChiTietHopDong.objects.filter(
+            xe=car,
+            hop_dong__trang_thai__in=[TrangThaiHopDong.CHO_XU_LY, TrangThaiHopDong.CHO_PHAN_BO, TrangThaiHopDong.CHO_XE_VE_KHO, TrangThaiHopDong.DANG_XUAT_KHO]
+        ).exists()
+        if not still_held and car.trang_thai == TrangThaiXe.GIU_CHO_XUAT:
+            car.trang_thai = TrangThaiXe.SAN_SANG
+            car.save(update_fields=['trang_thai'])
+
+
+@receiver(post_save, sender='transfers.LenhLuuChuyen')
+def on_transfer_order_saved(sender, instance, **kwargs):
+    """Lắng nghe sự kiện lệnh lưu chuyển bị từ chối hoặc hủy để tự động nhả hợp đồng và xe."""
+    if instance.trang_thai in ('TU_CHOI', 'HUY'):
+        handle_transfer_rejected_or_cancelled(instance, getattr(instance, 'nguoi_duyet', None))

@@ -159,7 +159,7 @@ def detail(request, ma_hd):
         ctx['phieu_xuat'] = PhieuXuatKho.objects.filter(chi_tiet_hop_dong__hop_dong=hd).select_related('kho', 'nguoi_lap', 'nguoi_duyet').first()
         try:
             from transfers.models import LenhLuuChuyen
-            ctx['lenh_luu_chuyen'] = LenhLuuChuyen.objects.filter(chi_tiet__xe__chitiethopdong__hop_dong=hd).select_related('kho_xuat', 'kho_nhap').first()
+            ctx['lenh_luu_chuyen'] = LenhLuuChuyen.objects.filter(chi_tiet__xe__chitiethopdong__hop_dong=hd).select_related('kho_xuat__chi_nhanh', 'kho_nhap__chi_nhanh').first()
         except Exception:
             ctx['lenh_luu_chuyen'] = None
         can_edit = has_role(request.user, SALE_ADMIN) or request.user.is_superuser
@@ -276,7 +276,7 @@ def choose_suggested_vehicle(request, ma_hd, vin):
         if pxk and pxk.trang_thai == TrangThaiPhieuXuat.CHO_DUYET:
             messages.success(request, f'Đã chốt xe VIN {vin} tại Kho Đà Nẵng. Đã gửi yêu cầu xuất kho ({pxk.ma_pxk}) sang Quản lý xuất kho để Sale Admin phê duyệt.')
         elif contract.trang_thai == TrangThaiHopDong.CHO_XE_VE_KHO:
-            messages.success(request, f'Đã chốt xe VIN {vin} tại chi nhánh. Đã tạo lệnh lưu chuyển xe về Đà Nẵng, chờ Sale Admin duyệt.')
+            messages.success(request, f'Đã chốt xe VIN {vin} tại chi nhánh. Đã tạo lệnh lưu chuyển xe về Đà Nẵng (trạng thái: Chờ duyệt), chờ Sale Admin duyệt.')
         else:
             messages.success(request, f'Đã chốt VIN {vin}; hợp đồng chuyển sang {contract.get_trang_thai_display()}.')
     except (ValidationError, HopDong.DoesNotExist) as e:

@@ -68,7 +68,7 @@
             Đã gửi yêu cầu xuất kho: Phiếu {{ hop_dong.phieu_xuat.ma_pxk }} đang chờ Sale Admin phê duyệt
           </h3>
           <p style="margin: 3px 0 0; font-size: 13px; color: #b45309;">
-            Xe đã được chốt và giữ chỗ xuất tại <strong>{{ hop_dong.phieu_xuat.kho.ten_kho }}</strong>. Yêu cầu đã được chuyển tới phân hệ Quản lý xuất kho để Sale Admin kiểm tra và duyệt xuất kho.
+            Xe đã được chốt và giữ chỗ xuất tại <strong>{{ hop_dong.phieu_xuat.kho.chi_nhanh.ten_cn|default:hop_dong.phieu_xuat.kho.ma_kho }}</strong>. Yêu cầu đã được chuyển tới phân hệ Quản lý xuất kho để Sale Admin kiểm tra và duyệt xuất kho.
           </p>
         </div>
       </div>
@@ -87,7 +87,7 @@
             Lệnh lưu chuyển xe: {{ hop_dong.lenh_luu_chuyen.ma_lenh }} ({{ hop_dong.lenh_luu_chuyen.get_trang_thai_display }})
           </h3>
           <p style="margin: 3px 0 0; font-size: 13px; color: #0369a1;">
-            Xe chốt cho hợp đồng đang ở <strong>{{ hop_dong.lenh_luu_chuyen.kho_xuat.ten_kho }}</strong> và đang được điều phối lưu chuyển về Đà Nẵng.
+            Xe chốt cho hợp đồng đang ở <strong>{{ hop_dong.lenh_luu_chuyen.kho_xuat.chi_nhanh.ten_cn|default:hop_dong.lenh_luu_chuyen.kho_xuat.ma_kho }}</strong> và đang được điều phối lưu chuyển về Đà Nẵng.
           </p>
         </div>
       </div>
