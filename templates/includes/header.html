@@ -1,50 +1,102 @@
 <header class="topbar">
+
   <div class="topbar__search">
+
     <i class="bi bi-search"></i>
+
     <input type="search" placeholder="Tìm kiếm chức năng, dữ liệu kho xe Dana Ford...">
+
   </div>
 
-  <label class="topbar__branch">
+
+
+  <form method="post" action="{% url 'dashboard:doi_kho' %}" class="topbar__branch" style="margin: 0;">
+
+    {% csrf_token %}
+
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
     <i class="bi bi-geo-alt"></i>
-    <select>
-      <option>Cả ba kho (ĐN - BĐ - GL)</option>
-      <option selected>Kho Đà Nẵng</option>
-      <option>Kho Bình Định</option>
-      <option>Kho Gia Lai</option>
+
+    <select name="kho_id" onchange="this.form.submit()">
+
+      {% for k in ds_kho_header %}
+
+        <option value="{{ k.ma_kho }}" {% if current_kho == k.ma_kho %}selected{% endif %}>{{ k.ten }}</option>
+
+      {% endfor %}
+
     </select>
-  </label>
+
+  </form>
+
+
 
   <div class="topbar__right">
+
     <a href="{% url 'dashboard:home' %}#khu-vuc-thong-bao" class="icon-btn" title="Xem thông báo cập nhật mới nhất" style="text-decoration:none;">
+
       <i class="bi bi-bell"></i>
+
     </a>
 
+
+
     <details class="user-menu">
+
       <summary>
+
         <span class="avatar">{{ user_display.initials }}</span>
+
         <span class="user-meta">
+
           <strong>{{ user_display.name }}</strong>
+
           <small title="{{ user_display.department }}">{{ user_display.role }}</small>
+
         </span>
+
         <i class="bi bi-chevron-down"></i>
+
       </summary>
+
       <div class="user-menu__panel">
+
         <div style="padding: 10px 14px; border-bottom: 1px solid #eee; font-size: 12px; color: #555;">
+
           <div style="font-weight: 600; color: #0b2a4a;">{{ user_display.name }}</div>
-          <div style="color: #0b66c3; font-weight: 500;">@{{ user_display.username }}</div>
+
+          <div style="color: #0067c5; font-weight: 500;">@{{ user_display.username }}</div>
+
           <div style="margin-top: 4px; font-size: 11px; color: #777;">{{ user_display.department }}</div>
+
         </div>
+
         <a href="{% url 'dashboard:home' %}"><i class="bi bi-house-door" style="margin-right: 6px;"></i>Trang chủ</a>
+
         {% if user.is_staff %}
+
           <a href="{% url 'admin:index' %}"><i class="bi bi-shield-lock" style="margin-right: 6px;"></i>Trang quản trị (Admin)</a>
+
         {% endif %}
+
         <form method="post" action="{% url 'logout' %}" style="margin: 0;">
+
           {% csrf_token %}
+
           <button type="submit" style="width: 100%; text-align: left; padding: 10px 14px; background: none; border: none; cursor: pointer; color: #dc2626; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+
             <i class="bi bi-box-arrow-right"></i> Đăng xuất
+
           </button>
+
         </form>
+
       </div>
+
     </details>
+
   </div>
+
 </header>
+

@@ -5,16 +5,19 @@ import plotly.graph_objects as go
 import xlsxwriter
 
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import Http404, HttpResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 
+from alerts.utils import cap_nhat_tat_ca_canh_bao
+
 from .forms import BoLocBaoCaoForm
 from .utils import (
     QUYEN_BAO_CAO,
+    QUYEN_XEM_TUNG_BAO_CAO,
     lay_kho_duoc_xem,
     tao_bao_cao,
 )
@@ -40,83 +43,157 @@ def chuan_bi(request, kem_thong_ke=False):
 
     hop_le = form.is_valid()
 
-    data = (
-        tao_bao_cao(
-            kho,
-            form.cleaned_data,
-            kem_thong_ke=kem_thong_ke,
-        )
-        if hop_le
-        else {}
-    )
+    data = {}
+    kho_da_chon = None
 
-    return {
+    if hop_le:
+        try:
+            if request.user.has_perm(QUYEN_XEM_TUNG_BAO_CAO["canh_bao"]):
+                cap_nhat_tat_ca_canh_bao()
+
+            data = tao_bao_cao(
+                kho,
+                form.cleaned_data,
+                kem_thong_ke=kem_thong_ke,
+                user=request.user,
+            )
+        except ValidationError as loi:
+            form.add_error(None, loi)
+            hop_le = False
+        else:
+            kho_da_chon = form.cleaned_data.get("kho")
+
+    context = {
         "form": form,
         "bao_cao": data,
         "hop_le": hop_le,
         "tham_so": request.GET.urlencode(),
         "thoi_diem": timezone.localtime(),
-        "kho_da_chon": (
-            form.cleaned_data.get("kho")
-            if hop_le
-            else None
-        ),
+        "kho_da_chon": kho_da_chon,
     }
+
+    return context
+
+
+def them_bieu_do(
+    cac_bieu_do,
+    tieu_de,
+    figure=None,
+    mo_ta="",
+    chieu_cao=360,
+):
+    da_nap_plotly = False
+
+    for bieu_do in cac_bieu_do:
+        if bieu_do["html"] is not None:
+            da_nap_plotly = True
+            break
+
+    html = None
+
+    if figure is not None:
+        figure.update_layout(
+            template="plotly_white",
+            autosize=True,
+            height=chieu_cao,
+            font={
+                "family": "Montserrat, sans-serif",
+                "size": 11,
+                "color": "#243b53",
+            },
+            margin={
+                "l": 20,
+                "r": 20,
+                "t": 35,
+                "b": 45,
+            },
+            legend={
+                "orientation": "h",
+                "y": 1.15,
+            },
+        )
+
+        html = figure.to_html(
+            full_html=False,
+            include_plotlyjs=not da_nap_plotly,
+            config={
+                "responsive": True,
+                "displaylogo": False,
+                "displayModeBar": False,
+            },
+        )
+
+    cac_bieu_do.append({
+        "tieu_de": tieu_de,
+        "html": html,
+        "mo_ta": mo_ta,
+    })
+
+
+def them_bieu_do_bo_sung(cac_bieu_do, data):
+    mau_sac = ["#829ab1", "#f3b340", "#0866c6"]
+
+    for key in ["dat_xe", "luu_chuyen"]:
+        if key not in data:
+            continue
+
+        bao_cao = data[key]
+        thong_ke = bao_cao["theo_thang"]
+        figure = None
+
+        if thong_ke["thang"]:
+            figure = go.Figure()
+
+            for vi_tri, nhom in enumerate(thong_ke["cac_nhom"]):
+                figure.add_trace(go.Bar(
+                    name=nhom["ten"],
+                    x=thong_ke["thang"],
+                    y=nhom["so_luong"],
+                    marker_color=mau_sac[vi_tri],
+                ))
+
+            figure.update_layout(barmode="stack")
+            figure.update_xaxes(title_text="Tháng lập", type="category")
+            figure.update_yaxes(
+                title_text=bao_cao["don_vi"].capitalize(),
+                tickformat="d", rangemode="tozero",
+            )
+
+        them_bieu_do(
+            cac_bieu_do, bao_cao["ten"], figure,
+            "Đếm theo ngày lập và trạng thái hiện tại.",
+        )
+
+    if "canh_bao" in data:
+        bao_cao = data["canh_bao"]
+
+        for key, tieu_de in [
+            ("theo_loai", "Cảnh báo theo loại"),
+            ("theo_xu_ly", "Cảnh báo theo trạng thái xử lý"),
+        ]:
+            figure = None
+
+            if bao_cao["tong"]:
+                figure = go.Figure(go.Bar(
+                    x=list(bao_cao[key].keys()),
+                    y=list(bao_cao[key].values()),
+                    marker_color="#0866c6",
+                ))
+                figure.update_yaxes(
+                    title_text="Số cảnh báo",
+                    tickformat="d", rangemode="tozero",
+                )
+                figure.update_xaxes(type="category")
+
+            them_bieu_do(
+                cac_bieu_do, tieu_de, figure,
+                "Mỗi mã cảnh báo chỉ được đếm một lần. "
+                "Trạng thái xử lý khác với hiệu lực cảnh báo.",
+            )
 
 
 def tao_cac_bieu_do(data):
     cac_bieu_do = []
-    da_nap_plotly = False
-
-    def them_bieu_do(
-        tieu_de,
-        figure=None,
-        mo_ta="",
-        chieu_cao=360,
-    ):
-        nonlocal da_nap_plotly
-
-        html = None
-
-        if figure is not None:
-            figure.update_layout(
-                template="plotly_white",
-                autosize=True,
-                height=chieu_cao,
-                font={
-                    "family": "Arial, sans-serif",
-                    "size": 13,
-                    "color": "#102b46",
-                },
-                margin={
-                    "l": 20,
-                    "r": 20,
-                    "t": 35,
-                    "b": 45,
-                },
-                legend={
-                    "orientation": "h",
-                    "y": 1.15,
-                },
-            )
-
-            html = figure.to_html(
-                full_html=False,
-                include_plotlyjs=not da_nap_plotly,
-                config={
-                    "responsive": True,
-                    "displaylogo": False,
-                    "displayModeBar": False,
-                },
-            )
-
-            da_nap_plotly = True
-
-        cac_bieu_do.append({
-            "tieu_de": tieu_de,
-            "html": html,
-            "mo_ta": mo_ta,
-        })
 
     # Tồn kho theo tên xe.
     rows = data["ton_kho"]["theo_ten"]
@@ -152,13 +229,14 @@ def tao_cac_bieu_do(data):
         )
 
         them_bieu_do(
+            cac_bieu_do,
             "Tồn kho theo tên xe",
             figure,
             "Số lượng tồn hiện tại, sắp xếp giảm dần.",
-            chieu_cao=max(360, len(rows) * 45 + 100),
+            chieu_cao=max(360, len(rows) * 18 + 70),
         )
     else:
-        them_bieu_do("Tồn kho theo tên xe")
+        them_bieu_do(cac_bieu_do, "Tồn kho theo tên xe")
 
     # Chỉ so sánh kho khi có ít nhất hai kho.
     rows = data["ton_kho"]["theo_kho"]
@@ -196,6 +274,7 @@ def tao_cac_bieu_do(data):
             )
 
         them_bieu_do(
+            cac_bieu_do,
             "Tồn kho theo kho",
             figure,
             "Chỉ hiển thị các kho thuộc phạm vi được phép xem.",
@@ -233,64 +312,66 @@ def tao_cac_bieu_do(data):
         )
 
     them_bieu_do(
+        cac_bieu_do,
         "Cơ cấu tuổi tồn",
         figure,
         "Tỷ lệ tính trên các xe có ngày vào kho hợp lệ.",
     )
 
-    # Nhập và xuất theo tháng.
+    # Nhập và xuất theo tháng, tách màu theo trạng thái.
     rows = data["nhap_kho"]["theo_thang"]
     figure = None
 
     if rows:
-        labels = [row[0] for row in rows]
+        cac_thang = []
+        cac_loai = []
+        so_nhap = []
+        so_cho_duyet = []
+        so_da_duyet = []
+
+        for row in rows:
+            cac_thang.extend([row[0], row[0]])
+            cac_loai.extend(["Nhập", "Xuất"])
+            so_nhap.extend([row[1], 0])
+            so_cho_duyet.extend([row[2], row[4]])
+            so_da_duyet.extend([row[3], row[5]])
 
         figure = go.Figure()
+        cac_nhom = [
+            ("Nháp", so_nhap, "#829ab1"),
+            ("Chờ duyệt", so_cho_duyet, "#f3b340"),
+            ("Đã duyệt", so_da_duyet, "#0866c6"),
+        ]
 
-        figure.add_trace(
-            go.Bar(
-                name="Nhập kho",
-                x=labels,
-                y=[row[1] for row in rows],
-                marker_color="#0866c6",
+        for ten_nhom, so_luong, mau in cac_nhom:
+            figure.add_trace(go.Bar(
+                name=ten_nhom,
+                x=[cac_thang, cac_loai],
+                y=so_luong,
+                marker_color=mau,
                 hovertemplate=(
-                    "%{x}<br>Nhập: %{y} xe"
+                    ten_nhom + ": %{y} phiếu"
                     "<extra></extra>"
                 ),
-            )
-        )
+            ))
 
-        figure.add_trace(
-            go.Bar(
-                name="Xuất kho",
-                x=labels,
-                y=[row[2] for row in rows],
-                marker_color="#20a486",
-                hovertemplate=(
-                    "%{x}<br>Xuất: %{y} xe"
-                    "<extra></extra>"
-                ),
-            )
-        )
-
-        figure.update_layout(barmode="group")
-
+        figure.update_layout(barmode="stack")
         figure.update_xaxes(
-            title_text="Tháng",
-            type="category",
-            tickangle=-35,
+            title_text="Tháng và loại phiếu",
+            type="multicategory",
         )
-
         figure.update_yaxes(
-            title_text="Số lượng xe",
+            title_text="Số phiếu",
             tickformat="d",
             rangemode="tozero",
         )
 
     them_bieu_do(
-        "Nhập và xuất kho theo tháng",
+        cac_bieu_do,
+        "Phiếu nhập và xuất theo tháng",
         figure,
-        "Áp dụng bộ lọc ngày, kho và tên xe.",
+        "Theo trạng thái hiện tại. Nhập theo ngày nhập trên phiếu; "
+        "xuất chờ duyệt theo ngày lập, đã duyệt theo ngày xuất.",
     )
 
     # Hợp đồng theo tháng.
@@ -328,6 +409,7 @@ def tao_cac_bieu_do(data):
         )
 
     them_bieu_do(
+        cac_bieu_do,
         "Hợp đồng ký theo tháng",
         figure,
         "Mỗi hợp đồng chỉ được đếm một lần.",
@@ -368,10 +450,13 @@ def tao_cac_bieu_do(data):
         )
 
     them_bieu_do(
+        cac_bieu_do,
         "Biên bản PDI theo trạng thái",
         figure,
         "Các biên bản phát sinh trong kỳ, theo trạng thái hiện tại.",
     )
+
+    them_bieu_do_bo_sung(cac_bieu_do, data)
 
     return cac_bieu_do
 
@@ -411,7 +496,7 @@ def tong_quan(request):
                     "ten": report["ten"],
                     "tong": report["tong"],
                     "don_vi": report["don_vi"],
-                    "ghi_chu": "",
+                    "ghi_chu": report.get("ghi_chu", ""),
                 })
 
         context["cac_chi_so"] = cac_chi_so
@@ -435,6 +520,9 @@ def chi_tiet(request, loai):
         "xuat_kho",
         "hop_dong",
         "pdi",
+        "dat_xe",
+        "luu_chuyen",
+        "canh_bao",
     }
 
     if loai not in cac_loai:
@@ -442,17 +530,21 @@ def chi_tiet(request, loai):
             "Loại báo cáo không tồn tại."
         )
 
+    quyen = QUYEN_XEM_TUNG_BAO_CAO.get(loai)
+    if quyen and not request.user.has_perm(quyen):
+        raise PermissionDenied("Bạn chưa được cấp quyền xem báo cáo này.")
+
     context = chuan_bi(request)
+    context["loai_bao_cao"] = loai
 
     context["chi_tiet"] = (
         context["bao_cao"].get(loai)
     )
 
-    context["page_title"] = (
-        context["chi_tiet"]["ten"]
-        if context["hop_le"]
-        else "Chi tiết báo cáo"
-    )
+    if context["hop_le"]:
+        context["page_title"] = context["chi_tiet"]["ten"]
+    else:
+        context["page_title"] = "Chi tiết báo cáo"
 
     return render(
         request,
@@ -465,6 +557,11 @@ def chi_tiet(request, loai):
 @never_cache
 @require_GET
 def xuat_excel(request):
+    loai = request.GET.get("loai")
+    quyen = QUYEN_XEM_TUNG_BAO_CAO.get(loai)
+    if quyen and not request.user.has_perm(quyen):
+        raise PermissionDenied("Bạn chưa được cấp quyền xem báo cáo này.")
+
     context = chuan_bi(request)
 
     if not context["hop_le"]:
@@ -476,6 +573,17 @@ def xuat_excel(request):
             context,
             status=400,
         )
+
+    cac_bao_cao = context["bao_cao"]
+    loai = request.GET.get("loai")
+
+    if loai is not None:
+        if loai not in cac_bao_cao:
+            raise Http404("Loại báo cáo không tồn tại.")
+
+        cac_bao_cao = {
+            loai: cac_bao_cao[loai],
+        }
 
     output = BytesIO()
 
@@ -514,7 +622,7 @@ def xuat_excel(request):
             "%d/%m/%Y %H:%M:%S"
         )
 
-        for key, report in context["bao_cao"].items():
+        for key, report in cac_bao_cao.items():
             sheet = workbook.add_worksheet(key)
 
             sheet.write_string(
@@ -536,10 +644,11 @@ def xuat_excel(request):
                 "Bộ lọc ngày áp dụng cho nghiệp vụ phát sinh.",
             )
 
-            sheet.write_string(
-                4, 0,
-                f"Tổng: {report['tong']} {report['don_vi']}",
-            )
+            tong_ket = f"Tổng: {report['tong']} {report['don_vi']}"
+            if report.get("ghi_chu"):
+                tong_ket += "; " + report["ghi_chu"]
+
+            sheet.write_string(4, 0, tong_ket)
 
             sheet.write_row(
                 6, 0, report["cot"], header

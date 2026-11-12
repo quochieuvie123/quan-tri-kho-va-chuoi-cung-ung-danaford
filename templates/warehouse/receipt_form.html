@@ -3,10 +3,11 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/operations.css' %}">
+<link rel="stylesheet" href="{% static 'css/contract-receipt-guidelines.css' %}">
 {% endblock %}
 
 {% block content %}
-<div class="stack">
+<div class="stack df-workflow">
   <div class="page-header">
     <div>
       <h1 class="page-header__title">Lập phiếu nhập kho mới</h1>
@@ -21,30 +22,37 @@
 
   <div class="card" style="max-width: 850px;">
     <h2 class="section-title">Thông tin phiếu nhập kho</h2>
+    <form method="get" class="filters">
+      <label>Tìm xe theo VIN, tên xe, phiên bản, màu hoặc mã lệnh</label>
+      <input class="input" name="q" value="{{ request.GET.q }}" placeholder="Nhập điều kiện tra cứu">
+      <button class="btn btn--light" type="submit">Tìm xe</button>
+    </form>
     <form method="post" class="stack">
       {% csrf_token %}
       <div class="grid">
         <div class="field">
           <label>Mã phiếu nhập</label>
-          <input class="input" name="ma_phieu" placeholder="Hệ thống tự sinh (PNK...) nếu để trống">
+          <input class="input" name="ma_phieu" value="{{ form_data.ma_phieu }}" placeholder="Hệ thống tự sinh (PNK...) nếu để trống">
           <small style="color: #64748b; font-size: 11px;">Để trống để hệ thống tự cấp mã tự động</small>
         </div>
 
         <div class="field">
           <label>Ngày tiếp nhận nhập kho *</label>
-          <input class="input" type="date" name="ngay_nhap" required>
+          <input class="input" type="date" name="ngay_nhap" value="{{ ngay_nhap_mac_dinh }}" required>
         </div>
 
         <div class="field" style="grid-column: 1 / -1;">
-          <label>Xe / Số khung (VIN) từ hóa đơn nhập *</label>
-          <select class="select" name="chi_tiet_nhap_id" required>
+          <label>Xe / Số khung (VIN) từ chứng từ hãng hoặc lệnh lưu chuyển *</label>
+          <select class="select" name="nguon_xe" required>
             <option value="">-- Chọn xe theo số khung VIN từ chứng từ --</option>
             {% for line in xe_co_the_nhap %}
-              <option value="{{ line.pk }}">
+              <option value="hang:{{ line.pk }}" data-detail="{{ line.xe.phien_ban|default:'Chưa có phiên bản' }} · {{ line.xe.mau_sac }} · Số máy: {{ line.xe.so_may }}">
                 {{ line.xe_id }} — {{ line.xe.ten_xe }} (NCC: {{ line.hoa_don_nhap.nha_cung_cap.ten_ncc }})
               </option>
             {% endfor %}
+            {% for line in xe_luu_chuyen %}<option value="luu-chuyen:{{ line.pk }}" data-detail="{{ line.xe.phien_ban|default:'Chưa có phiên bản' }} · {{ line.xe.mau_sac }} · Số máy: {{ line.xe.so_may }} · Chờ kiểm tra PDI tại kho nhận">{{ line.xe_id }} — {{ line.xe.ten_xe }} (Lệnh {{ line.lenh.ma_lenh }})</option>{% endfor %}
           </select>
+          <p id="source-preview" aria-live="polite"></p>
         </div>
 
         <div class="field" style="grid-column: 1 / -1;">
@@ -52,7 +60,7 @@
           <select class="select" name="kho_id" required>
             <option value="">-- Chọn kho lưu trữ --</option>
             {% for item in kho %}
-              <option value="{{ item.pk }}">{{ item.ma_kho }} - {{ item.chi_nhanh.ten_cn }}</option>
+              <option value="{{ item.pk }}"{% if form_data.kho_id == item.pk %} selected{% endif %}>{{ item.ma_kho }} - {{ item.chi_nhanh.ten_cn }}</option>
             {% endfor %}
           </select>
         </div>
@@ -69,4 +77,19 @@
     </form>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ form_data.nguon_xe|json_script:"selected-source" }}
+<script>
+const sourceSelect = document.querySelector('[name="nguon_xe"]');
+const selectedSource = JSON.parse(document.getElementById('selected-source').textContent);
+if (selectedSource) sourceSelect.value = selectedSource;
+function previewSource() {
+  const option = sourceSelect.selectedOptions[0];
+  document.getElementById('source-preview').textContent = option?.dataset.detail || '';
+}
+sourceSelect.addEventListener('change', previewSource);
+previewSource();
+</script>
 {% endblock %}

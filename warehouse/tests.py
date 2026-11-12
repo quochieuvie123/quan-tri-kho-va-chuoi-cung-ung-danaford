@@ -47,6 +47,7 @@ class XuatKhoConflictPreventionTests(TestCase):
         self.xe = Xe.objects.create(
             vin="VIN123456789",
             ten_xe="Ford Everest Titanium",
+            phien_ban="Titanium",
             loai_xe="Everest",
             so_may="SM9999",
             mau_sac="Trắng",
@@ -77,12 +78,17 @@ class XuatKhoConflictPreventionTests(TestCase):
             ngay_ban=timezone.now(),
             so_hoa_don="HD-00123"
         )
+        self.hd.dong_xe_yeu_cau = self.xe.ten_xe
+        self.hd.phien_ban_yeu_cau = self.xe.phien_ban
+        self.hd.mau_sac_yeu_cau = self.xe.mau_sac
+        self.hd.save()
         self.ct_ban = ChiTietBan.objects.create(
             hoa_don_ban=self.hdb,
             xe=self.xe,
             so_luong_ban=1,
             gia_ban=Decimal("1200000000")
         )
+        ChiTietHopDong.objects.create(hop_dong=self.hd, xe=self.xe)
 
     def test_01_lap_phieu_xuat_kho_thanh_cong_va_giu_cho_xe(self):
         """Test: Khi lập phiếu xuất thành công, xe phải chuyển sang GIU_CHO_XUAT"""

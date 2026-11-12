@@ -7,6 +7,7 @@ app_name = "dashboard"
 urlpatterns = [
     # Trang chủ chính thức của hệ thống (/)
     path("", views.trang_chu, name="home"),
+    path("doi-kho/", views.doi_kho_hien_tai, name="doi_kho"),
 
     # Phân hệ Thống kê và Báo cáo (/thong-ke-bao-cao/)
     path("thong-ke-bao-cao/", reports_views.tong_quan, name="index"),

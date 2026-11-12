@@ -11,5 +11,6 @@ urlpatterns = [
     path("<str:ma_pdi>/", views.chi_tiet, name="chi_tiet"),
     path("<str:ma_pdi>/gui-yeu-cau/", views.gui_yeu_cau, name="gui_yeu_cau"),
     path("<str:ma_pdi>/cap-nhat/", views.cap_nhat, name="cap_nhat"),
+    path("<str:ma_pdi>/cap-nhat-anh/", views.cap_nhat_anh, name="cap_nhat_anh"),
     path("<str:ma_pdi>/thoa-thuan/", views.tep_thoa_thuan, name="tep_thoa_thuan"),
 ]

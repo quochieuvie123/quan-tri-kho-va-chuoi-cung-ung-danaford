@@ -4,17 +4,14 @@ from django.db import models
 
 
 class NguongCanhBao(models.Model):
-    kho = models.ForeignKey(
-        "database.Kho",
-        on_delete=models.PROTECT,
-        verbose_name="Kho",
-    )
-    ten_xe = models.CharField("Tên xe", max_length=255)
+    ten_xe = models.CharField("Dòng xe", max_length=255)
     mau_sac = models.CharField("Màu sắc", max_length=50, blank=True)
+
     ton_toi_thieu = models.PositiveIntegerField(
         "Tồn tối thiểu",
         validators=[MinValueValidator(1)],
     )
+
     dang_theo_doi = models.BooleanField(
         "Đang theo dõi",
         default=True,
@@ -23,10 +20,11 @@ class NguongCanhBao(models.Model):
     class Meta:
         verbose_name = "Ngưỡng cảnh báo"
         verbose_name_plural = "Ngưỡng cảnh báo"
+
         constraints = [
             models.UniqueConstraint(
-                fields=["kho", "ten_xe", "mau_sac"],
-                name="alerts_nguong_kho_xe_mau_unique",
+                fields=["ten_xe", "mau_sac"],
+                name="alerts_nguong_dong_mau_unique",
             ),
             models.CheckConstraint(
                 condition=models.Q(ton_toi_thieu__gte=1),
@@ -35,10 +33,7 @@ class NguongCanhBao(models.Model):
         ]
 
     def __str__(self):
-        return (
-            f"{self.kho} "
-            f"({self.ten_xe}, {self.mau_sac or 'Chưa có màu'})"
-        )
+        return f"{self.ten_xe} ({self.mau_sac or 'Chưa có màu'})"
 
 
 class CanhBao(models.Model):
@@ -55,13 +50,24 @@ class CanhBao(models.Model):
     kho = models.ForeignKey(
         "database.Kho",
         on_delete=models.PROTECT,
-        verbose_name="Kho",
+        verbose_name="Kho của cảnh báo tồn lâu",
+        null=True,
+        blank=True,
     )
+
+    cac_kho = models.ManyToManyField(
+        "database.Kho",
+        blank=True,
+        related_name="canh_bao_lien_quan",
+        verbose_name="Các kho liên quan",
+    )
+
     loai = models.CharField(
         "Loại cảnh báo",
         max_length=20,
         choices=Loai.choices,
     )
+
     nguong = models.ForeignKey(
         NguongCanhBao,
         on_delete=models.PROTECT,
@@ -69,6 +75,7 @@ class CanhBao(models.Model):
         blank=True,
         verbose_name="Nhóm xe theo dõi",
     )
+
     xe = models.ForeignKey(
         "database.Xe",
         on_delete=models.PROTECT,
@@ -76,34 +83,41 @@ class CanhBao(models.Model):
         blank=True,
         verbose_name="Xe",
     )
+
     so_luong_hien_tai = models.PositiveIntegerField(
         "Số lượng hiện tại",
         null=True,
         blank=True,
     )
+
     so_ngay_ton = models.PositiveIntegerField(
         "Số ngày tồn",
         null=True,
         blank=True,
     )
+
     con_hieu_luc = models.BooleanField(
         "Còn hiệu lực",
         default=True,
     )
+
     trang_thai = models.CharField(
         "Trạng thái xử lý",
         max_length=20,
         choices=TrangThai.choices,
         default=TrangThai.CHUA_XU_LY,
     )
+
     ngay_phat_sinh = models.DateTimeField(
         "Ngày phát sinh",
         auto_now_add=True,
     )
+
     ngay_cap_nhat = models.DateTimeField(
         "Lần cập nhật gần nhất",
         auto_now=True,
     )
+
     nguoi_xu_ly = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -111,6 +125,7 @@ class CanhBao(models.Model):
         blank=True,
         verbose_name="Người cập nhật trạng thái",
     )
+
     thoi_diem_xu_ly = models.DateTimeField(
         "Thời điểm cập nhật trạng thái",
         null=True,
@@ -154,6 +169,20 @@ class CanhBao(models.Model):
                 name="alerts_doi_tuong_dung_loai",
             ),
         ]
+    @property
+    def kho_hien_thi(self):
+        if self.loai == self.Loai.TON_LAU:
+            return str(self.kho)
+
+        if self.so_luong_hien_tai == 0:
+            return "Tổng ba kho"
+
+        danh_sach = []
+
+        for kho in self.cac_kho.all():
+            danh_sach.append(str(kho.pk))
+
+        return " và ".join(sorted(danh_sach))
 
     def __str__(self):
         return f"CB{self.pk} ({self.get_loai_display()})"

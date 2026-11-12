@@ -1,47 +1,84 @@
+/* ========================================================
+   Dana Ford - Login Stylesheet
+   Chuẩn hóa theo Design System Figma (04 Mẫu bố cục & 03b/d)
+   ======================================================== */
+
 :root {
-  --navy: #0b2a4a;
-  --blue: #0b66c3;
-  --blue-dark: #0955a3;
-  --bg: #f4f7fb;
-  --text: #111827;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --danger-bg: #fef2f2;
-  --danger: #b91c1c;
+  --navy: #0b2847;             /* Figma 04: Cột thương hiệu 640 nền #0B2847 */
+  --blue: #0067c5;             /* Figma 01: Tương tác chính #0067C5 */
+  --blue-hover: #00539f;       /* Hover nút chính */
+  --bg: #f4f7fb;               /* Nền trang #F4F7FB */
+  --text: #243b53;             /* Chữ chính #243B53 */
+  --title: #102a43;            /* Tiêu đề #102A43 */
+  --muted: #627d98;            /* Chữ phụ #627D98 */
+  --border: #dce6f0;           /* Đường viền 1px #DCE6F0 */
+  --danger: #b82e3a;           /* Chữ lỗi #B82E3A */
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  font-family: "Montserrat", system-ui, sans-serif;
+  font-family: "Montserrat", system-ui, -apple-system, sans-serif;
   color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
 }
 
 .login {
   display: grid;
-  grid-template-columns: 46% 54%;
+  grid-template-columns: 640px 1fr; /* Figma 04: Cột thương hiệu 640px, Cột form 800px */
   min-height: 100vh;
 }
 
-/* ---------- Bên trái ---------- */
+/* ---------- Bên trái (Thương hiệu 640px) ---------- */
 .login__brand {
   position: relative;
   overflow: hidden;
   background: var(--navy);
-  color: #fff;
+  color: #ffffff;
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 0 64px;
 }
-.login__brand-inner { max-width: 420px; }
-.login__eyebrow { margin: 0 0 16px; font-size: 13px; letter-spacing: .08em; font-weight: 500; }
-.login__brand h1 { margin: 0 0 18px; font-size: 38px; font-weight: 600; line-height: 1.2; }
-.login__desc { margin: 0 0 22px; font-size: 14px; line-height: 1.7; color: rgba(255,255,255,.8); }
-.login__branches { margin: 0; font-size: 14px; font-weight: 500; }
-.login__plate { position: absolute; left: 64px; bottom: -20px; width: 320px; opacity: .25; }
 
-/* ---------- Bên phải ---------- */
+.login__brand-inner {
+  max-width: 440px;
+  z-index: 1;
+}
+
+.login__eyebrow {
+  margin: 0 0 16px;
+  font-size: 13px;
+  letter-spacing: .08em;
+  font-weight: 600;
+  color: #9fb3c8;
+}
+
+.login__brand h1 {
+  margin: 0 0 18px;
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #ffffff;
+}
+
+.login__desc {
+  margin: 0 0 24px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.login__branches {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #9fb3c8;
+}
+
+/* ---------- Bên phải (Thẻ đăng nhập 560px) ---------- */
 .login__panel {
   background: var(--bg);
   display: flex;
@@ -49,64 +86,116 @@ body {
   justify-content: center;
   padding: 32px;
 }
+
 .login__card {
   width: 100%;
-  max-width: 520px;
-  background: #fff;
-  border-radius: 16px;
-  padding: 40px 40px 32px;
-  box-shadow: 0 4px 24px rgba(15, 23, 42, .06);
+  max-width: 560px; /* Figma 04: Thẻ đăng nhập rộng 560px */
+  background: #ffffff;
+  border-radius: 14px; /* Figma 03b: r14 */
+  border: 1px solid var(--border);
+  padding: 40px 40px 32px; /* Figma 04: đệm 32-40px */
+  box-shadow: 0 12px 32px rgba(16, 42, 67, 0.08); /* Figma 03d: Thẻ đăng nhập blur 32 spread 0 alpha 0.078 #102A43 */
 }
-.login__logo { display: block; height: 56px; margin: 0 auto 28px; }
-.login__card h2 { margin: 0 0 14px; font-size: 26px; font-weight: 600; }
-.login__hint { margin: 0 0 24px; font-size: 13px; color: var(--muted); }
 
-form label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 500; }
+.login__logo {
+  display: block;
+  height: 52px;
+  margin: 0 auto 24px;
+  object-fit: contain;
+}
+
+.login__card h2 {
+  margin: 0 0 10px;
+  font-size: 26px; /* Figma 02: Tiêu đề đăng nhập 26px SemiBold 600 */
+  font-weight: 600;
+  color: var(--title);
+  text-align: center;
+}
+
+.login__hint {
+  margin: 0 0 28px;
+  font-size: 14px; /* Figma 02: Hướng dẫn đăng nhập 14px Regular 400 */
+  color: var(--muted);
+  text-align: center;
+}
+
+form label {
+  display: block;
+  margin-bottom: 7px; /* Figma 03a: Nhãn -> giá trị 7px */
+  font-size: 12px;    /* Figma 02: Nhãn trường 12px Medium 500 */
+  font-weight: 500;
+  color: var(--text);
+}
+
 form input[type="text"],
 form input[type="password"] {
   width: 100%;
-  height: 44px;
+  height: 44px; /* Figma 05a: 44px */
   margin-bottom: 20px;
   padding: 0 14px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  font: inherit;
-  font-size: 13px;
-  background: #fff;
+  border-radius: 8px; /* Figma 03b: r8 */
+  font-family: inherit;
+  font-size: 13px; /* Figma 02: 13px Regular */
+  color: var(--text);
+  background: #ffffff;
+  transition: all 0.2s ease;
 }
+
 form input:focus {
   outline: none;
   border-color: var(--blue);
-  box-shadow: 0 0 0 3px rgba(11, 102, 195, .15);
+  box-shadow: 0 0 0 3px rgba(0, 103, 197, 0.15);
 }
+
 form button {
   width: 100%;
-  height: 44px;
+  height: 44px; /* Figma 05a: 44px */
   border: 0;
-  border-radius: 8px;
+  border-radius: 8px; /* Figma 03b: r8 */
   background: var(--blue);
-  color: #fff;
-  font: inherit;
-  font-size: 13px;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 13px; /* Figma 02: 13px SemiBold 600 */
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 4px;
 }
-form button:hover { background: var(--blue-dark); }
+
+form button:hover {
+  background: var(--blue-hover);
+}
 
 .login__error {
-  margin-bottom: 18px;
-  padding: 10px 14px;
+  margin-bottom: 20px;
+  padding: 12px 14px;
   border-radius: 8px;
-  background: var(--danger-bg);
+  background: #ffffff;
+  border: 1px solid var(--danger); /* Figma 05b: Viền và chữ lỗi #B82E3A */
   color: var(--danger);
   font-size: 13px;
+  font-weight: 500;
 }
-.login__note { margin: 20px 0 14px; font-size: 12px; color: var(--muted); }
-.login__help { margin: 0; font-size: 12px; font-weight: 500; color: var(--blue-dark); }
 
-/* ---------- Màn hình nhỏ ---------- */
-@media (max-width: 900px) {
+.login__note {
+  margin: 24px 0 0;
+  font-size: 12px; /* Figma 02: Chú thích 12px Regular 400 */
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.login__help {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (max-width: 1024px) {
   .login { grid-template-columns: 1fr; }
   .login__brand { display: none; }
-  .login__card { padding: 28px 22px; }
+  .login__panel { padding: 24px 16px; }
+  .login__card { padding: 32px 24px; }
 }

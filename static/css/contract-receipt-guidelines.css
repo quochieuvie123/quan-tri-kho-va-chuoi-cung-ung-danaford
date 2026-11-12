@@ -1,0 +1,38 @@
+/* Chỉ áp dụng cho Hợp đồng xe bán và Nhập kho/PDI. Nguồn: Figma Design Guidelines 309:2. */
+.df-workflow {
+  --df-blue: #0067c5;
+  --df-title: #102a43;
+  --df-text: #243b53;
+  --df-secondary: #627d98;
+  --df-border: #dce6f0;
+  --df-surface: #fff;
+  --df-tint: #f4f7fb;
+  gap: 20px;
+  color: var(--df-text);
+  font-family: Montserrat, sans-serif;
+}
+.df-workflow .page-header { margin-bottom: 0; gap: 20px; align-items: flex-start; }
+.df-workflow .page-header__title { color: var(--df-title); font-size: 28px; font-weight: 600; line-height: 1.45; letter-spacing: 0; }
+.df-workflow .page-header__subtitle { margin-top: 6px; color: var(--df-secondary); font-size: 13px; line-height: 1.45; }
+.df-workflow .card { background: var(--df-surface); border: 1px solid var(--df-border); border-radius: 14px; padding: 24px; box-shadow: none; }
+.df-workflow .filters { background: var(--df-tint); border: 1px solid var(--df-border); border-radius: 8px; gap: 16px; padding: 12px; margin-bottom: 20px; }
+.df-workflow .field { gap: 7px; min-width: 180px; }
+.df-workflow .field label { font-size: 12px; font-weight: 500; line-height: 1.45; color: var(--df-text); letter-spacing: 0; }
+.df-workflow .input, .df-workflow .select, .df-workflow .textarea { min-height: 45px; padding: 12px; border: 1px solid var(--df-border); border-radius: 8px; color: var(--df-text); background: #fff; font: 400 13px/1.45 Montserrat, sans-serif; }
+.df-workflow .input:focus, .df-workflow .select:focus, .df-workflow .textarea:focus { border-color: var(--df-blue); box-shadow: 0 0 0 3px rgba(0,103,197,.13); }
+.df-workflow .btn { min-height: 45px; gap: 6px; padding: 10px 12px; border-radius: 8px; font: 600 13px/1.45 Montserrat, sans-serif; }
+.df-workflow .btn--primary { background: var(--df-blue); border-color: var(--df-blue); color: #fff; }
+.df-workflow .btn--light { background: #fff; border-color: var(--df-border); color: var(--df-blue); }
+.df-workflow .df-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.df-workflow .table-wrap { border: 1px solid var(--df-border); border-radius: 14px; overflow-x: auto; }
+.df-workflow .data-table { min-width: 780px; color: var(--df-text); }
+.df-workflow .data-table th { background: var(--df-tint); color: var(--df-text); font-size: 12px; font-weight: 600; line-height: 1.45; }
+.df-workflow .data-table td { border-color: var(--df-border); font-size: 13px; line-height: 1.45; }
+.df-workflow .data-table a:not(.btn) { color: var(--df-blue) !important; }
+.df-workflow .data-table a.btn--primary { color: #fff !important; }
+.df-workflow .empty { color: var(--df-secondary); }
+@media (max-width: 900px) {
+  .df-workflow .card { padding: 16px; }
+  .df-workflow .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .df-workflow .page-header__title { font-size: 24px; }
+}
