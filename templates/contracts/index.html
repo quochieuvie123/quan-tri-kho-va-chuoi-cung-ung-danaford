@@ -71,7 +71,6 @@
               <th>Ngày ký</th>
               <th>Ngày giao dự kiến</th>
               <th style="text-align: center;">Trạng thái</th>
-              <th style="text-align: right;">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -98,19 +97,10 @@
                   {{ hd.trang_thai_hien_thi }}
                 </span>
               </td>
-              <td style="text-align: right;">
-                {% if hd.thao_tac.de_xuat_xe %}
-                  <a class="btn btn--primary" style="min-width: 138px; color: #fff; white-space: nowrap;" aria-label="Đề xuất xe" href="{% url 'contracts:xe_phu_hop' hd.ma_hd %}">
-                    <i class="bi bi-lightbulb"></i> Đề xuất xe
-                  </a>
-                {% else %}
-                  <span style="color: #94a3b8;">—</span>
-                {% endif %}
-              </td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="7" class="empty">
+              <td colspan="6" class="empty">
                 <i class="bi bi-inbox" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
                 <p style="margin: 0; color: #64748b;">Không tìm thấy hợp đồng bán xe nào phù hợp.</p>
               </td>
