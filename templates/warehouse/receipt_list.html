@@ -80,7 +80,13 @@
             {% for p in display_rows %}
             <tr>
               <td>
-                {% if p.pending_order %}{{ p.ma_phieu }}{% else %}
+                {% if p.is_transfer_pending %}
+                  <a href="{% url 'warehouse:receipt_create_page' %}?nguon_xe=luu-chuyen:{{ p.transfer_line_id }}" class="btn btn--sm btn--primary" style="font-size: 11px; padding: 3px 8px; text-decoration: none;">
+                    <i class="bi bi-plus-circle"></i> Lập phiếu ({{ p.ma_phieu }})
+                  </a>
+                {% elif p.pending_order %}
+                  {{ p.ma_phieu }}
+                {% else %}
                 <a href="{% url 'warehouse:receipt_detail' p.id %}" style="text-decoration: none; font-weight: 700; color: #0067c5;">
                   {{ p.ma_phieu }}
                 </a>

@@ -42,27 +42,42 @@
   </div>
 </form>
 {{ xe_theo_hdn|json_script:"xe-theo-hdn" }}
+{{ xe_theo_lenh|json_script:"xe-theo-lenh" }}
 {% endblock %}
 {% block extra_js %}
 <script>
-  // Chỉ cho chọn xe thuộc lô hàng nhập đã chọn & Tự động chọn đúng VIN khi trích xuất từ PDI
-  let mapRaw = document.getElementById('xe-theo-hdn').textContent;
-  let map = {};
+  let mapHdn = {};
+  let mapLenh = {};
   try {
-    map = JSON.parse(mapRaw);
-    if (typeof map === 'string') map = JSON.parse(map);
+    mapHdn = JSON.parse(document.getElementById('xe-theo-hdn').textContent);
+    if (typeof mapHdn === 'string') mapHdn = JSON.parse(mapHdn);
   } catch(e) {}
-  const hdn = document.getElementById('id_hoa_don_nhap'), xe = document.getElementById('id_xe');
+  try {
+    mapLenh = JSON.parse(document.getElementById('xe-theo-lenh').textContent);
+    if (typeof mapLenh === 'string') mapLenh = JSON.parse(mapLenh);
+  } catch(e) {}
+
+  const hdn = document.getElementById('id_hoa_don_nhap');
+  const lenh = document.getElementById('id_lenh_luu_chuyen');
+  const xe = document.getElementById('id_xe');
   const targetVin = "{{ ban_dau_xe|default:'' }}" || new URLSearchParams(window.location.search).get('xe') || new URLSearchParams(window.location.search).get('vin');
 
   function loc() {
-    const ok = map[hdn.value];
+    let ok = null;
+    if (hdn && hdn.value) {
+      ok = mapHdn[hdn.value] || [];
+      if (lenh) lenh.value = '';
+    } else if (lenh && lenh.value) {
+      ok = mapLenh[lenh.value] || [];
+      if (hdn) hdn.value = '';
+    }
+
     let first = null;
     let foundTarget = false;
     for (const o of xe.options) {
       if (!o.value) continue;
       const isTarget = targetVin && o.value === targetVin;
-      const show = !hdn.value || (ok && ok.includes(o.value)) || isTarget;
+      const show = (ok === null) || ok.includes(o.value) || isTarget;
       o.hidden = o.disabled = !show;
       if (show && !first) first = o;
       if (isTarget) {
@@ -75,7 +90,8 @@
       xe.value = first ? first.value : '';
     }
   }
-  hdn.addEventListener('change', loc);
+  if (hdn) hdn.addEventListener('change', loc);
+  if (lenh) lenh.addEventListener('change', loc);
   loc();
 
   // Xem trước ảnh ngay trên biểu mẫu

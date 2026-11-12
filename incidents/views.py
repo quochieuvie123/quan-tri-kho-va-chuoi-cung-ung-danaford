@@ -28,7 +28,8 @@ HAN_PHAN_HOI_NGAY = 7
 
 def _ds_goc():
     return BienBanPDI.objects.select_related(
-        "xe", "nhan_vien", "hoa_don_nhap__don_vi_van_chuyen", "ho_so").order_by("-ngay_ghi_nhan", "-ma_pdi")
+        "xe", "nhan_vien", "hoa_don_nhap__don_vi_van_chuyen",
+        "lenh_luu_chuyen__don_vi_van_chuyen", "ho_so").order_by("-ngay_ghi_nhan", "-ma_pdi")
 
 
 def _loc(params):
@@ -40,13 +41,14 @@ def _loc(params):
         if d["q"]:
             k = d["q"].strip()
             qs = qs.filter(Q(xe__vin__icontains=k) | Q(hoa_don_nhap__bien_so_xe__icontains=k)
-                           | Q(hoa_don_nhap__ma_hdn__icontains=k) | Q(ma_pdi__icontains=k))
+                           | Q(hoa_don_nhap__ma_hdn__icontains=k) | Q(lenh_luu_chuyen__bien_so_xe__icontains=k)
+                           | Q(lenh_luu_chuyen__ma_lenh__icontains=k) | Q(ma_pdi__icontains=k))
         if d["tu_ngay"]:
             qs = qs.filter(ngay_ghi_nhan__date__gte=d["tu_ngay"])
         if d["den_ngay"]:
             qs = qs.filter(ngay_ghi_nhan__date__lte=d["den_ngay"])
         if d["dvvc"]:
-            qs = qs.filter(hoa_don_nhap__don_vi_van_chuyen=d["dvvc"])
+            qs = qs.filter(Q(hoa_don_nhap__don_vi_van_chuyen=d["dvvc"]) | Q(lenh_luu_chuyen__don_vi_van_chuyen=d["dvvc"]))
         if d["trang_thai"] == "dang_xu_ly":
             qs = qs.exclude(trang_thai_claim=DA_XU_LY)
         elif d["trang_thai"] == "da_dong":
@@ -81,7 +83,7 @@ def danh_sach(request):
     sess = getattr(request, 'session', {})
     current_cn = sess.get('current_cn') if hasattr(sess, 'get') else None
     if current_cn and current_cn != "ALL":
-        qs = qs.filter(hoa_don_nhap__chi_nhanh_id=current_cn)
+        qs = qs.filter(Q(hoa_don_nhap__chi_nhanh_id=current_cn) | Q(lenh_luu_chuyen__kho_nhap__chi_nhanh_id=current_cn))
     trang = Paginator(qs, SO_DONG).get_page(request.GET.get("page"))
     for bb in trang:
         bb.nhan_tt = nhan_trang_thai(bb.trang_thai_claim)
@@ -105,7 +107,7 @@ def xuat_bao_cao(request):
     sess = getattr(request, 'session', {})
     current_cn = sess.get('current_cn') if hasattr(sess, 'get') else None
     if current_cn and current_cn != "ALL":
-        qs = qs.filter(hoa_don_nhap__chi_nhanh_id=current_cn)
+        qs = qs.filter(Q(hoa_don_nhap__chi_nhanh_id=current_cn) | Q(lenh_luu_chuyen__kho_nhap__chi_nhanh_id=current_cn))
     danh_sach_bb = list(qs)
     quay_lai = reverse("incidents:index")
     if not danh_sach_bb:  # E1
@@ -135,11 +137,14 @@ def xuat_bao_cao(request):
 def ghi_nhan(request):
     xe_vin = request.GET.get("xe") or request.GET.get("vin")
     hdn_param = request.GET.get("hoa_don_nhap") or request.GET.get("hdn")
+    lenh_param = request.GET.get("lenh_luu_chuyen") or request.GET.get("lenh")
     pdi_id = request.GET.get("pdi_id")
 
     ban_dau = {}
     if hdn_param:
         ban_dau["hoa_don_nhap"] = hdn_param
+    if lenh_param:
+        ban_dau["lenh_luu_chuyen"] = lenh_param
     if xe_vin:
         ban_dau["xe"] = xe_vin
 
@@ -148,17 +153,20 @@ def ghi_nhan(request):
     try:
         from warehouse.models import KetQuaPDI
         if pdi_id:
-            pdi_obj = KetQuaPDI.objects.select_related("phieu_nhap__xe", "phieu_nhap__chi_tiet_nhap__hoa_don_nhap").filter(pk=pdi_id).first()
+            pdi_obj = KetQuaPDI.objects.select_related("phieu_nhap__xe", "phieu_nhap__chi_tiet_nhap__hoa_don_nhap", "phieu_nhap__lenh_luu_chuyen").filter(pk=pdi_id).first()
         elif xe_vin:
-            pdi_obj = KetQuaPDI.objects.select_related("phieu_nhap__xe", "phieu_nhap__chi_tiet_nhap__hoa_don_nhap").filter(phieu_nhap__xe_id=xe_vin).order_by("-thoi_gian_kiem_tra").first()
+            pdi_obj = KetQuaPDI.objects.select_related("phieu_nhap__xe", "phieu_nhap__chi_tiet_nhap__hoa_don_nhap", "phieu_nhap__lenh_luu_chuyen").filter(phieu_nhap__xe_id=xe_vin).order_by("-thoi_gian_kiem_tra").first()
     except Exception:
         pdi_obj = None
 
     if pdi_obj:
         if not ban_dau.get("xe"):
             ban_dau["xe"] = pdi_obj.phieu_nhap.xe_id
-        if not ban_dau.get("hoa_don_nhap") and pdi_obj.phieu_nhap.chi_tiet_nhap:
-            ban_dau["hoa_don_nhap"] = pdi_obj.phieu_nhap.chi_tiet_nhap.hoa_don_nhap_id
+        if not ban_dau.get("hoa_don_nhap") and not ban_dau.get("lenh_luu_chuyen"):
+            if pdi_obj.phieu_nhap.chi_tiet_nhap:
+                ban_dau["hoa_don_nhap"] = pdi_obj.phieu_nhap.chi_tiet_nhap.hoa_don_nhap_id
+            elif pdi_obj.phieu_nhap.lenh_luu_chuyen_id:
+                ban_dau["lenh_luu_chuyen"] = pdi_obj.phieu_nhap.lenh_luu_chuyen_id
 
         # Tự động suy luận Loại sự cố từ kết quả PDI
         all_text = f"{pdi_obj.tinh_trang or ''} {pdi_obj.ghi_chu or ''} "
@@ -213,9 +221,16 @@ def ghi_nhan(request):
         nv = form.nv_tai_khoan or d["nhan_vien"]
         with transaction.atomic():
             bb = BienBanPDI.objects.create(
-                ma_pdi=sinh_ma_pdi(), hoa_don_nhap=d["hoa_don_nhap"], xe=d["xe"], nhan_vien=nv,
-                ngay_ghi_nhan=timezone.now(), loai_su_co=d["loai_su_co"],
-                mo_ta_chi_tiet=d["mo_ta_chi_tiet"].strip(), trang_thai_claim=CHUA_XU_LY)
+                ma_pdi=sinh_ma_pdi(),
+                hoa_don_nhap=d.get("hoa_don_nhap"),
+                lenh_luu_chuyen=d.get("lenh_luu_chuyen"),
+                xe=d["xe"],
+                nhan_vien=nv,
+                ngay_ghi_nhan=timezone.now(),
+                loai_su_co=d["loai_su_co"],
+                mo_ta_chi_tiet=d["mo_ta_chi_tiet"].strip(),
+                trang_thai_claim=CHUA_XU_LY
+            )
             anh = [AnhSuCo.objects.create(bien_ban=bb, tep=f) for f in d.get("anh", [])]
             if anh:
                 bb.hinh_anh_url = request.build_absolute_uri(reverse("incidents:tep_anh", args=[anh[0].pk]))
@@ -230,10 +245,16 @@ def ghi_nhan(request):
     xe_theo_hdn = {}
     for hdn, vin in ChiTietNhap.objects.values_list("hoa_don_nhap_id", "xe_id"):
         xe_theo_hdn.setdefault(hdn, []).append(vin)
+    from transfers.models import ChiTietLenhLuuChuyen
+    xe_theo_lenh = {}
+    for lenh_id, vin in ChiTietLenhLuuChuyen.objects.values_list("lenh_id", "xe_id"):
+        xe_theo_lenh.setdefault(lenh_id, []).append(vin)
+
     return render(request, "incidents/ghi_nhan.html", {
         "page_title": "Ghi nhận sự cố vận chuyển",
         "form": form,
         "xe_theo_hdn": xe_theo_hdn,
+        "xe_theo_lenh": xe_theo_lenh,
         "ban_dau_xe": target_vin,
         "xe_obj": xe_obj,
         "pdi_obj": pdi_obj,
@@ -247,6 +268,7 @@ def chi_tiet(request, ma_pdi):
     if bb is None:
         return redirect("incidents:index")
     hdn = bb.hoa_don_nhap
+    lenh = bb.lenh_luu_chuyen
     from warehouse.models import PhieuNhapKho
     phieu_nhap = PhieuNhapKho.objects.filter(xe_id=bb.xe_id).first()
     phieu_data = None
@@ -254,7 +276,7 @@ def chi_tiet(request, ma_pdi):
         from warehouse.presentation import receipt_data
         phieu_data = receipt_data(phieu_nhap, request.user)
     return render(request, "incidents/chi_tiet.html", {
-        "page_title": f"Sự cố {bb.ma_pdi}", "bb": bb, "hdn": hdn, "xe": bb.xe,
+        "page_title": f"Sự cố {bb.ma_pdi}", "bb": bb, "hdn": hdn, "lenh": lenh, "xe": bb.xe,
         "ho_so": getattr(bb, "ho_so", None), "nhan_tt": nhan_trang_thai(bb.trang_thai_claim),
         "anh": bb.anh_su_co.all(), "lich_su": bb.lich_su.select_related("nguoi_thuc_hien"),
         "co_the_gui": bb.trang_thai_claim not in (DA_GUI_YEU_CAU, DA_XU_LY),
@@ -265,15 +287,40 @@ def chi_tiet(request, ma_pdi):
 
 # ---------- UC-10.1.3: gửi yêu cầu cho ĐVVC ----------
 def _soan_thu(bb, ghi_chu, han):
-    hdn, xe = bb.hoa_don_nhap, bb.xe
+    xe = bb.xe
+    if bb.hoa_don_nhap:
+        hdn = bb.hoa_don_nhap
+        ten_dvvc = hdn.don_vi_van_chuyen.ten_dvvc if hdn.don_vi_van_chuyen else "Quý đơn vị vận chuyển"
+        chung_tu_str = f"- Đơn hàng nhập: {hdn.ma_hdn}"
+        bien_so_str = f"- Biển số xe chở: {hdn.bien_so_xe or ''}"
+        tai_xe_str = f"- Tài xế: {hdn.ten_tai_xe or ''}"
+    elif bb.lenh_luu_chuyen:
+        lenh = bb.lenh_luu_chuyen
+        ten_dvvc = lenh.don_vi_van_chuyen.ten_dvvc if lenh.don_vi_van_chuyen else "Quý đơn vị vận chuyển"
+        chung_tu_str = f"- Lệnh lưu chuyển: {lenh.ma_lenh}"
+        bien_so_str = f"- Biển số xe chở: {lenh.bien_so_xe or ''}"
+        tai_xe_str = f"- Tài xế: {lenh.tai_xe or ''}"
+    else:
+        ten_dvvc = "Quý đơn vị vận chuyển"
+        chung_tu_str = ""
+        bien_so_str = ""
+        tai_xe_str = ""
+
     tieu_de = f"[Dana Ford] Yêu cầu xử lý sự cố vận chuyển {bb.ma_pdi} - xe {xe.vin}"
     dong = [
-        f"Kính gửi {hdn.don_vi_van_chuyen.ten_dvvc},", "",
+        f"Kính gửi {ten_dvvc},", "",
         "Dana Ford ghi nhận xe sau không đạt yêu cầu kỹ thuật khi bàn giao và đề nghị Quý đơn vị giải trình, "
         "bồi thường thiệt hại:", "",
         f"- Mã sự cố: {bb.ma_pdi}", f"- Số khung VIN: {xe.vin}", f"- Dòng xe: {xe.ten_xe}",
-        f"- Màu sắc: {xe.mau_sac or ''}", f"- Đơn hàng nhập: {hdn.ma_hdn}",
-        f"- Biển số xe chở: {hdn.bien_so_xe or ''}", f"- Tài xế: {hdn.ten_tai_xe or ''}",
+        f"- Màu sắc: {xe.mau_sac or ''}",
+    ]
+    if chung_tu_str:
+        dong.append(chung_tu_str)
+    if bien_so_str:
+        dong.append(bien_so_str)
+    if tai_xe_str:
+        dong.append(tai_xe_str)
+    dong += [
         f"- Loại lỗi: {bb.loai_su_co}", f"- Mô tả lỗi: {bb.mo_ta_chi_tiet or ''}",
         "- Hình ảnh hư hại: xem tệp đính kèm", f"- Hạn phản hồi: {han:%d/%m/%Y}",
     ]
@@ -301,7 +348,10 @@ def gui_yeu_cau(request, ma_pdi):
     if bb.trang_thai_claim in (DA_GUI_YEU_CAU, DA_XU_LY):
         messages.warning(request, "Chỉ gửi được yêu cầu cho sự cố ở trạng thái chưa xử lý.")
         return redirect("incidents:chi_tiet", ma_pdi=ma_pdi)
-    dvvc = bb.hoa_don_nhap.don_vi_van_chuyen
+    dvvc = bb.don_vi_van_chuyen_obj
+    if dvvc is None:
+        messages.error(request, "Biên bản sự cố này chưa có thông tin đơn vị vận chuyển.")
+        return redirect("incidents:chi_tiet", ma_pdi=ma_pdi)
     lien_he = DvvcLienHe.objects.filter(dvvc=dvvc).first()
     if lien_he is None:  # E1
         messages.error(request, "Đơn vị vận chuyển chưa được cấu hình địa chỉ email liên hệ. "

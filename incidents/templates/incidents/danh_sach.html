@@ -32,7 +32,7 @@
         <td><a href="{% url 'incidents:chi_tiet' bb.ma_pdi %}" style="text-decoration: none; font-weight: 700; color: #0067c5;">{{ bb.ma_pdi }}</a></td>
         <td><a href="{% url 'incidents:chi_tiet' bb.ma_pdi %}" style="text-decoration: none; color: inherit; font-weight: 600;">{{ bb.xe_id }}</a></td>
         <td>{{ bb.loai_su_co }}</td>
-        <td>{{ bb.hoa_don_nhap.don_vi_van_chuyen.ten_dvvc }}</td>
+        <td>{{ bb.don_vi_van_chuyen|default:bb.hoa_don_nhap.don_vi_van_chuyen.ten_dvvc }}</td>
         <td>{{ bb.ngay_ghi_nhan|date:"d/m/Y H:i" }}</td>
         <td><span class="badge {% if bb.nhan_tt == 'Đã đóng' %}badge--done{% else %}badge--open{% endif %}">{{ bb.nhan_tt }}</span></td>
       </tr>

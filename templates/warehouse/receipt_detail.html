@@ -59,7 +59,7 @@
         <strong style="color: #b45309; font-size: 14px;"><i class="bi bi-exclamation-triangle-fill"></i> PDI không đạt:</strong>
         <p style="margin: 4px 0 0; color: #78350f; font-size: 13px;">Xe gặp sự cố kỹ thuật trong quá trình kiểm định. Hãy lập biên bản sự cố vận chuyển để chuyển tiếp xử lý bồi thường.</p>
       </div>
-      <a class="btn btn--warning" style="font-weight: 700; white-space: nowrap;" href="{% url 'incidents:ghi_nhan' %}?xe={{ phieu_nhap.vin|urlencode }}{% if phieu_nhap.ma_hdn %}&amp;hoa_don_nhap={{ phieu_nhap.ma_hdn|urlencode }}{% endif %}&amp;pdi_id={{ phieu_nhap.pdi_moi_nhat.id }}">
+      <a class="btn btn--warning" style="font-weight: 700; white-space: nowrap;" href="{% url 'incidents:ghi_nhan' %}?xe={{ phieu_nhap.vin|urlencode }}{% if phieu_nhap.ma_hdn %}&amp;hoa_don_nhap={{ phieu_nhap.ma_hdn|urlencode }}{% endif %}{% if phieu_nhap.lenh_luu_chuyen_id %}&amp;lenh_luu_chuyen={{ phieu_nhap.lenh_luu_chuyen_id }}{% endif %}&amp;pdi_id={{ phieu_nhap.pdi_moi_nhat.id }}">
         <i class="bi bi-file-earmark-plus"></i> Ghi nhận sự cố vận chuyển (Tự động đưa dữ liệu PDI)
       </a>
     </div>
@@ -159,18 +159,35 @@
     </div>
   </div>
 
-  <!-- Thông tin chứng từ / Hóa đơn nhập -->
+  <!-- Thông tin chứng từ / Hóa đơn nhập hoặc Lệnh lưu chuyển -->
   <div class="card">
-    <h2 class="section-title">Chứng từ hóa đơn nhập liên kết</h2>
+    <h2 class="section-title">
+      {% if phieu_nhap.loai_nguon == 'LUU_CHUYEN' or phieu_nhap.ma_lenh %}
+        Chứng từ Lệnh lưu chuyển nội bộ liên kết
+      {% else %}
+        Chứng từ hóa đơn nhập liên kết
+      {% endif %}
+    </h2>
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; font-size: 13px;">
-      <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
-        <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Mã hóa đơn nhập</span>
-        <strong style="color: #0067c5;">{{ phieu_nhap.ma_hdn }}</strong>
-      </div>
-      <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
-        <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Số hóa đơn</span>
-        <strong>{{ phieu_nhap.so_hoa_don|default:'Chưa cập nhật' }}</strong>
-      </div>
+      {% if phieu_nhap.loai_nguon == 'LUU_CHUYEN' or phieu_nhap.ma_lenh %}
+        <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Mã lệnh lưu chuyển</span>
+          <strong style="color: #0067c5;">{{ phieu_nhap.ma_lenh }}</strong>
+        </div>
+        <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Kho xuất chuyển</span>
+          <strong>{{ phieu_nhap.kho_xuat_ten|default:'Chưa cập nhật' }}</strong>
+        </div>
+      {% else %}
+        <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Mã hóa đơn nhập</span>
+          <strong style="color: #0067c5;">{{ phieu_nhap.ma_hdn }}</strong>
+        </div>
+        <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Số hóa đơn</span>
+          <strong>{{ phieu_nhap.so_hoa_don|default:'Chưa cập nhật' }}</strong>
+        </div>
+      {% endif %}
       <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
         <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Đơn vị vận chuyển</span>
         <strong>{{ phieu_nhap.don_vi_van_chuyen|default:'Chưa cập nhật' }}</strong>

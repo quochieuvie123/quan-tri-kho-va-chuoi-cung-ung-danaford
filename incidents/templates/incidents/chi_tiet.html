@@ -51,11 +51,19 @@
       <dt>Số khung VIN</dt><dd>{{ xe.vin }}</dd>
       <dt>Dòng xe</dt><dd>{{ xe.ten_xe }}</dd>
       <dt>Màu sắc</dt><dd>{{ xe.mau_sac|default:"—" }}</dd>
+      {% if hdn %}
       <dt>Đơn hàng nhập</dt><dd>{{ hdn.ma_hdn }}</dd>
       <dt>Tên ĐVVC</dt><dd>{{ hdn.don_vi_van_chuyen.ten_dvvc }}</dd>
       <dt>Tên tài xế</dt><dd>{{ hdn.ten_tai_xe|default:"—" }}</dd>
       <dt>Biển số xe chở</dt><dd>{{ hdn.bien_so_xe|default:"—" }}</dd>
       <dt>Thời gian bàn giao</dt><dd>{{ hdn.ngay_nhap|date:"d/m/Y H:i" }}</dd>
+      {% elif lenh %}
+      <dt>Lệnh lưu chuyển</dt><dd>{{ lenh.ma_lenh }}</dd>
+      <dt>Tên ĐVVC</dt><dd>{{ lenh.don_vi_van_chuyen.ten_dvvc|default:"—" }}</dd>
+      <dt>Tên tài xế</dt><dd>{{ lenh.tai_xe|default:"—" }}</dd>
+      <dt>Biển số xe chở</dt><dd>{{ lenh.bien_so_xe|default:"—" }}</dd>
+      <dt>Thời gian bàn giao</dt><dd>{{ lenh.ngay_giao|date:"d/m/Y H:i"|default:lenh.ngay_xuat|date:"d/m/Y H:i"|default:"—" }}</dd>
+      {% endif %}
       {% if phieu_nhap %}
         <dt>Phiếu nhập kho</dt>
         <dd>
