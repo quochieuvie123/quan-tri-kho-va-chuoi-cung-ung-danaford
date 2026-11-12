@@ -162,8 +162,32 @@ def detail(request, ma_hd):
             ctx['lenh_luu_chuyen'] = LenhLuuChuyen.objects.filter(chi_tiet__xe__chitiethopdong__hop_dong=hd).select_related('kho_xuat', 'kho_nhap').first()
         except Exception:
             ctx['lenh_luu_chuyen'] = None
-        return render(request, 'contracts/detail.html', {'page_title': f'Hợp đồng {hd.pk}', 'hop_dong': ctx})
+        can_edit = has_role(request.user, SALE_ADMIN) or request.user.is_superuser
+        return render(request, 'contracts/detail.html', {'page_title': f'Hợp đồng {hd.pk}', 'hop_dong': ctx, 'co_the_chinh_sua': can_edit})
     return JsonResponse(result)
+
+
+@login_required
+@role_required(SALE_ADMIN)
+@permission_required('database.change_hopdong', raise_exception=True)
+@require_POST
+def cap_nhat_ngay_giao(request, ma_hd):
+    """Cập nhật ngày dự kiến giao xe cho hợp đồng bán."""
+    hd = get_object_or_404(HopDong, pk=ma_hd)
+    val = request.POST.get('ngay_du_kien_giao', '').strip()
+    if not val:
+        hd.ngay_du_kien_giao = None
+        hd.save(update_fields=['ngay_du_kien_giao'])
+        messages.success(request, f'Đã xóa ngày giao dự kiến của hợp đồng {hd.ma_hd}.')
+    else:
+        try:
+            d = date.fromisoformat(val)
+            hd.ngay_du_kien_giao = d
+            hd.save(update_fields=['ngay_du_kien_giao'])
+            messages.success(request, f'Đã cập nhật ngày giao dự kiến cho hợp đồng {hd.ma_hd}: {d.strftime("%d/%m/%Y")}.')
+        except (ValueError, TypeError):
+            messages.error(request, 'Định dạng ngày giao dự kiến không hợp lệ. Vui lòng chọn lại.')
+    return redirect('contracts:detail', ma_hd=ma_hd)
 
 
 def find_suitable(hd):

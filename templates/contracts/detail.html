@@ -18,6 +18,16 @@
         <i class="bi bi-lightbulb"></i> Đề xuất xe phù hợp
       </a>
       {% endif %}
+      {% if co_the_chinh_sua %}
+      <button type="button" class="btn btn--light" onclick="openDateModal();" style="display: inline-flex; align-items: center; gap: 6px; border-color: #94a3b8; font-weight: 600;">
+        <i class="bi bi-calendar3" style="color: #0067c5;"></i>
+        {% if hop_dong.ngay_du_kien_giao %}
+          <span>Ngày giao: <strong>{{ hop_dong.ngay_du_kien_giao|date:"d/m/Y" }}</strong></span>
+        {% else %}
+          <span style="color: #b45309;">+ Nhập ngày giao dự kiến</span>
+        {% endif %}
+      </button>
+      {% endif %}
     </div>
 
     <div>
@@ -124,8 +134,35 @@
         {% endif %}
       </dd>
 
-      <dt>Ngày giao dự kiến</dt>
-      <dd>{{ hop_dong.ngay_du_kien_giao|date:"d/m/Y"|default:"Chưa xác định" }}</dd>
+      <dt style="display: flex; align-items: center; gap: 6px;">
+        <i class="bi bi-calendar-event" style="color: #0067c5;"></i> Ngày giao dự kiến
+      </dt>
+      <dd>
+        {% if co_the_chinh_sua %}
+        <form method="post" action="{% url 'contracts:cap_nhat_ngay_giao' hop_dong.ma_hd %}" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0;">
+          {% csrf_token %}
+          <div style="display: inline-flex; align-items: center;">
+            <input class="input" type="date" name="ngay_du_kien_giao" id="id_ngay_du_kien_giao"
+                   value="{{ hop_dong.ngay_du_kien_giao|date:'Y-m-d' }}"
+                   style="padding: 6px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; min-width: 165px;">
+          </div>
+          <button type="submit" class="btn btn--primary" style="padding: 6px 14px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+            <i class="bi bi-calendar-check"></i> Lưu ngày giao
+          </button>
+          {% if hop_dong.ngay_du_kien_giao %}
+            <span class="badge badge--ok" style="font-size: 13px; padding: 5px 10px;">
+              <i class="bi bi-check2"></i> Đang hẹn: {{ hop_dong.ngay_du_kien_giao|date:"d/m/Y" }}
+            </span>
+          {% else %}
+            <span class="badge badge--wait" style="font-size: 13px; padding: 5px 10px;">
+              <i class="bi bi-clock"></i> Chưa hẹn ngày giao
+            </span>
+          {% endif %}
+        </form>
+        {% else %}
+          <strong>{{ hop_dong.ngay_du_kien_giao|date:"d/m/Y"|default:"Chưa xác định" }}</strong>
+        {% endif %}
+      </dd>
 
       <dt>Số tiền đặt cọc</dt>
       <dd style="color: #166534; font-weight: 700;">{{ hop_dong.so_tien_coc }}</dd>
@@ -207,4 +244,76 @@
     {% endif %}
   </div>
 </div>
+
+{% if co_the_chinh_sua %}
+<!-- Modal Thiết lập ngày giao dự kiến -->
+<div id="dateModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+  <div style="background: #ffffff; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); overflow: hidden; margin: 16px;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+      <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+        <i class="bi bi-calendar-event text-primary"></i> Thiết lập ngày giao dự kiến
+      </h3>
+      <button type="button" onclick="closeDateModal();" style="border: none; background: transparent; font-size: 24px; line-height: 1; cursor: pointer; color: #64748b;">&times;</button>
+    </div>
+    <form method="post" action="{% url 'contracts:cap_nhat_ngay_giao' hop_dong.ma_hd %}" style="padding: 20px; margin: 0;">
+      {% csrf_token %}
+      <p style="margin: 0 0 14px; font-size: 13.5px; color: #475569;">
+        Hợp đồng: <strong style="color: #0067c5;">{{ hop_dong.ma_hd }}</strong> · Khách hàng: <strong>{{ hop_dong.ten_khach_hang }}</strong>
+      </p>
+
+      <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+        Chọn ngày dự kiến bàn giao xe cho khách hàng:
+      </label>
+      <input class="input" type="date" name="ngay_du_kien_giao" id="modal_ngay_du_kien_giao"
+             value="{{ hop_dong.ngay_du_kien_giao|date:'Y-m-d' }}"
+             style="width: 100%; padding: 9px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #cbd5e1; margin-bottom: 12px;" required>
+
+      <div style="margin-bottom: 18px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+        <span style="font-size: 12px; color: #64748b;">Gợi ý nhanh:</span>
+        <button type="button" class="btn btn--light" style="padding: 3px 8px; font-size: 12px;" onclick="setPresetDays(7);">+7 ngày</button>
+        <button type="button" class="btn btn--light" style="padding: 3px 8px; font-size: 12px;" onclick="setPresetDays(15);">+15 ngày</button>
+        <button type="button" class="btn btn--light" style="padding: 3px 8px; font-size: 12px;" onclick="setPresetDays(30);">+30 ngày</button>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #f1f5f9; padding-top: 14px;">
+        <button type="button" class="btn btn--light" onclick="closeDateModal();">Hủy</button>
+        <button type="submit" class="btn btn--primary" style="font-weight: 600;">
+          <i class="bi bi-check-circle"></i> Xác nhận lưu ngày giao
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openDateModal() {
+  const m = document.getElementById('dateModal');
+  if (m) m.style.display = 'flex';
+}
+function closeDateModal() {
+  const m = document.getElementById('dateModal');
+  if (m) m.style.display = 'none';
+}
+function setPresetDays(days) {
+  const target = new Date();
+  target.setDate(target.getDate() + days);
+  const yyyy = target.getFullYear();
+  const mm = String(target.getMonth() + 1).padStart(2, '0');
+  const dd = String(target.getDate()).padStart(2, '0');
+  const str = `${yyyy}-${mm}-${dd}`;
+  const modalInput = document.getElementById('modal_ngay_du_kien_giao');
+  if (modalInput) modalInput.value = str;
+  const inlineInput = document.getElementById('id_ngay_du_kien_giao');
+  if (inlineInput) inlineInput.value = str;
+}
+window.addEventListener('click', function(e) {
+  const m = document.getElementById('dateModal');
+  if (e.target === m) {
+    m.style.display = 'none';
+  }
+});
+</script>
 {% endblock %}
