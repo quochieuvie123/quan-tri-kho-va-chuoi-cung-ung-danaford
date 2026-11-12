@@ -247,12 +247,19 @@ def chi_tiet(request, ma_pdi):
     if bb is None:
         return redirect("incidents:index")
     hdn = bb.hoa_don_nhap
+    from warehouse.models import PhieuNhapKho
+    phieu_nhap = PhieuNhapKho.objects.filter(xe_id=bb.xe_id).first()
+    phieu_data = None
+    if phieu_nhap:
+        from warehouse.presentation import receipt_data
+        phieu_data = receipt_data(phieu_nhap, request.user)
     return render(request, "incidents/chi_tiet.html", {
         "page_title": f"Sự cố {bb.ma_pdi}", "bb": bb, "hdn": hdn, "xe": bb.xe,
         "ho_so": getattr(bb, "ho_so", None), "nhan_tt": nhan_trang_thai(bb.trang_thai_claim),
         "anh": bb.anh_su_co.all(), "lich_su": bb.lich_su.select_related("nguoi_thuc_hien"),
         "co_the_gui": bb.trang_thai_claim not in (DA_GUI_YEU_CAU, DA_XU_LY),
-        "co_the_cap_nhat": bb.trang_thai_claim == DA_GUI_YEU_CAU,
+        "co_the_cap_nhat": bb.trang_thai_claim != DA_XU_LY,
+        "phieu_nhap": phieu_data,
     })
 
 
@@ -342,11 +349,11 @@ def cap_nhat(request, ma_pdi):
     bb = _lay_bien_ban(request, ma_pdi)
     if bb is None:
         return redirect("incidents:index")
-    if bb.trang_thai_claim != DA_GUI_YEU_CAU:
-        messages.warning(request, "Chỉ cập nhật kết quả cho sự cố ở trạng thái “Đã gửi yêu cầu”.")
+    if bb.trang_thai_claim == DA_XU_LY:
+        messages.info(request, "Sự cố này đã được xử lý và đóng trước đó.")
         return redirect("incidents:chi_tiet", ma_pdi=ma_pdi)
     form = KetQuaForm(request.POST or None, request.FILES or None,
-                      initial={"ngay_xac_nhan": timezone.localdate()})
+                      initial={"ngay_xac_nhan": timezone.localdate(), "hinh_thuc_khac_phuc": "SUA"})
     if request.method == "POST" and form.is_valid():
         d = form.cleaned_data
         with transaction.atomic():
@@ -354,24 +361,30 @@ def cap_nhat(request, ma_pdi):
             hs.hinh_thuc_khac_phuc = d["hinh_thuc_khac_phuc"]
             hs.so_tien_boi_thuong = d["so_tien_boi_thuong"]
             hs.ngay_xac_nhan = d["ngay_xac_nhan"]
-            if d["bien_ban_thoa_thuan"]:
+            if d.get("bien_ban_thoa_thuan"):
                 hs.bien_ban_thoa_thuan = d["bien_ban_thoa_thuan"]
             hs.save()
             bb.trang_thai_claim = DA_XU_LY
             bb.save(update_fields=["trang_thai_claim"])
+            
+            # Cập nhật ngược về cho module quản lý nhập kho chính đơn hàng đó:
+            receipt = None
             try:
                 from warehouse.nhap_services import complete_after_incident_closed
-                complete_after_incident_closed(bb)
-            except Exception:
-                pass
+                receipt = complete_after_incident_closed(bb)
+            except Exception as exc:
+                print("Loi cap nhat nhap kho:", exc)
+            
             mo_khoa_xe_khi_dong_su_co(bb.xe)
-            ten = dict(HoSoSuCo.HINH_THUC)[hs.hinh_thuc_khac_phuc]
+            ten = dict(HoSoSuCo.HINH_THUC).get(hs.hinh_thuc_khac_phuc, hs.hinh_thuc_khac_phuc)
             tien = f" - {hs.so_tien_boi_thuong:,.0f} đ" if hs.so_tien_boi_thuong is not None else ""
-            _ghi_lich_su(request, bb, "Cập nhật kết quả xử lý, đóng sự cố", f"{ten}{tien}")
-        messages.success(request, "Đã đóng sự cố. Xe đủ điều kiện nhập kho.")
+            _ghi_lich_su(request, bb, "Xác nhận xử lý xong sự cố, nghiệm thu xe", f"{ten}{tien}")
+        
+        extra_msg = f" Đơn hàng nhập kho {receipt.ma_phieu} đã được tự động cập nhật sang trạng thái 'Đã xử lý'!" if receipt else ""
+        messages.success(request, f"Đã xác nhận xử lý xong sự cố {bb.ma_pdi}. Xe đã nghiệm thu đủ điều kiện nhập kho.{extra_msg}")
         return redirect("incidents:chi_tiet", ma_pdi=ma_pdi)
     return render(request, "incidents/cap_nhat.html", {
-        "page_title": "Cập nhật kết quả xử lý", "bb": bb, "form": form})
+        "page_title": "Xác nhận kết quả xử lý sự cố", "bb": bb, "form": form})
 
 
 # ---------- Tải tệp (chỉ người đã đăng nhập) ----------

@@ -104,7 +104,7 @@
                 {% if p.pending_order %}
                   <span class="badge badge--CHO_DUYET" title="Chờ xác nhận đơn, hóa đơn nhập và kho tiếp nhận">Chờ lập phiếu</span>
                 {% else %}
-                  <span class="badge badge--{{ p.trang_thai }}">{{ p.trang_thai_hien_thi }}</span>
+                  <span class="badge {{ p.badge_class|default:'badge--NHAP' }}">{{ p.trang_thai_hien_thi }}</span>
                 {% endif %}
               </td>
             </tr>

@@ -6,9 +6,31 @@
 <div class="actions">
   <a class="btn" href="{% url 'incidents:index' %}"><i class="bi bi-arrow-left"></i> Danh sách</a>
   <span class="spacer"></span>
+  {% if phieu_nhap %}
+    <a class="btn btn--light" href="{% url 'warehouse:receipt_detail' phieu_nhap.id %}">
+      <i class="bi bi-box-seam"></i> Xem phiếu nhập {{ phieu_nhap.ma_phieu }}
+    </a>
+  {% endif %}
   {% if co_the_gui %}<a class="btn btn--primary" href="{% url 'incidents:gui_yeu_cau' bb.ma_pdi %}"><i class="bi bi-send"></i> Gửi yêu cầu xử lý cho ĐVVC</a>{% endif %}
-  {% if co_the_cap_nhat %}<a class="btn btn--primary" href="{% url 'incidents:cap_nhat' bb.ma_pdi %}"><i class="bi bi-check2-circle"></i> Cập nhật kết quả bồi thường / xử lý</a>{% endif %}
+  {% if co_the_cap_nhat %}
+    <a class="btn btn--success" style="background-color: #16a34a; border-color: #16a34a; color: #fff; font-weight: 700;" href="{% url 'incidents:cap_nhat' bb.ma_pdi %}">
+      <i class="bi bi-check2-circle"></i> Xác nhận đã xử lý xong sự cố (Đóng sự cố)
+    </a>
+  {% endif %}
 </div>
+
+{% if bb.trang_thai_claim == 'Đã xử lý' %}
+<div class="card" style="background: #f0fdf4; border: 1px solid #bbf7d0; margin-bottom: 20px; padding: 14px 18px; border-left: 4px solid #16a34a;">
+  <div style="font-weight: 700; color: #15803d; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+    <i class="bi bi-check-circle-fill" style="font-size: 18px;"></i>
+    Sự cố vận chuyển này đã được xác nhận xử lý xong và đóng hồ sơ!
+  </div>
+  <p style="margin: 4px 0 0; color: #166534; font-size: 13px;">
+    Xe đã được nghiệm thu kỹ thuật, mở khóa nhập kho và tự động cập nhật sang module Quản lý nhập kho
+    {% if phieu_nhap %}(Phiếu nhập: <strong>{{ phieu_nhap.ma_phieu }}</strong> - <span class="badge badge--DA_DUYET">Đã xử lý</span>){% endif %}.
+  </p>
+</div>
+{% endif %}
 
 <div class="grid2">
   <div class="card">
@@ -34,6 +56,13 @@
       <dt>Tên tài xế</dt><dd>{{ hdn.ten_tai_xe|default:"—" }}</dd>
       <dt>Biển số xe chở</dt><dd>{{ hdn.bien_so_xe|default:"—" }}</dd>
       <dt>Thời gian bàn giao</dt><dd>{{ hdn.ngay_nhap|date:"d/m/Y H:i" }}</dd>
+      {% if phieu_nhap %}
+        <dt>Phiếu nhập kho</dt>
+        <dd>
+          <a href="{% url 'warehouse:receipt_detail' phieu_nhap.id %}" style="font-weight: 700; color: #0067c5;">{{ phieu_nhap.ma_phieu }}</a>
+          <span class="badge {{ phieu_nhap.badge_class|default:'badge--NHAP' }}" style="margin-left: 6px;">{{ phieu_nhap.trang_thai_hien_thi }}</span>
+        </dd>
+      {% endif %}
     </dl>
   </div>
 </div>
