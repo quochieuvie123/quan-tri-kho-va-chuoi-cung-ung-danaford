@@ -1,0 +1,122 @@
+{% extends "warehouse/inventory_base.html" %}
+
+{% block inventory_content %}
+
+<h1 class="page-title">Lịch sử kiểm kê</h1>
+
+<form method="get" class="card">
+  <h3>Thông tin</h3>
+
+  <div class="inventory-grid">
+
+    <label class="inventory-field">
+      Kho
+
+      <select name="kho" class="inp">
+
+        {% if ma_kho == "ALL" %}
+          <option value="ALL" selected>
+            Cả ba kho (ĐN - BĐ - GL)
+          </option>
+        {% else %}
+          <option value="ALL">
+            Cả ba kho (ĐN - BĐ - GL)
+          </option>
+        {% endif %}
+
+        {% for k in ds_kho %}
+          {% if k.ma_kho == ma_kho %}
+            <option value="{{ k.ma_kho }}" selected>
+              {{ k.chi_nhanh.ten_cn }}
+            </option>
+          {% else %}
+            <option value="{{ k.ma_kho }}">
+              {{ k.chi_nhanh.ten_cn }}
+            </option>
+          {% endif %}
+        {% endfor %}
+
+      </select>
+    </label>
+
+    <label class="inventory-field">
+      Từ ngày
+
+      <input
+        type="date"
+        name="tu_ngay"
+        class="inp"
+        value="{{ tu_ngay }}">
+    </label>
+
+    <label class="inventory-field">
+      Đến ngày
+
+      <input
+        type="date"
+        name="den_ngay"
+        class="inp"
+        value="{{ den_ngay }}">
+    </label>
+
+  </div>
+
+  <div class="actions">
+    <button class="btn btn--primary btn--compact" type="submit">
+      Lọc
+    </button>
+
+    <a
+      class="btn btn--compact"
+      href="{% url 'warehouse:kk_lich_su' %}?kho={{ ma_kho|urlencode }}">
+      Xóa bộ lọc
+    </a>
+  </div>
+
+</form>
+
+<section class="card">
+  <h3>Danh sách / Thông tin chi tiết</h3>
+
+  <div class="scroll">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Mã phiếu</th>
+          <th>Kho</th>
+          <th>Kỳ</th>
+          <th>Ngày kiểm kê</th>
+          <th>Người duyệt</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for p in trang %}
+          <tr>
+            <td>
+              <a href="{% url 'warehouse:kk_chi_tiet' p.ma_pkk %}?kho={{ p.kho_id|urlencode }}">
+                {{ p.ma_pkk }}
+              </a>
+            </td>
+
+            <td>{{ p.kho.chi_nhanh.ten_cn }}</td>
+            <td>{{ p.ky_kiem_ke }}</td>
+            <td>{{ p.ngay_kiem_ke|date:"d/m/Y" }}</td>
+            <td>{{ p.nguoi_duyet.ten_nv|default:"—" }}</td>
+          </tr>
+
+        {% empty %}
+          <tr>
+            <td colspan="5" class="none">
+              Không có lịch sử kiểm kê phù hợp.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% include "warehouse/inventory_pager.html" %}
+</section>
+
+{% endblock %}

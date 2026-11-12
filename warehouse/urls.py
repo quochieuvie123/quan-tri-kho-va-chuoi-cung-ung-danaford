@@ -47,6 +47,7 @@ urlpatterns = [
     path("xuat/<str:ma_pxk>/in/", giao_dien.xuat_in, name="xuat_in"),
     path("ton-kho/xe/<str:vin>/", giao_dien.ton_chi_tiet, name="ton_chi_tiet"),
     path("kiem-ke/", giao_dien.kk_ds, name="kk_ds"),
+    path("kiem-ke/lich-su-html/", giao_dien.kk_lich_su, name="kk_lich_su",),
     path("kiem-ke/tao/", giao_dien.kk_tao, name="kk_tao"),
     path("kiem-ke/phieu/<str:ma_pkk>/", giao_dien.kk_chi_tiet, name="kk_chi_tiet"),
     path("kiem-ke/phieu/<str:ma_pkk>/kiem-dem/", giao_dien.kk_kiem_dem, name="kk_kiem_dem"),

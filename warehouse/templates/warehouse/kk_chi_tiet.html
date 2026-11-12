@@ -1,61 +1,498 @@
-{% extends "base.html" %}
-{% load static %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
-{% block content %}
-{% include "warehouse/_messages.html" %}
-<div class="actions">
-  <a class="btn" href="{% url 'warehouse:kk_ds' %}?kho={{ phieu.kho_id }}"><i class="bi bi-arrow-left"></i> Danh sách kiểm kê</a>
-  <span class="badge {% if phieu.trang_thai == 'HOAN_TAT' %}badge--ok{% elif phieu.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">{{ phieu.get_trang_thai_display }}</span>
-</div>
-<div class="card">
-  <dl class="kv">
-    <dt>Mã phiếu</dt><dd>{{ phieu.ma_pkk }} · kho {{ phieu.kho_id }}</dd>
-    <dt>Kỳ / Phạm vi</dt><dd>{{ phieu.ky_kiem_ke }} · {{ phieu.pham_vi }}</dd>
-    <dt>Người lập</dt><dd>{{ phieu.nhan_vien.ten_nv }}</dd>
-    <dt>Người duyệt</dt><dd>{{ phieu.nguoi_duyet.ten_nv|default:"—" }}</dd>
-  </dl>
-</div>
+{% extends "warehouse/inventory_base.html" %}
 
-{% if dang_kiem %}
-<form method="post" action="{% url 'warehouse:kk_kiem_dem' phieu.ma_pkk %}" class="card form">
-  {% csrf_token %}
-  <h3>Ghi nhận kiểm đếm thực tế</h3>
-  <p class="muted">Mỗi dòng một VIN xe thực sự thấy trong bãi. Danh sách đã điền sẵn theo hệ thống, hãy xóa các VIN không thấy.</p>
-  <textarea class="inp" name="danh_sach_vin" rows="10">{{ vin_he_thong }}</textarea>
-  <div class="actions"><button class="btn btn--primary" type="submit">Ghi nhận kiểm đếm</button></div>
-</form>
+{% block inventory_content %}
+
+{% if hoan_tat %}
+
+  <section class="card count-result">
+    <h3>Kiểm kê hoàn tất</h3>
+
+    <p class="modal-role">{{ user_display.role }}</p>
+    <p class="count-status">Hoàn tất</p>
+
+    <div class="notice-banner success-banner">
+      Đã điều chỉnh tồn kho theo kết quả kiểm kê.
+    </div>
+
+    <div class="inventory-grid inventory-grid--two">
+
+      {% include "warehouse/inventory_field.html" with label="Phiếu" value=phieu.ma_pkk %}
+
+      {% include "warehouse/inventory_field.html" with label="Người duyệt" value=phieu.nguoi_duyet.ten_nv %}
+
+      {% include "warehouse/inventory_field.html" with label="Thời gian" value=phieu.ngay_duyet|date:"d/m/Y H:i" %}
+
+    </div>
+
+    <div class="scroll">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>VIN</th>
+            <th>Điều chỉnh</th>
+            <th>Trước</th>
+            <th>Sau</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for d in dong %}
+            {% if d.la_chenh_lech %}
+              <tr>
+                <td>{{ d.xe.vin }}</td>
+                <td>Số lượng / Vị trí</td>
+
+                <td>
+                  {{ d.ton_he_thong }}
+                  · {{ d.vi_tri_he_thong }}
+                </td>
+
+                <td>
+                  {{ d.ton_thuc_te }}
+                  · {{ d.vi_tri_thuc_te|default:"—" }}
+                </td>
+              </tr>
+            {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="actions">
+      <a
+        class="btn btn--primary"
+        href="{% url 'warehouse:kk_lich_su' %}?kho={{ phieu.kho_id|urlencode }}">
+        Lịch sử kiểm kê
+      </a>
+    </div>
+  </section>
+
+{% else %}
+
+  <h1 class="page-title">
+    {% if cho_xu_ly %}
+      Kết quả đối chiếu kiểm kê
+    {% else %}
+      Chi tiết phiếu kiểm kê
+    {% endif %}
+  </h1>
+
+  <div class="actions">
+
+    {% if dang_kiem %}
+
+      <button
+        class="btn btn--primary"
+        type="button"
+        data-record-vin>
+        Ghi nhận VIN
+      </button>
+
+      <button
+        class="btn"
+        type="submit"
+        form="inventory-count-form">
+        Hoàn tất kiểm đếm
+      </button>
+
+      <button
+        class="btn btn--primary btn--compact"
+        type="button"
+        title="Hoàn tất kiểm đếm trước khi xem đối chiếu"
+        disabled>
+        Kết quả đối chiếu
+      </button>
+
+    {% elif cho_xu_ly %}
+
+      {% if so_chenh_lech %}
+        <button
+          class="btn btn--primary"
+          type="button"
+          data-inv-open="count-reason-dialog">
+          Ghi nhận nguyên nhân
+        </button>
+      {% endif %}
+
+      {% if so_chua_xu_ly %}
+        <button
+          class="btn"
+          type="button"
+          title="Cần lưu đủ nguyên nhân và phương án trước khi duyệt"
+          disabled>
+          Xác nhận xử lý
+        </button>
+      {% else %}
+        <button
+          class="btn"
+          type="button"
+          data-inv-open="approve-count-dialog">
+          Xác nhận xử lý
+        </button>
+      {% endif %}
+
+    {% endif %}
+
+  </div>
+
+  {% if cho_xu_ly %}
+    <div class="notice-banner">
+      Phân loại khớp, thiếu và sai vị trí.
+      Cần ghi nhận nguyên nhân và phương án cho các dòng
+      chênh lệch trước khi xác nhận xử lý.
+    </div>
+  {% endif %}
+
+  <section class="card">
+    <h3>Thông tin</h3>
+
+    <div class="inventory-grid">
+
+      {% if not cho_xu_ly %}
+        {% include "warehouse/inventory_field.html" with label="Mã phiếu" value=phieu.ma_pkk %}
+      {% endif %}
+
+      {% include "warehouse/inventory_field.html" with label="Kho" value=phieu.kho.chi_nhanh.ten_cn %}
+
+      {% include "warehouse/inventory_field.html" with label="Kỳ" value=phieu.ky_kiem_ke %}
+
+    </div>
+  </section>
+
+  {% if dang_kiem %}
+
+    <div class="notice-banner">
+      {{ phieu.get_trang_thai_display }}
+    </div>
+
+    <div
+      class="notice-banner"
+      id="inventory-count-progress"
+      role="status">
+      Tiến độ: 0/{{ dong|length }} xe.
+      VIN được lưu tạm trong tab;
+      bấm Hoàn tất kiểm đếm để gửi dữ liệu.
+    </div>
+
+    <form
+      class="card"
+      id="inventory-count-form"
+      method="post"
+      action="{% url 'warehouse:kk_kiem_dem' phieu.ma_pkk %}"
+      data-count-key="{{ phieu.ma_pkk }}-{{ user.pk }}">
+
+      {% csrf_token %}
+
+      <h3>Thông tin</h3>
+
+      <input
+        type="hidden"
+        name="kiem_dem_json"
+        id="inventory-count-payload">
+
+      <div class="inventory-grid">
+
+        <label class="inventory-field">
+          VIN*
+
+          <input
+            class="inp"
+            id="inventory-scan-vin"
+            placeholder="Nhập VIN để ghi nhận">
+        </label>
+
+        <label class="inventory-field">
+          Vị trí thực tế
+
+          <input
+            class="inp"
+            id="inventory-scan-position"
+            maxlength="50"
+            placeholder="VD: A04">
+        </label>
+
+        <label class="inventory-field">
+          Tình trạng thực tế
+
+          <input
+            class="inp"
+            id="inventory-scan-condition"
+            maxlength="100"
+            value="Bình thường">
+        </label>
+
+        <label class="inventory-field">
+          Ghi chú
+
+          <input
+            class="inp"
+            id="inventory-scan-note"
+            maxlength="500"
+            placeholder="Chọn / nhập thông tin">
+        </label>
+
+      </div>
+
+      <p
+        id="inventory-count-error"
+        class="error-text"
+        role="alert">
+      </p>
+
+    </form>
+
+  {% endif %}
+
+  <section class="card">
+    <h3>Danh sách / Thông tin chi tiết</h3>
+
+    <div class="scroll">
+      <table class="tbl" id="inventory-count-table">
+
+        <thead>
+          {% if dang_kiem %}
+            <tr>
+              <th>VIN</th>
+              <th>Dòng xe</th>
+              <th>Màu sắc</th>
+              <th>Vị trí hệ thống</th>
+              <th>Vị trí thực tế</th>
+              <th>Đã kiểm</th>
+            </tr>
+          {% else %}
+            <tr>
+              <th>VIN</th>
+              <th>Theo hệ thống</th>
+              <th>Thực tế</th>
+              <th>Phân loại</th>
+              <th>Nguyên nhân</th>
+              <th>Phương án</th>
+            </tr>
+          {% endif %}
+        </thead>
+
+        <tbody>
+          {% for d in dong %}
+            <tr
+              data-vin="{{ d.xe.vin }}"
+              data-system-position="{{ d.vi_tri_he_thong }}">
+
+              <td class="vin">{{ d.xe.vin }}</td>
+
+              {% if dang_kiem %}
+
+                <td>{{ d.xe.loai_xe }}</td>
+                <td>{{ d.xe.mau_sac|default:"—" }}</td>
+                <td>{{ d.vi_tri_he_thong }}</td>
+                <td data-count-position>Chưa kiểm</td>
+                <td data-count-checked>Chưa</td>
+
+              {% else %}
+
+                <td>
+                  {{ d.ton_he_thong }}
+                  · {{ d.vi_tri_he_thong }}
+                </td>
+
+                <td>
+                  {{ d.ton_thuc_te }}
+                  · {{ d.vi_tri_thuc_te|default:"—" }}
+                </td>
+
+                <td>{{ d.get_phan_loai_display }}</td>
+                <td>{{ d.nguyen_nhan|default:"—" }}</td>
+                <td>{{ d.phuong_an_xu_ly|default:"—" }}</td>
+
+              {% endif %}
+            </tr>
+
+          {% empty %}
+            <tr>
+              <td colspan="6" class="none">
+                Không có dòng kiểm kê.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+
+      </table>
+    </div>
+  </section>
+
+  {% if cho_xu_ly %}
+
+    {% if so_chenh_lech %}
+      <dialog
+        class="inventory-dialog"
+        id="count-reason-dialog"
+        aria-labelledby="reason-title">
+
+        <form
+          method="post"
+          action="{% url 'warehouse:kk_xu_ly' phieu.ma_pkk %}"
+          id="inventory-reason-form">
+
+          {% csrf_token %}
+
+          <h3 id="reason-title">
+            Ghi nhận nguyên nhân chênh lệch
+          </h3>
+
+          <p class="modal-role">{{ user_display.role }}</p>
+
+          <p>
+            {{ so_da_xu_ly }} dòng đã xử lý
+            · {{ so_chua_xu_ly }} dòng chưa đủ nguyên nhân/phương án.
+          </p>
+
+          <div class="inventory-grid inventory-grid--two">
+
+            <label class="inventory-field">
+              VIN
+
+              <select
+                class="inp"
+                name="vin"
+                id="inventory-reason-vin">
+
+                {% for d in dong %}
+                  {% if d.la_chenh_lech %}
+                    <option value="{{ d.xe.vin }}">
+                      {{ d.xe.vin }}
+                    </option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </label>
+
+            <label class="inventory-field">
+              Loại chênh lệch
+
+              <input
+                class="inp"
+                id="inventory-reason-type"
+                readonly>
+            </label>
+
+            <label class="inventory-field">
+              Nguyên nhân*
+
+              <input
+                class="inp"
+                id="inventory-reason-text"
+                required>
+            </label>
+
+            <label class="inventory-field">
+              Phương án xử lý*
+
+              <input
+                class="inp"
+                id="inventory-reason-plan"
+                required>
+            </label>
+
+          </div>
+
+          {% include "warehouse/inventory_employee.html" %}
+
+          <div class="actions">
+            <button class="btn btn--primary" type="submit">
+              Lưu nguyên nhân
+            </button>
+
+            <button class="btn" type="button" data-inv-close>
+              Hủy
+            </button>
+          </div>
+
+        </form>
+      </dialog>
+    {% endif %}
+
+    <dialog
+      class="inventory-dialog inventory-dialog--small"
+      id="approve-count-dialog"
+      aria-labelledby="approve-count-title">
+
+      <form
+        method="post"
+        action="{% url 'warehouse:kk_duyet' phieu.ma_pkk %}">
+
+        {% csrf_token %}
+
+        <h3 id="approve-count-title">Duyệt phiếu kiểm kê</h3>
+
+        <p class="modal-role">{{ user_display.role }}</p>
+
+        <p>
+          Điều chỉnh số lượng và vị trí theo kết quả đã xác nhận;
+          bỏ qua xe có nghiệp vụ chưa hoàn tất.
+        </p>
+
+        <dl class="confirm-info">
+          <dt>Phiếu</dt>
+          <dd>{{ phieu.ma_pkk }}</dd>
+
+          <dt>Dòng đã xử lý</dt>
+          <dd>{{ so_da_xu_ly }}</dd>
+
+          <dt>Dòng chưa đủ nguyên nhân/phương án</dt>
+          <dd>{{ so_chua_xu_ly }}</dd>
+        </dl>
+
+        <div class="scroll">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>VIN</th>
+                <th>Chênh lệch</th>
+                <th>Nguyên nhân</th>
+                <th>Điều chỉnh dự kiến</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {% for d in dong %}
+                {% if d.la_chenh_lech %}
+                  <tr>
+                    <td>{{ d.xe.vin }}</td>
+                    <td>{{ d.get_phan_loai_display }}</td>
+                    <td>{{ d.nguyen_nhan }}</td>
+
+                    <td>
+                      {{ d.ton_he_thong }}
+                      · {{ d.vi_tri_he_thong }}
+                      →
+                      {{ d.ton_thuc_te }}
+                      · {{ d.vi_tri_thuc_te|default:"—" }}
+                    </td>
+                  </tr>
+                {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% include "warehouse/inventory_employee.html" %}
+
+        <div class="confirm-actions">
+          <button class="btn btn--primary" type="submit">
+            Xác nhận duyệt
+          </button>
+
+          <button class="btn" type="button" data-inv-close>
+            Quay lại
+          </button>
+        </div>
+
+      </form>
+    </dialog>
+
+  {% endif %}
+
 {% endif %}
 
-<form method="post" action="{% url 'warehouse:kk_xu_ly' phieu.ma_pkk %}" class="card">
-  {% csrf_token %}
-  <h3>Chi tiết kiểm kê <small class="muted">({{ dong|length }} xe, {{ so_chenh_lech }} chênh lệch)</small></h3>
-  <div class="scroll">
-  <table class="tbl tbl--sm">
-    <thead><tr><th>VIN</th><th>Tên xe</th><th>Hệ thống</th><th>Thực tế</th><th>Vị trí HT → TT</th><th>Phân loại</th><th>Nguyên nhân</th><th>Phương án xử lý</th></tr></thead>
-    <tbody>
-    {% for d in dong %}
-      <tr>
-        <td>{{ d.xe.vin }}{% if cho_xu_ly and d.la_chenh_lech %}<input type="hidden" name="vin" value="{{ d.xe.vin }}">{% endif %}</td>
-        <td>{{ d.xe.ten_xe }}</td><td>{{ d.ton_he_thong }}</td><td>{{ d.ton_thuc_te }}</td>
-        <td>{{ d.vi_tri_he_thong }} → {{ d.vi_tri_thuc_te|default:"—" }}</td>
-        <td><span class="badge {% if d.phan_loai == 'KHOP' %}badge--ok{% elif d.la_chenh_lech %}badge--bad{% else %}badge--wait{% endif %}">{{ d.get_phan_loai_display }}</span></td>
-        {% if cho_xu_ly and d.la_chenh_lech %}
-          <td><input class="inp" name="nguyen_nhan_{{ d.xe.vin }}" value="{{ d.nguyen_nhan|default:'' }}"></td>
-          <td><input class="inp" name="phuong_an_{{ d.xe.vin }}" value="{{ d.phuong_an_xu_ly|default:'' }}"></td>
-        {% else %}
-          <td>{{ d.nguyen_nhan|default:"—" }}</td><td>{{ d.phuong_an_xu_ly|default:"—" }}</td>
-        {% endif %}
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  </div>
-  {% if cho_xu_ly %}
-  <div class="actions">
-    {% if so_chenh_lech %}<button class="btn" type="submit">Lưu nguyên nhân và phương án</button>{% endif %}
-    {% include "warehouse/_chon_nv.html" %}
-    <button class="btn btn--primary" type="submit" formaction="{% url 'warehouse:kk_duyet' phieu.ma_pkk %}" onclick="return confirm('Duyệt và điều chỉnh tồn kho theo thực tế?')"><i class="bi bi-check2-circle"></i> Duyệt phiếu kiểm kê</button>
-  </div>
-  {% endif %}
-</form>
+{{ count_reason_data|json_script:"inventory-reason-data" }}
+
 {% endblock %}

@@ -1,0 +1,21 @@
+{% if trang.paginator.num_pages > 1 %}
+  <nav class="pager" aria-label="Phân trang">
+
+    {% if trang.has_previous %}
+      <a href="?{{ query }}&page={{ trang.previous_page_number }}">
+        &laquo; Trước
+      </a>
+    {% endif %}
+
+    <span>
+      Trang {{ trang.number }} / {{ trang.paginator.num_pages }}
+    </span>
+
+    {% if trang.has_next %}
+      <a href="?{{ query }}&page={{ trang.next_page_number }}">
+        Sau &raquo;
+      </a>
+    {% endif %}
+
+  </nav>
+{% endif %}

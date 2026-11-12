@@ -1,67 +1,563 @@
 {% extends "base.html" %}
 {% load static %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">
+
+<style>
+  /* Bố cục riêng của trang chi tiết xuất kho */
+  .export-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+  }
+
+  .export-detail .page-title {
+    margin: 0;
+    color: #102A43;
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.45;
+  }
+
+  .export-detail .actions {
+    margin: 0;
+    gap: 12px;
+  }
+
+  .export-detail .btn {
+    width: 270px;
+    min-height: 45.5px;
+    justify-content: flex-start;
+  }
+
+  .export-detail .notice-banner {
+    margin: 0;
+    padding: 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+
+  .export-detail .card {
+    margin: 0;
+    padding: 24px;
+    border: 1px solid #DCE6F0;
+    border-radius: 14px;
+    box-shadow: none;
+  }
+
+  .export-detail h3 {
+    margin: 0 0 16px;
+    color: #102A43;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.45;
+  }
+
+  .export-detail .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .export-detail .detail-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .export-detail .detail-label {
+    color: #243B53;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.45;
+  }
+
+  .export-detail .detail-value {
+    min-height: 45.5px;
+    padding: 12px;
+    box-sizing: border-box;
+    background: #F4F7FB;
+    border: 1px solid #DCE6F0;
+    border-radius: 8px;
+    color: #243B53;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .export-detail .history-table {
+    table-layout: fixed;
+  }
+
+  .export-detail .history-table th,
+  .export-detail .history-table td {
+    width: 33.333%;
+    font-size: 12px;
+    font-weight: 400;
+    overflow-wrap: anywhere;
+  }
+
+  .export-detail .history-table th {
+    padding: 8px;
+    color: #627D98;
+    background: #F4F7FB;
+    font-weight: 500;
+  }
+
+  .export-detail .history-table td {
+    padding: 24px 8px 8px;
+  }
+
+  .export-detail .status-success {
+    background: #E8F7F0;
+    color: #12805C;
+  }
+
+  .export-detail .status-neutral {
+    background: #EAF0F6;
+    color: #627D98;
+  }
+
+  /* Hộp thoại xác nhận duyệt */
+  .export-confirm {
+    width: 560px;
+    max-width: calc(100vw - 32px);
+    max-height: 90vh;
+    margin: auto;
+    padding: 20px;
+    overflow: auto;
+    box-sizing: border-box;
+    background: #FFFFFF;
+    border: 1px solid #DCE6F0;
+    border-radius: 14px;
+    color: #243B53;
+    font-family: "Montserrat", sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .export-confirm::backdrop {
+    background: rgba(16, 42, 67, 0.3);
+  }
+
+  .export-confirm form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin: 0;
+  }
+
+  .export-confirm h3 {
+    margin: 0;
+    color: #102A43;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .export-confirm p {
+    margin: 0;
+  }
+
+  .export-confirm .confirm-role {
+    color: #627D98;
+    font-size: 12px;
+  }
+
+  .export-confirm .confirm-info {
+    display: grid;
+    grid-template-columns: 160px minmax(0, 1fr);
+    gap: 12px;
+    margin: 0;
+    padding: 16px;
+    background: #F4F7FB;
+    border-radius: 10px;
+  }
+
+  .export-confirm .confirm-info dt {
+    color: #627D98;
+    font-weight: 600;
+  }
+
+  .export-confirm .confirm-info dd {
+    margin: 0;
+    color: #102A43;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  .export-confirm .confirm-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .export-confirm .confirm-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .export-confirm .field {
+    margin: 0;
+  }
+
+  @media (max-width: 700px) {
+    .export-detail .detail-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .export-detail .btn {
+      width: 100%;
+    }
+
+    .export-confirm .confirm-info {
+      grid-template-columns: 1fr;
+    }
+
+    .export-confirm .confirm-actions {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-{% include "warehouse/_messages.html" %}
-<div class="actions">
-  <a class="btn" href="{% url 'warehouse:xuat' %}?kho={{ phieu.kho_id }}"><i class="bi bi-arrow-left"></i> Danh sách</a>
-  <span class="badge {% if phieu.trang_thai == 'DA_DUYET' %}badge--ok{% elif phieu.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">{{ phieu.get_trang_thai_display }}</span>
-  <span class="spacer"></span>
-  {% if co_the_in %}<a class="btn" href="{% url 'warehouse:xuat_in' phieu.ma_pxk %}" target="_blank"><i class="bi bi-printer"></i> In / xuất file</a>{% endif %}
-</div>
 
-<div class="grid2">
-  <div class="card">
-    <h3>Thông tin phiếu</h3>
-    <dl class="kv">
-      <dt>Mã phiếu</dt><dd>{{ phieu.ma_pxk }}</dd>
-      <dt>Kho xuất</dt><dd>{{ phieu.kho_id }}</dd>
-      <dt>Ngày lập</dt><dd>{{ phieu.ngay_lap|date:"d/m/Y H:i" }}</dd>
-      <dt>Người lập</dt><dd>{{ phieu.nguoi_lap.ten_nv|default:"—" }}</dd>
-      <dt>Người nhận xe</dt><dd>{{ phieu.nguoi_nhan|default:"—" }}</dd>
-      <dt>Ngày xuất</dt><dd>{{ phieu.ngay_xuat|date:"d/m/Y H:i"|default:"—" }}</dd>
-      <dt>Người duyệt</dt><dd>{{ phieu.nguoi_duyet.ten_nv|default:"—" }}</dd>
-      <dt>Ghi chú</dt><dd>{{ phieu.ghi_chu|default:"—" }}</dd>
-    </dl>
-  </div>
-  <div class="card">
-    <h3>Hợp đồng và xe</h3>
-    <dl class="kv">
-      <dt>Hợp đồng</dt><dd>{{ hd.ma_hd }}</dd>
-      <dt>Khách hàng</dt><dd>{{ hd.khach_hang.ten_kh }} · {{ hd.khach_hang.sdt_kh }}</dd>
-      <dt>VIN</dt><dd>{{ xe.vin }}</dd>
-      <dt>Tên xe</dt><dd>{{ xe.ten_xe }}</dd>
-      <dt>Màu / Số máy</dt><dd>{{ xe.mau_sac|default:"—" }} / {{ xe.so_may }}</dd>
-      <dt>Trạng thái xe</dt><dd>{{ xe.get_trang_thai_display }}</dd>
-    </dl>
-  </div>
-</div>
+<div class="export-detail">
 
-<div class="card">
-  <h3>Đối chiếu hợp đồng và hóa đơn bán</h3>
-  {% if doi_chieu.hop_le %}
-    <p><span class="badge badge--ok">Khớp</span> Hóa đơn {{ doi_chieu.ma_hdb }} · số HĐ {{ doi_chieu.so_hoa_don }} · {{ doi_chieu.so_tien|floatformat:"0g" }} đ</p>
-  {% else %}
-    <p><span class="badge badge--bad">Chưa khớp</span> {{ doi_chieu.canh_bao }}</p>
-  {% endif %}
-  {% if co_the_duyet or co_the_huy %}
-  <form method="post" class="actions">
-    {% csrf_token %}
-    {% include "warehouse/_chon_nv.html" %}
-    {% if co_the_duyet %}<button class="btn btn--primary" type="submit" formaction="{% url 'warehouse:xuat_duyet' phieu.ma_pxk %}"><i class="bi bi-check2-circle"></i> Duyệt xuất kho</button>{% endif %}
-    {% if co_the_huy %}
-      <input class="inp" name="ly_do" placeholder="Lý do hủy phiếu (nếu hủy)">
-      <button class="btn" type="submit" formaction="{% url 'warehouse:xuat_huy' phieu.ma_pxk %}" onclick="return confirm('Hủy phiếu xuất kho này?')"><i class="bi bi-x-circle"></i> Hủy phiếu</button>
+  <h1 class="page-title">Chi tiết phiếu xuất kho</h1>
+
+  <!-- Hàng nút thao tác -->
+  <div class="actions">
+
+    {% if co_the_duyet %}
+      <button
+        class="btn btn--primary"
+        type="button"
+        id="open-approve-dialog">
+        Duyệt phiếu
+      </button>
+
+    {% elif co_the_in %}
+      <a
+        class="btn btn--primary"
+        href="{% url 'warehouse:xuat_in' phieu.ma_pxk %}?kho={{ phieu.kho_id|urlencode }}"
+        target="_blank"
+        rel="noopener">
+        Xuất phiếu xuất kho
+      </a>
+
+    {% elif co_the_huy %}
+      <button
+        class="btn btn--primary"
+        type="button"
+        disabled
+        title="Thông tin đối chiếu chưa hợp lệ">
+        Duyệt phiếu
+      </button>
     {% endif %}
-  </form>
+
+    <a
+      class="btn"
+      href="{% url 'warehouse:xuat_chi_tiet' phieu.ma_pxk %}?kho={{ phieu.kho_id|urlencode }}">
+      Kiểm tra lại
+    </a>
+
+    <a
+      class="btn"
+      href="{% url 'warehouse:xuat' %}?kho={{ phieu.kho_id|urlencode }}">
+      Quay lại
+    </a>
+
+  </div>
+
+  <!-- Thanh trạng thái -->
+  {% if phieu.trang_thai == 'DA_DUYET' %}
+    <div class="notice-banner status-success">
+      {{ phieu.get_trang_thai_display }}
+    </div>
+
+  {% elif phieu.trang_thai == 'DA_HUY' %}
+    <div class="notice-banner status-neutral">
+      {{ phieu.get_trang_thai_display }}
+    </div>
+
+  {% else %}
+    <div class="notice-banner">
+      {{ phieu.get_trang_thai_display }}
+    </div>
   {% endif %}
+
+  <!-- Thanh hướng dẫn -->
+  <div class="notice-banner">
+    Tự đối chiếu khách hàng, xe/VIN, hiệu lực hợp đồng
+    và hóa đơn khi mở chi tiết.
+
+    {% if not doi_chieu.hop_le %}
+      <br>
+      {{ doi_chieu.canh_bao }}
+    {% endif %}
+  </div>
+
+  <!-- Khối thông tin: 3 cột, 4 hàng -->
+  <section class="card">
+    <h3>Thông tin</h3>
+
+    <div class="detail-grid">
+
+      <!-- Hàng 1 -->
+      <div class="detail-field">
+        <span class="detail-label">Mã phiếu</span>
+        <div class="detail-value">{{ phieu.ma_pxk }}</div>
+      </div>
+
+      <div class="detail-field">
+        <span class="detail-label">Ngày lập</span>
+        <div class="detail-value">
+          {{ phieu.ngay_lap|date:"d/m/Y" }}
+        </div>
+      </div>
+
+      <div class="detail-field">
+        <span class="detail-label">Người lập</span>
+        <div class="detail-value">
+          {{ phieu.nguoi_lap.ten_nv|default:"—" }}
+        </div>
+      </div>
+
+      <!-- Hàng 2 -->
+      <div class="detail-field">
+        <span class="detail-label">Kho xuất</span>
+        <div class="detail-value">
+          {{ phieu.kho.chi_nhanh.ten_cn|default:phieu.kho_id }}
+        </div>
+      </div>
+
+      <div class="detail-field">
+        <span class="detail-label">VIN</span>
+        <div class="detail-value">{{ xe.vin }}</div>
+      </div>
+
+      <div class="detail-field">
+        <span class="detail-label">Số máy</span>
+        <div class="detail-value">
+          {{ xe.so_may|default:"—" }}
+        </div>
+      </div>
+
+      <!-- Hàng 3 -->
+      <div class="detail-field">
+        <span class="detail-label">Dòng xe</span>
+        <div class="detail-value">
+          {{ xe.loai_xe|default:xe.ten_xe }}
+        </div>
+      </div>
+
+      <div class="detail-field">
+        <span class="detail-label">Phiên bản</span>
+        <div class="detail-value">
+          {{ xe.phien_ban|default:"—" }}
+        </div>
+      </div>
+
+      <div class="detail-field">
+        <span class="detail-label">Màu sắc</span>
+        <div class="detail-value">
+          {{ xe.mau_sac|default:"—" }}
+        </div>
+      </div>
+
+      <!-- Hàng 4 -->
+      <div class="detail-field">
+        <span class="detail-label">Hợp đồng</span>
+        <div class="detail-value">{{ hd.ma_hd }}</div>
+      </div>
+
+      <div class="detail-field">
+        <span class="detail-label">Hóa đơn</span>
+        <div class="detail-value">
+          {{ doi_chieu.so_hoa_don|default:doi_chieu.ma_hdb|default:"—" }}
+        </div>
+      </div>
+
+      <div class="detail-field">
+        <span class="detail-label">Kết quả kiểm tra</span>
+        <div class="detail-value">
+          {% if doi_chieu.hop_le %}
+            Hợp lệ
+          {% else %}
+            Chưa hợp lệ
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Bảng lịch sử -->
+  <section class="card">
+    <h3>Danh sách / Thông tin chi tiết</h3>
+
+    <div class="scroll">
+      <table class="tbl history-table">
+        <thead>
+          <tr>
+            <th scope="col">Trạng thái</th>
+            <th scope="col">Người thực hiện</th>
+            <th scope="col">Thời điểm</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for l in lich_su %}
+            <tr>
+              <td>
+                {% if l.hanh_dong == 'TAO_PHIEU_CHO_DUYET' %}
+                  Chờ duyệt
+                {% elif l.hanh_dong == 'DUYET_XUAT_KHO' %}
+                  Đã duyệt
+                {% elif l.hanh_dong == 'HUY_PHIEU_XUAT' %}
+                  Đã hủy
+                {% else %}
+                  {{ l.hanh_dong }}
+                {% endif %}
+              </td>
+
+              <td>
+                {{ l.nguoi_thuc_hien.ten_nv|default:"—" }}
+              </td>
+
+              <td>
+                {{ l.thoi_gian|date:"d/m/Y H:i" }}
+              </td>
+            </tr>
+
+          {% empty %}
+            <tr>
+              <td colspan="3" class="none">
+                Chưa có lịch sử xử lý phiếu xuất kho.
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
 </div>
 
-<div class="card">
-  <h3>Lịch sử</h3>
-  <ul class="timeline">
-    {% for l in lich_su %}<li><strong>{{ l.hanh_dong }}</strong> <small class="muted">{{ l.thoi_gian|date:"d/m/Y H:i" }} · {{ l.nguoi_thuc_hien.ten_nv }}</small>{% if l.ghi_chu %}<div>{{ l.ghi_chu }}</div>{% endif %}</li>
-    {% empty %}<li class="muted">Chưa có lịch sử.</li>{% endfor %}
-  </ul>
-</div>
+<!-- Hộp thoại xác nhận duyệt -->
+{% if co_the_duyet %}
+  <dialog
+    class="export-confirm"
+    id="approve-export-dialog"
+    aria-labelledby="approve-export-title">
+
+    <form
+      method="post"
+      action="{% url 'warehouse:xuat_duyet' phieu.ma_pxk %}">
+
+      {% csrf_token %}
+
+      <input type="hidden" name="kho" value="{{ phieu.kho_id }}">
+
+      <h3 id="approve-export-title">
+        Xác nhận duyệt phiếu xuất kho
+      </h3>
+
+      <p class="confirm-role">
+        {{ user_display.role|default:"Nhân viên" }}
+      </p>
+
+      <p>
+        Kiểm tra lại dữ liệu trước khi duyệt.
+        Nếu cập nhật tồn thất bại, hệ thống hoàn tác
+        và giữ phiếu ở trạng thái Chờ duyệt.
+      </p>
+
+      <dl class="confirm-info">
+        <dt>Phiếu</dt>
+        <dd>{{ phieu.ma_pxk }}</dd>
+
+        <dt>Hợp đồng</dt>
+        <dd>{{ hd.ma_hd }} · Đã đối chiếu hợp lệ</dd>
+
+        <dt>Xe</dt>
+        <dd>
+          {{ xe.get_trang_thai_display }}
+          · {{ phieu.kho.chi_nhanh.ten_cn }}
+        </dd>
+      </dl>
+
+      {% if can_chon_nv %}
+        <div class="field">
+          <label for="approve-employee">
+            Nhân viên thực hiện*
+          </label>
+
+          <select
+            class="inp"
+            name="ma_nv"
+            id="approve-employee"
+            required>
+
+            <option value="">Chọn nhân viên</option>
+
+            {% for n in ds_nv %}
+              <option value="{{ n.ma_nv }}">
+                {{ n.ma_nv }} - {{ n.ten_nv }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
+
+      <div class="confirm-actions">
+        <button class="btn btn--primary" type="submit">
+          Xác nhận duyệt
+        </button>
+
+        <button
+          class="btn"
+          type="button"
+          id="close-approve-dialog">
+          Hủy
+        </button>
+      </div>
+
+    </form>
+  </dialog>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const approveDialog = document.getElementById(
+    "approve-export-dialog"
+  );
+
+  const openApproveButton = document.getElementById(
+    "open-approve-dialog"
+  );
+
+  const closeApproveButton = document.getElementById(
+    "close-approve-dialog"
+  );
+
+  if (approveDialog && openApproveButton && closeApproveButton) {
+    openApproveButton.addEventListener("click", function () {
+      approveDialog.showModal();
+    });
+
+    closeApproveButton.addEventListener("click", function () {
+      approveDialog.close();
+    });
+  }
+</script>
 {% endblock %}

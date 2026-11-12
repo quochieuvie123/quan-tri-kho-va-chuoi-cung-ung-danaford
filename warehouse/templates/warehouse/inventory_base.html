@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">
+<link rel="stylesheet" href="{% static 'warehouse/inventory-ui.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="inventory-page">
+  {% block inventory_content %}{% endblock %}
+</div>
+
+{{ inventory_warehouses|json_script:"inventory-warehouses" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'warehouse/inventory-ui.js' %}" defer></script>
+{% endblock %}

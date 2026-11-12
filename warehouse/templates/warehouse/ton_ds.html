@@ -1,79 +1,107 @@
-{% extends "base.html" %}
-{% load static %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
+{% extends "warehouse/inventory_base.html" %}
 
-{% block content %}
+{% block inventory_content %}
+
 <h1 class="page-title">Danh sách xe tồn kho</h1>
 
-<!-- Nút Kiểm kê tồn kho: rộng 180px, cao 44px, viền xám, chữ xanh, không icon -->
-<div style="margin-bottom: 20px;">
-  <a class="btn-figma-secondary" href="{% url 'warehouse:kk_ds' %}?kho={{ ma_kho }}">
+<div class="actions">
+  <a
+    class="btn"
+    href="{% url 'warehouse:kk_ds' %}?kho={{ ma_kho|urlencode }}">
     Kiểm kê tồn kho
   </a>
 </div>
 
-<!-- Banner nhắc nhở màu vàng đúng chuẩn Figma -->
 <div class="notice-banner">
   Tổng số lượng theo kết quả hiện tại; mặc định kho Đà Nẵng.
 </div>
 
-<!-- Khối 1: Bộ lọc thông tin tra cứu -->
-<form method="get" class="card">
+<form method="get" id="inventory-filter" class="card">
   <h3>Thông tin</h3>
+
   <input type="hidden" name="kho" value="{{ ma_kho }}">
 
-  <!-- Hàng 1: Dòng xe, Phiên bản, Màu sắc (3 cột) -->
-  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 20px; margin-bottom: 16px;">
-    <div>
-      <span class="field-label">Dòng xe</span>
-      <input class="inp" name="loai_xe" value="{{ bo_loc.loai_xe }}" placeholder="Chọn / nhập thông tin">
-    </div>
-    <div>
-      <span class="field-label">Phiên bản</span>
-      <input class="inp" name="phien_ban" value="{{ request.GET.phien_ban }}" placeholder="Chọn / nhập thông tin">
-    </div>
-    <div>
-      <span class="field-label">Màu sắc</span>
-      <input class="inp" name="mau_sac" value="{{ bo_loc.mau_sac }}" placeholder="Chọn / nhập thông tin">
-    </div>
-  </div>
+  <div class="inventory-grid">
 
-  <!-- Hàng 2: VIN, Trạng thái (2 cột) -->
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; margin-bottom: 20px;">
-    <div>
-      <span class="field-label">VIN</span>
-      <input class="inp" name="vin" value="{{ bo_loc.vin }}" placeholder="Chọn / nhập thông tin">
-    </div>
-    <div>
-      <span class="field-label">Trạng thái</span>
-      <select name="trang_thai" class="inp">
+    <label class="inventory-field">
+      Dòng xe
+      <input
+        class="inp"
+        name="loai_xe"
+        value="{{ bo_loc.loai_xe }}"
+        placeholder="Chọn / nhập thông tin">
+    </label>
+
+    <label class="inventory-field">
+      Phiên bản
+      <input
+        class="inp"
+        name="phien_ban"
+        value="{{ bo_loc.phien_ban }}"
+        placeholder="Chọn / nhập thông tin">
+    </label>
+
+    <label class="inventory-field">
+      Màu sắc
+      <input
+        class="inp"
+        name="mau_sac"
+        value="{{ bo_loc.mau_sac }}"
+        placeholder="Chọn / nhập thông tin">
+    </label>
+
+    <label class="inventory-field">
+      VIN
+      <input
+        class="inp"
+        name="vin"
+        value="{{ bo_loc.vin }}"
+        placeholder="Chọn / nhập thông tin">
+    </label>
+
+    <label class="inventory-field">
+      Trạng thái
+
+      <select class="inp" name="trang_thai">
         <option value="">Chọn / nhập thông tin</option>
+
         {% for v, t in ds_trang_thai %}
-          <option value="{{ v }}" {% if v == bo_loc.trang_thai %}selected{% endif %}>{{ t }}</option>
+          {% if v == bo_loc.trang_thai %}
+            <option value="{{ v }}" selected>{{ t }}</option>
+          {% else %}
+            <option value="{{ v }}">{{ t }}</option>
+          {% endif %}
         {% endfor %}
       </select>
-    </div>
-  </div>
+    </label>
 
-  <!-- Nút Tra cứu: màu xanh Ford, rộng 180px, cao 44px, không icon -->
-  <div style="display: flex; gap: 12px; align-items: center;">
-    <button class="btn-figma-primary" type="submit">
-      Tra cứu
-    </button>
-    {% if co_loc %}
-      <a class="btn-figma-secondary" href="{% url 'warehouse:ton_kho' %}">
-        Xóa bộ lọc
-      </a>
-    {% endif %}
   </div>
 </form>
 
-<!-- Khối 2: Bảng danh sách xe tồn kho -->
-<div class="card">
+<div class="actions">
+
+  <button
+    class="btn btn--primary"
+    type="submit"
+    form="inventory-filter">
+    Tra cứu
+  </button>
+
+  {% if co_loc %}
+    <a
+      class="btn"
+      href="{% url 'warehouse:ton_kho' %}?kho={{ ma_kho|urlencode }}">
+      Xóa bộ lọc
+    </a>
+  {% endif %}
+
+</div>
+
+<section class="card">
   <h3>Danh sách / Thông tin chi tiết</h3>
 
-  <div style="overflow-x: auto;">
-    <table class="tbl">
+  <div class="scroll table-well">
+    <table class="tbl stock-table">
       <thead>
         <tr>
           <th>Dòng xe</th>
@@ -81,49 +109,48 @@
           <th>Màu sắc</th>
           <th>VIN</th>
           <th>Trạng thái</th>
-          <th style="text-align: center;">Số lượng</th>
+          <th class="number">Số lượng</th>
         </tr>
       </thead>
+
       <tbody>
-      {% for x in trang %}
-        <tr>
-          <td>{{ x.loai_xe|default:x.ten_xe }}</td>
-          <td>{{ x.phien_ban|default:"Titanium" }}</td>
-          <td>{{ x.mau_sac|default:"Trắng" }}</td>
-          <td>
-            <a href="{% url 'warehouse:ton_chi_tiet' x.vin %}?kho={{ ma_kho }}">
-              {{ x.vin }}
-            </a>
-          </td>
-          <!-- Trạng thái chữ thuần túy, không có nhãn viên thuốc -->
-          <td>{{ x.trang_thai_display }}</td>
-          <td style="text-align: center;">{{ x.so_luong_ton|default:1 }}</td>
-        </tr>
-      {% empty %}
-        <tr>
-          <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 30px;">
-            {% if co_loc %}Không tìm thấy xe phù hợp với bộ lọc.{% else %}Kho này hiện chưa có xe tồn.{% endif %}
-          </td>
-        </tr>
-      {% endfor %}
+        {% for x in trang %}
+          <tr>
+            <td>{{ x.loai_xe|default:x.ten_xe }}</td>
+            <td>{{ x.phien_ban|default:"—" }}</td>
+            <td>{{ x.mau_sac|default:"—" }}</td>
+
+            <td class="vin">
+              <a href="{% url 'warehouse:ton_chi_tiet' x.vin %}?kho={{ ma_kho|urlencode }}">
+                {{ x.vin }}
+              </a>
+            </td>
+
+            <td>{{ x.trang_thai_display }}</td>
+            <td class="number">{{ x.so_luong_ton }}</td>
+          </tr>
+
+        {% empty %}
+          <tr>
+            <td colspan="6" class="none">
+              {% if co_loc %}
+                Không tìm thấy xe phù hợp với bộ lọc.
+              {% else %}
+                Kho này hiện chưa có xe tồn.
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
       </tbody>
     </table>
   </div>
 
-  <div style="margin-top: 16px; font-size: 13px; color: var(--text-secondary);">
-    Tổng số lượng: {{ tong_xe|default:0 }} xe · Hiển thị {{ tong|default:0 }} bản ghi
-  </div>
+  <p class="table-note">
+    Tổng số lượng: {{ tong_xe }} xe
+    · Hiển thị {{ trang|length }} / {{ tong }} bản ghi
+  </p>
 
-  {% if trang.paginator.num_pages > 1 %}
-  <div style="margin-top: 20px; display: flex; justify-content: center; gap: 12px; align-items: center;">
-    {% if trang.has_previous %}
-      <a class="btn-figma-secondary" style="width: 100px; height: 36px;" href="?{{ query }}&page={{ trang.previous_page_number }}">&laquo; Trước</a>
-    {% endif %}
-    <span style="font-size: 13px; color: var(--text-secondary);">Trang {{ trang.number }} / {{ trang.paginator.num_pages }}</span>
-    {% if trang.has_next %}
-      <a class="btn-figma-secondary" style="width: 100px; height: 36px;" href="?{{ query }}&page={{ trang.next_page_number }}">Sau &raquo;</a>
-    {% endif %}
-  </div>
-  {% endif %}
-</div>
+  {% include "warehouse/inventory_pager.html" %}
+</section>
+
 {% endblock %}

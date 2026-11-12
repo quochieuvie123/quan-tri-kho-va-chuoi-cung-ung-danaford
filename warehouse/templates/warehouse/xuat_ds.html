@@ -1,53 +1,213 @@
 {% extends "base.html" %}
 {% load static %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">
+{% endblock %}
+
 {% block content %}
-{% include "warehouse/_messages.html" %}
+
+<h1 class="page-title">Danh sách phiếu xuất kho</h1>
+
 <form method="get" class="card">
   <div class="filter__grid">
-    <label>Kho
-      <select name="kho" class="inp">{% for k in ds_kho %}<option value="{{ k.ma_kho }}" {% if k.ma_kho == ma_kho %}selected{% endif %}>{{ k.ma_kho }} - {{ k.chi_nhanh.ten_cn }}</option>{% endfor %}</select></label>
-    <label>Trạng thái
-      <select name="trang_thai" class="inp"><option value="">Tất cả</option>{% for v, t in ds_trang_thai %}<option value="{{ v }}" {% if v == trang_thai %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></label>
-    <label class="filter__wide2">Từ khóa
-      <input class="inp" name="q" value="{{ q }}" placeholder="Mã phiếu, mã hợp đồng, VIN, khách hàng"></label>
+
+    <label for="filter-kho">
+      Kho
+      <select name="kho" id="filter-kho" class="inp">
+        {% if ma_kho == 'ALL' %}
+          <option value="ALL" selected>Cả ba kho (ĐN - BĐ - GL)</option>
+        {% else %}
+          <option value="ALL">Cả ba kho (ĐN - BĐ - GL)</option>
+        {% endif %}
+
+        {% for k in ds_kho %}
+          {% if k.ma_kho == ma_kho %}
+            <option value="{{ k.ma_kho }}" selected>
+              {{ k.ma_kho }} - {{ k.chi_nhanh.ten_cn }}
+            </option>
+          {% else %}
+            <option value="{{ k.ma_kho }}">
+              {{ k.ma_kho }} - {{ k.chi_nhanh.ten_cn }}
+            </option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </label>
+
+    <label for="filter-trang-thai">
+      Trạng thái
+      <select name="trang_thai" id="filter-trang-thai" class="inp">
+        <option value="">Tất cả</option>
+
+        {% for v, t in ds_trang_thai %}
+          {% if v == trang_thai %}
+            <option value="{{ v }}" selected>{{ t }}</option>
+          {% else %}
+            <option value="{{ v }}">{{ t }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+    </label>
+
+    <label for="filter-tu-khoa" class="filter__wide">
+      Từ khóa
+      <input
+        type="search"
+        name="q"
+        id="filter-tu-khoa"
+        class="inp"
+        value="{{ q }}"
+        placeholder="Mã phiếu, mã hợp đồng, VIN, khách hàng"
+      >
+    </label>
+
   </div>
+
   <div class="actions">
-    <button class="btn btn--primary" type="submit"><i class="bi bi-search"></i> Tìm kiếm</button>
-    <a class="btn" href="{% url 'warehouse:xuat' %}">Xóa bộ lọc</a>
+    <button class="btn btn--primary" type="submit">
+      <i class="bi bi-search" aria-hidden="true"></i>
+      Tìm kiếm
+    </button>
+
+    <a class="btn" href="{% url 'warehouse:xuat' %}?kho={{ ma_kho|urlencode }}">
+      Xóa bộ lọc
+    </a>
+
     <span class="spacer"></span>
-    <a class="btn btn--primary" href="{% url 'warehouse:xuat_lap' %}?kho={{ ma_kho }}"><i class="bi bi-plus-lg"></i> Lập phiếu xuất kho</a>
+
+    {% if ma_kho == 'ALL' %}
+      <a class="btn btn--primary" href="{% url 'warehouse:xuat_lap' %}">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+        Lập phiếu xuất kho
+      </a>
+    {% else %}
+      <a class="btn btn--primary" href="{% url 'warehouse:xuat_lap' %}{% if ma_kho != 'ALL' %}?kho={{ ma_kho }}{% endif %}" >
+        <i class="bi bi-plus-lg" aria-hidden="true"></i>
+        Lập phiếu xuất kho
+      </a>
+    {% endif %}
   </div>
 </form>
+
 <div class="card">
-  <p class="muted">{{ tong }} phiếu xuất kho{% if co_loc %} phù hợp bộ lọc{% endif %}.</p>
+  <h3>Danh sách / Thông tin chi tiết</h3>
+
+  <p class="muted">
+    {{ tong }} phiếu xuất kho{% if co_loc %} phù hợp bộ lọc{% endif %}.
+    {% if ma_kho == 'ALL' %}
+      Phạm vi: Cả 3 kho.
+    {% endif %}
+  </p>
+
   <div class="scroll">
-  <table class="tbl">
-    <thead><tr><th>Mã phiếu</th><th>Hợp đồng</th><th>Khách hàng</th><th>VIN</th><th>Tên xe</th><th>Ngày lập</th><th>Người lập</th><th>Trạng thái</th></tr></thead>
-    <tbody>
-    {% for p in trang %}
-      <tr>
-        <td><a href="{% url 'warehouse:xuat_chi_tiet' p.ma_pxk %}"><strong>{{ p.ma_pxk }}</strong></a></td>
-        <td>{{ p.chi_tiet_hop_dong.hop_dong.ma_hd }}</td>
-        <td>{{ p.chi_tiet_hop_dong.hop_dong.khach_hang.ten_kh }}</td>
-        <td>{{ p.chi_tiet_hop_dong.xe.vin }}</td>
-        <td>{{ p.chi_tiet_hop_dong.xe.ten_xe }}</td>
-        <td>{{ p.ngay_lap|date:"d/m/Y H:i" }}</td>
-        <td>{{ p.nguoi_lap.ten_nv|default:"—" }}</td>
-        <td><span class="badge {% if p.trang_thai == 'DA_DUYET' %}badge--ok{% elif p.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">{{ p.get_trang_thai_display }}</span></td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="8" class="none">{% if co_loc %}Không tìm thấy phiếu phù hợp{% else %}Chưa có phiếu xuất kho nào ở kho này{% endif %}</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th scope="col">Mã phiếu</th>
+          <th scope="col">Kho xuất</th>
+          <th scope="col">Hợp đồng</th>
+          <th scope="col">Khách hàng</th>
+          <th scope="col">VIN</th>
+          <th scope="col">Tên xe</th>
+          <th scope="col">Ngày lập</th>
+          <th scope="col">Người lập</th>
+          <th scope="col">Trạng thái</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for p in trang %}
+          <tr>
+            <td>
+              <a href="{% url 'warehouse:xuat_chi_tiet' p.ma_pxk %}?kho={{ p.kho_id|urlencode }}">
+                <strong>{{ p.ma_pxk }}</strong>
+              </a>
+            </td>
+
+            <td>
+              {{ p.kho.chi_nhanh.ten_cn|default:p.kho_id }}
+            </td>
+
+            <td>
+              {{ p.chi_tiet_hop_dong.hop_dong.ma_hd }}
+            </td>
+
+            <td>
+              {{ p.chi_tiet_hop_dong.hop_dong.khach_hang.ten_kh }}
+            </td>
+
+            <td>
+              {{ p.chi_tiet_hop_dong.xe.vin }}
+            </td>
+
+            <td>
+              {{ p.chi_tiet_hop_dong.xe.ten_xe }}
+            </td>
+
+            <td>
+              {{ p.ngay_lap|date:"d/m/Y H:i" }}
+            </td>
+
+            <td>
+              {{ p.nguoi_lap.ten_nv|default:"—" }}
+            </td>
+
+            <td>
+              {% if p.trang_thai == 'DA_DUYET' %}
+                <span class="badge badge--ok">
+                  {{ p.get_trang_thai_display }}
+                </span>
+              {% elif p.trang_thai == 'DA_HUY' %}
+                <span class="badge badge--off">
+                  {{ p.get_trang_thai_display }}
+                </span>
+              {% else %}
+                <span class="badge badge--wait">
+                  {{ p.get_trang_thai_display }}
+                </span>
+              {% endif %}
+            </td>
+          </tr>
+
+        {% empty %}
+          <tr>
+            <td colspan="9" class="none">
+              {% if co_loc %}
+                Không tìm thấy phiếu phù hợp với bộ lọc.
+              {% elif ma_kho == 'ALL' %}
+                Chưa có phiếu xuất kho nào tại cả 3 kho.
+              {% else %}
+                Chưa có phiếu xuất kho nào ở kho này.
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
+
   {% if trang.paginator.num_pages > 1 %}
-  <div class="pager">
-    {% if trang.has_previous %}<a href="?{{ query }}&page={{ trang.previous_page_number }}">&laquo; Trước</a>{% endif %}
-    <span>Trang {{ trang.number }} / {{ trang.paginator.num_pages }}</span>
-    {% if trang.has_next %}<a href="?{{ query }}&page={{ trang.next_page_number }}">Sau &raquo;</a>{% endif %}
-  </div>
+    <nav class="pager" aria-label="Phân trang phiếu xuất kho">
+
+      {% if trang.has_previous %}
+        <a href="?{{ query }}&page={{ trang.previous_page_number }}">
+          &laquo; Trước
+        </a>
+      {% endif %}
+
+      <span>
+        Trang {{ trang.number }} / {{ trang.paginator.num_pages }}
+      </span>
+
+      {% if trang.has_next %}
+        <a href="?{{ query }}&page={{ trang.next_page_number }}">
+          Sau &raquo;
+        </a>
+      {% endif %}
+
+    </nav>
   {% endif %}
 </div>
+
 {% endblock %}

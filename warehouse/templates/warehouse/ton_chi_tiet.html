@@ -1,118 +1,88 @@
-{% extends "base.html" %}
-{% load static %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
-{% block content %}
-{% include "warehouse/_messages.html" %}
+{% extends "warehouse/inventory_base.html" %}
 
-<h1 class="page-title">Chi tiết phiếu xuất kho</h1>
+{% block inventory_content %}
 
-<!-- Hàng nút hành động trên cùng -->
-<div class="action-row">
-  {% if co_the_duyet or co_the_huy %}
-  <form method="post" style="display:contents;">
-    {% csrf_token %}
-    {% include "warehouse/_chon_nv.html" %}
-    {% if co_the_duyet %}
-    <button class="btn-figma-primary" type="submit"
-            formaction="{% url 'warehouse:xuat_duyet' phieu.ma_pxk %}">
-      Duyệt phiếu
-    </button>
-    {% endif %}
-    {% if co_the_huy %}
-    <input class="inp" name="ly_do" placeholder="Lý do hủy phiếu"
-           style="width: 260px; height: 44px;">
-    <button class="btn-figma-secondary" type="submit"
-            formaction="{% url 'warehouse:xuat_huy' phieu.ma_pxk %}"
-            onclick="return confirm('Hủy phiếu xuất kho này?')">
-      Hủy phiếu
-    </button>
-    {% endif %}
-  </form>
-  {% endif %}
-  {% if co_the_in %}
-  <a class="btn-figma-secondary" href="{% url 'warehouse:xuat_in' phieu.ma_pxk %}" target="_blank">
-    In / Xuất file
-  </a>
-  {% endif %}
-  <div style="flex:1;"></div>
-    <!-- Trạng thái phiếu -->
-  {% if phieu.trang_thai == 'DA_DUYET' %}
-  <span style="font-family:Montserrat,sans-serif; font-size:13px; font-weight:600; color:#027A48;">
-    {{ phieu.get_trang_thai_display }}
-  </span>
-  {% elif phieu.trang_thai == 'DA_HUY' %}
-  <span style="font-family:Montserrat,sans-serif; font-size:13px; font-weight:600; color:#667085;">
-    {{ phieu.get_trang_thai_display }}
-  </span>
-  {% else %}
-  <span style="font-family:Montserrat,sans-serif; font-size:13px; font-weight:600; color:#B76E00;">
-    {{ phieu.get_trang_thai_display }}
-  </span>
-  {% endif %}
-  <a class="btn-figma-secondary" style="width:140px;"
-     href="{% url 'warehouse:xuat' %}?kho={{ phieu.kho_id }}">
+<h1 class="page-title">Chi tiết xe tồn kho</h1>
+
+<section class="card">
+  <h3>Thông tin</h3>
+
+  <div class="inventory-grid">
+
+    {% include "warehouse/inventory_field.html" with label="VIN" value=d.vin %}
+
+    {% include "warehouse/inventory_field.html" with label="Số máy" value=d.so_may %}
+
+    {% include "warehouse/inventory_field.html" with label="Dòng xe" value=d.loai_xe %}
+
+    {% include "warehouse/inventory_field.html" with label="Phiên bản" value=d.phien_ban %}
+
+    {% include "warehouse/inventory_field.html" with label="Màu sắc" value=d.mau_sac %}
+
+    <div class="inventory-field">
+      <span>Vị trí lưu kho</span>
+
+      <div class="readonly-value">
+        {{ kho_hien_tai.chi_nhanh.ten_cn }}
+        · {{ d.vi_tri|default:"—" }}
+      </div>
+    </div>
+
+    {% include "warehouse/inventory_field.html" with label="Ngày nhập" value=d.ngay_vao_kho %}
+
+    <div class="inventory-field">
+      <span>Số ngày tồn</span>
+
+      <div class="readonly-value">
+        {{ d.so_ngay_ton }} ngày
+      </div>
+    </div>
+
+    {% include "warehouse/inventory_field.html" with label="Trạng thái" value=d.trang_thai_display %}
+
+  </div>
+</section>
+
+<section class="card">
+  <h3>Danh sách / Thông tin chi tiết</h3>
+
+  <div class="scroll">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Nhập/xuất</th>
+          <th>Mã phiếu</th>
+          <th>Kho</th>
+          <th>Thời điểm</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for l in lich_su_kho %}
+          <tr>
+            <td>{{ l.loai }}</td>
+            <td>{{ l.ma_phieu }}</td>
+            <td>{{ l.kho }}</td>
+            <td>{{ l.thoi_gian|date:"d/m/Y H:i" }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" class="none">
+              Chưa có lịch sử nhập/xuất được ghi nhận.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="actions">
+  <a
+    class="btn btn--primary"
+    href="{% url 'warehouse:ton_kho' %}?kho={{ ma_kho|urlencode }}">
     Quay lại
   </a>
 </div>
 
-<!-- Thông tin phiếu + Hợp đồng & xe -->
-<div class="grid2-figma">
-  <div class="card">
-    <h3>Thông tin phiếu</h3>
-    <dl class="kv-figma">
-      <dt>Mã phiếu</dt><dd>{{ phieu.ma_pxk }}</dd>
-      <dt>Kho xuất</dt><dd>{{ phieu.kho_id }}</dd>
-      <dt>Ngày lập</dt><dd>{{ phieu.ngay_lap|date:"d/m/Y H:i" }}</dd>
-      <dt>Người lập</dt><dd>{{ phieu.nguoi_lap.ten_nv|default:"—" }}</dd>
-      <dt>Người nhận xe</dt><dd>{{ phieu.nguoi_nhan|default:"—" }}</dd>
-      <dt>Ngày xuất</dt><dd>{{ phieu.ngay_xuat|date:"d/m/Y H:i"|default:"—" }}</dd>
-      <dt>Người duyệt</dt><dd>{{ phieu.nguoi_duyet.ten_nv|default:"—" }}</dd>
-      <dt>Ghi chú</dt><dd>{{ phieu.ghi_chu|default:"—" }}</dd>
-    </dl>
-  </div>
-  <div class="card">
-    <h3>Hợp đồng và xe</h3>
-    <dl class="kv-figma">
-      <dt>Hợp đồng</dt><dd>{{ hd.ma_hd }}</dd>
-      <dt>Khách hàng</dt><dd>{{ hd.khach_hang.ten_kh }} · {{ hd.khach_hang.sdt_kh }}</dd>
-      <dt>VIN</dt><dd>{{ xe.vin }}</dd>
-      <dt>Tên xe</dt><dd>{{ xe.ten_xe }}</dd>
-      <dt>Màu / Số máy</dt><dd>{{ xe.mau_sac|default:"—" }} / {{ xe.so_may }}</dd>
-      <dt>Trạng thái xe</dt><dd>{{ xe.get_trang_thai_display }}</dd>
-    </dl>
-  </div>
-</div>
-
-<!-- Đối chiếu hợp đồng -->
-<div class="card">
-  <h3>Đối chiếu hợp đồng và hóa đơn bán</h3>
-  {% if doi_chieu.hop_le %}
-    <p style="font-family:Montserrat,sans-serif; font-size:13px; color:var(--text-main);">
-      <span style="color:#027A48; font-weight:600;">✓ Khớp</span>
-      &nbsp;Hóa đơn {{ doi_chieu.ma_hdb }} · số HĐ {{ doi_chieu.so_hoa_don }}
-      · {{ doi_chieu.so_tien|floatformat:"0g" }} đ
-    </p>
-  {% else %}
-    <p style="font-family:Montserrat,sans-serif; font-size:13px; color:#B42318;">
-      <span style="font-weight:600;">✗ Chưa khớp</span>
-      &nbsp;{{ doi_chieu.canh_bao }}
-    </p>
-  {% endif %}
-</div>
-
-<!-- Lịch sử -->
-<div class="card">
-  <h3>Lịch sử</h3>
-  <ul class="timeline-figma">
-    {% for l in lich_su %}
-    <li>
-      <strong>{{ l.hanh_dong }}</strong>
-      <small>{{ l.thoi_gian|date:"d/m/Y H:i" }} · {{ l.nguoi_thuc_hien.ten_nv }}</small>
-      {% if l.ghi_chu %}<div>{{ l.ghi_chu }}</div>{% endif %}
-    </li>
-    {% empty %}
-    <li style="color:var(--text-secondary);">Chưa có lịch sử.</li>
-    {% endfor %}
-  </ul>
-</div>
 {% endblock %}
