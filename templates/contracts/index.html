@@ -78,9 +78,9 @@
             {% for hd in hop_dong %}
             <tr>
               <td>
-                {% if hd.thao_tac.xem_chi_tiet %}<a href="{% url 'contracts:detail' hd.ma_hd %}" style="text-decoration: none; font-weight: 700; color: #0067c5;">
+                <a href="{% url 'contracts:detail' hd.ma_hd %}" style="text-decoration: none; font-weight: 700; color: #0067c5;">
                   {{ hd.ma_hd }}
-                </a>{% else %}<strong>{{ hd.ma_hd }}</strong>{% endif %}
+                </a>
               </td>
               <td>
                 <strong>{{ hd.khach_hang__ten_kh }}</strong>
@@ -99,18 +99,13 @@
                 </span>
               </td>
               <td style="text-align: right;">
-                <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
-                  {% if hd.thao_tac.xem_chi_tiet %}
-                    <a class="btn btn--light" href="{% url 'contracts:detail' hd.ma_hd %}">
-                      <i class="bi bi-eye"></i> Chi tiết
-                    </a>
-                  {% endif %}
-                  {% if hd.thao_tac.de_xuat_xe %}
-                    <a class="btn btn--primary" style="min-width: 138px; color: #fff; white-space: nowrap;" aria-label="Đề xuất xe" href="{% url 'contracts:xe_phu_hop' hd.ma_hd %}">
-                      <i class="bi bi-lightbulb"></i> Đề xuất xe
-                    </a>
-                  {% endif %}
-                </div>
+                {% if hd.thao_tac.de_xuat_xe %}
+                  <a class="btn btn--primary" style="min-width: 138px; color: #fff; white-space: nowrap;" aria-label="Đề xuất xe" href="{% url 'contracts:xe_phu_hop' hd.ma_hd %}">
+                    <i class="bi bi-lightbulb"></i> Đề xuất xe
+                  </a>
+                {% else %}
+                  <span style="color: #94a3b8;">—</span>
+                {% endif %}
               </td>
             </tr>
             {% empty %}

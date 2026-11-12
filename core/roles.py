@@ -103,7 +103,7 @@ ROLES = {
     },
     "SALE": {
         "code": "SALE",
-        "title": "Nhân viên Kinh doanh (Sale Chi Nhánh)",
+        "title": "Sale Chi Nhánh",
         "department": "Phòng Kinh Doanh & Bán Hàng Chi Nhánh",
         "badge_color": "primary",
         "can_monitor_subordinates": False,
@@ -130,7 +130,7 @@ ROLES = {
     },
     "KIEM_TRA_TON_KHO": {
         "code": "SALE",
-        "title": "Nhân viên Kinh doanh (Sale Chi Nhánh)",
+        "title": "Sale Chi Nhánh",
         "department": "Phòng Kinh Doanh & Bán Hàng Chi Nhánh",
         "badge_color": "primary",
         "can_monitor_subordinates": False,
@@ -143,7 +143,7 @@ ROLES = {
     },
     "DIEU_PHOI_SU_CO_DU_BAO": {
         "code": "SALE",
-        "title": "Nhân viên Kinh doanh (Sale Chi Nhánh)",
+        "title": "Sale Chi Nhánh",
         "department": "Phòng Kinh Doanh & Bán Hàng Chi Nhánh",
         "badge_color": "primary",
         "can_monitor_subordinates": False,
@@ -156,7 +156,7 @@ ROLES = {
     },
     "NHAN_VIEN_CHUNG": {
         "code": "SALE",
-        "title": "Nhân viên Kinh doanh (Sale Chi Nhánh)",
+        "title": "Sale Chi Nhánh",
         "department": "Phòng Kinh Doanh & Bán Hàng Chi Nhánh",
         "badge_color": "primary",
         "can_monitor_subordinates": False,

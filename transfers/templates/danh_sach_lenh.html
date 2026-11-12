@@ -45,7 +45,6 @@
                         <th>Kho nhập</th>
                         <th>Người lập</th>
                         <th style="text-align: center;">Trạng thái</th>
-                        <th style="text-align: right;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -78,15 +77,10 @@
                                 <span class="badge">{{ lenh.trang_thai }}</span>
                             {% endif %}
                         </td>
-                        <td style="text-align: right;">
-                            <a class="btn btn--light" href="{% url 'transfers:chi_tiet_lenh' lenh.id %}">
-                                <i class="bi bi-eye"></i> Xem chi tiết
-                            </a>
-                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="empty">
+                        <td colspan="7" class="empty">
                             <i class="bi bi-card-checklist" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
                             <p style="margin: 0; color: #64748b;">Chưa có lệnh lưu chuyển nào được tạo trong hệ thống.</p>
                         </td>

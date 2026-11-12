@@ -23,7 +23,6 @@
                 <th>Mã số phiếu</th>
                 <th>Thời điểm tạo phiếu</th>
                 <th style="text-align: center;">Trạng thái xử lý</th>
-                <th style="text-align: right;">Thao tác</th>
             </tr>
         </thead>
         <tbody>
@@ -47,15 +46,10 @@
                         <span class="badge">{{ phieu.status }}</span>
                     {% endif %}
                 </td>
-                <td style="text-align: right;">
-                    <a class="btn btn--light" href="{% url 'orders:phieu_yeu_cau' phieu.id %}">
-                        <i class="bi bi-eye"></i> Xem chi tiết
-                    </a>
-                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="5" class="empty">
+                <td colspan="4" class="empty">
                     <i class="bi bi-file-earmark-text" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
                     <p style="margin: 0; color: #64748b;">Chưa có phiếu yêu cầu đặt xe nào trong hệ thống.</p>
                 </td>
