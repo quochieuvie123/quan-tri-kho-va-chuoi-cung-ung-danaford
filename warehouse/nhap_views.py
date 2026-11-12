@@ -118,12 +118,8 @@ def receipt_list(request):
     keyword = request.GET.get('q', '').strip()
     if keyword:
         rows = rows.filter(Q(ma_phieu__icontains=keyword) | Q(xe__vin__icontains=keyword))
-    for key in ('trang_thai', 'kho_id'):
-        if request.GET.get(key):
-            value = request.GET[key].strip()
-            if key == 'trang_thai' and value not in PhieuNhapKho.TrangThai.values:
-                return JsonResponse({'error': 'Trạng thái phiếu không hợp lệ.'}, status=400)
-            rows = rows.filter(**{key: value})
+    if request.GET.get('kho_id'):
+        rows = rows.filter(kho_id=request.GET['kho_id'].strip())
     if request.GET.get('ngay_lap'):
         try:
             day = date.fromisoformat(request.GET['ngay_lap'])
@@ -131,6 +127,14 @@ def receipt_list(request):
             return JsonResponse({'error': 'Ngày lập phải theo YYYY-MM-DD.'}, status=400)
         rows = rows.filter(ngay_lap__date=day)
     data = [receipt_data(row, request.user) for row in rows]
+    tt_filter = request.GET.get('trang_thai', '').strip()
+    if tt_filter:
+        if tt_filter in ('DA_XU_LY', 'DA_DUYET'):
+            data = [d for d in data if d.get('trang_thai_code') == 'DA_XU_LY']
+        elif tt_filter in ('DANG_XU_LY', 'CHO_DUYET'):
+            data = [d for d in data if d.get('trang_thai_code') == 'DANG_XU_LY']
+        elif tt_filter in ('CHUA_XU_LY', 'NHAP'):
+            data = [d for d in data if d.get('trang_thai_code') == 'CHUA_XU_LY']
     display_rows = list(data)
     if not any(request.GET.get(key) for key in ('trang_thai', 'kho_id', 'ngay_lap')):
         known_vins = {row['vin'] for row in display_rows}
@@ -148,7 +152,7 @@ def receipt_list(request):
     if wants_html(request):
         payload.update(page_title='Quản lý nhập kho', display_rows=display_rows,
                        kho=Kho.objects.select_related('chi_nhanh').order_by('ma_kho'),
-                       trang_thai=PhieuNhapKho.TrangThai.choices)
+                       trang_thai=[('CHUA_XU_LY', 'Chưa xử lý'), ('DANG_XU_LY', 'Đang xử lý'), ('DA_XU_LY', 'Đã xử lý')])
         return render(request, 'warehouse/receipt_list.html', payload)
     return JsonResponse(payload)
 

@@ -1,3 +1,4 @@
+from datetime import date
 from types import SimpleNamespace
 from unittest.mock import Mock
 from django.test import SimpleTestCase
@@ -37,3 +38,11 @@ class ContractPresentationTests(SimpleTestCase):
         self.assertFalse(summary['thao_tac']['de_xuat_xe'])
         self.assertEqual(find_suitable(hd)[1], [])
         self.assertIn('hoàn tất', find_suitable(hd)[2])
+
+    def test_detail_template_contains_delivery_date_input(self):
+        html = render_to_string('contracts/detail.html', {'hop_dong': {
+            'ma_hd': 'HD99', 'tieu_chi_xe': [], 'canh_bao': None, 'ngay_du_kien_giao': None
+        }, 'co_the_chinh_sua': True})
+        self.assertIn('name="ngay_du_kien_giao"', html)
+        self.assertIn('Lưu ngày giao', html)
+        self.assertIn('openDateModal', html)

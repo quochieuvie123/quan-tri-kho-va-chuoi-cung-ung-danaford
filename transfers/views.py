@@ -1,6 +1,7 @@
+from core.roles import get_user_role_info
 from django.shortcuts import render
 from django.db.models import Q
-from database.models import Kho, TonKho
+from database.models import Kho, TonKho, Xe, TrangThaiXe
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.urls import reverse
@@ -66,11 +67,6 @@ def danh_sach_ton_kho(request):
     ).filter(
         so_luong_ton__gt=0
     )
-    sess = getattr(request, 'session', {})
-    current_kho = sess.get('current_kho') if hasattr(sess, 'get') else None
-    if current_kho and current_kho != "ALL":
-        ds_ton_kho = ds_ton_kho.filter(kho_id=current_kho)
-
     # 3. Lấy từ khóa tìm kiếm từ URL
     tu_khoa = request.GET.get('q', '').strip()
 
@@ -78,7 +74,9 @@ def danh_sach_ton_kho(request):
     if tu_khoa:
         ds_ton_kho = ds_ton_kho.filter(
             Q(xe__ten_xe__icontains=tu_khoa) |
-            Q(kho__ma_kho__icontains=tu_khoa)
+            Q(xe__vin__icontains=tu_khoa) |
+            Q(kho__ma_kho__icontains=tu_khoa) |
+            Q(kho__chi_nhanh__ten_cn__icontains=tu_khoa)
         )
 
     # 5. Sắp xếp theo mã kho
@@ -115,7 +113,7 @@ def danh_sach_ton_kho(request):
     context['danh_sach_da_chon'] = danh_sach_da_chon
     return render(
         request,
-        'danh_sach_ton_kho.html',
+        'transfers/danh_sach_ton_kho.html',
         context
     )
 
@@ -245,7 +243,7 @@ def chi_tiet_xe(request, id):
 
     return render(
         request,
-        'chi_tiet_xe.html',
+        'transfers/chi_tiet_xe.html',
         {
             'ton_kho': ton_kho,
             'ds_kho_nhan': ds_kho_nhan,
@@ -581,7 +579,7 @@ def xac_nhan_lenh_luu_chuyen(request):
     try:
         # Bước 1: Lấy nội dung HTML của phiếu PDF
         html = render_to_string(
-            "lenh_luu_chuyen_pdf.html",
+            "transfers/lenh_luu_chuyen_pdf.html",
             context
         )
 
@@ -668,11 +666,6 @@ def danh_sach_lenh_luu_chuyen(request):
         "kho_nhap",
         "nguoi_lap"
     ).order_by("-ngay_lap")
-    sess = getattr(request, 'session', {})
-    current_kho = sess.get('current_kho') if hasattr(sess, 'get') else None
-    if current_kho and current_kho != "ALL":
-        ds_lenh = ds_lenh.filter(Q(kho_xuat_id=current_kho) | Q(kho_nhap_id=current_kho))
-
     if trang_thai in ["NHAP", "DA_GUI", "DA_XAC_NHAN"]:
         ds_lenh = ds_lenh.filter(trang_thai=trang_thai)
 
@@ -681,9 +674,10 @@ def danh_sach_lenh_luu_chuyen(request):
             Q(ma_lenh__icontains=tu_khoa)
             | Q(kho_xuat__ma_kho__icontains=tu_khoa)
             | Q(kho_nhap__ma_kho__icontains=tu_khoa)
+            | Q(nguoi_lap__username__icontains=tu_khoa)
         )
 
-    return render(request, "danh_sach_lenh.html", {
+    return render(request, "transfers/danh_sach_lenh.html", {
         "ds_lenh": ds_lenh,
         "trang_thai": trang_thai,
         "tu_khoa": tu_khoa,
@@ -708,23 +702,105 @@ def chi_tiet_lenh_luu_chuyen(request, id):
         item.so_luong for item in lenh.chi_tiet.all()
     )
 
-    return render(request, "chi_tiet_lenh.html", {
+    role_info = get_user_role_info(request.user)
+    is_sale_admin = (
+        request.user.is_superuser
+        or request.user.is_staff
+        or (role_info and role_info.get("code") in ("ADMIN", "SALE_ADMIN"))
+        or request.user.groups.filter(name__in=["Sale Admin", "Quản lý"]).exists()
+    )
+
+    return render(request, "transfers/chi_tiet_lenh.html", {
         "lenh": lenh,
         "tong_so_luong": tong_so_luong,
+        "is_sale_admin": is_sale_admin,
     })
 
 
 @login_required
 @require_POST
 def cap_nhat_trang_thai_lenh(request, id):
-    from django.core.exceptions import PermissionDenied, ValidationError
-    from .services import receive_transfer
+    from .models import LenhLuuChuyen
+
+    lenh = get_object_or_404(
+        LenhLuuChuyen.objects.select_related("kho_xuat", "kho_nhap").prefetch_related("chi_tiet__xe"),
+        pk=id
+    )
+
+    role_info = get_user_role_info(request.user)
+    is_sale_admin = (
+        request.user.is_superuser
+        or request.user.is_staff
+        or (role_info and role_info.get("code") in ("ADMIN", "SALE_ADMIN"))
+        or request.user.groups.filter(name__in=["Sale Admin", "Quản lý"]).exists()
+    )
+    if not is_sale_admin:
+        messages.error(
+            request,
+            "Chỉ Quản trị viên (Sale Admin - Quốc Hiếu) mới có quyền phê duyệt & xác nhận tiếp nhận lệnh lưu chuyển."
+        )
+        return redirect("transfers:chi_tiet_lenh", id=id)
+
+    if lenh.trang_thai != "DA_GUI":
+        messages.error(
+            request,
+            "Chỉ có thể xác nhận lệnh đang ở trạng thái Đã gửi."
+        )
+        return redirect("transfers:chi_tiet_lenh", id=id)
+
+    with transaction.atomic():
+        lenh.trang_thai = "DA_XAC_NHAN"
+        lenh.ngay_xac_nhan = timezone.now()
+        lenh.nguoi_xac_nhan = request.user
+        lenh.save(update_fields=[
+            "trang_thai",
+            "ngay_xac_nhan",
+            "nguoi_xac_nhan"
+        ])
+
+        # Cập nhật chuyển kho thực tế cho xe
+        for item in lenh.chi_tiet.select_related("xe"):
+            # 1. Trừ tồn kho tại kho xuất
+            tk_xuat = TonKho.objects.filter(kho=lenh.kho_xuat, xe=item.xe).first()
+            if tk_xuat:
+                tk_xuat.so_luong_ton = max(0, tk_xuat.so_luong_ton - item.so_luong)
+                tk_xuat.save(update_fields=["so_luong_ton"])
+
+            # 2. Cộng tồn kho tại kho nhập đích
+            tk_nhap, _ = TonKho.objects.get_or_create(
+                kho=lenh.kho_nhap,
+                xe=item.xe,
+                defaults={"ngay_vao_kho": timezone.localdate(), "so_luong_ton": 0}
+            )
+            tk_nhap.so_luong_ton += item.so_luong
+            tk_nhap.save(update_fields=["so_luong_ton"])
+
+            # 3. Trạng thái xe sẵn sàng tại kho mới
+            Xe.objects.filter(pk=item.xe_id).update(trang_thai=TrangThaiXe.SAN_SANG)
+
     try:
-        receive_transfer(request.user, id)
-        messages.success(request, 'Đã tiếp nhận xe. Lập phiếu nhập và kiểm tra PDI trước khi ghi tồn kho đích.')
-    except (PermissionDenied, ValidationError) as exc:
-        messages.error(request, str(exc))
-    return redirect('transfers:chi_tiet_lenh', id=id)
+        from dashboard.models import ThongBaoHoatDong
+        ten_admin = request.user.get_full_name() or request.user.username
+        creator_name = lenh.nguoi_lap.get_full_name() or lenh.nguoi_lap.username if lenh.nguoi_lap else "Chi nhánh"
+        ThongBaoHoatDong.objects.create(
+            user=request.user,
+            ten_nhan_vien=ten_admin,
+            chuc_vu="Quản trị viên (Sale Admin)",
+            hanh_dong=f"Đã xác nhận & phê duyệt Lệnh lưu chuyển {lenh.ma_lenh}",
+            chi_tiet=f"Sale Admin {ten_admin} đã phê duyệt lệnh lưu chuyển của {creator_name}. Toàn bộ xe đã được chuyển về {lenh.kho_nhap.ma_kho} và sẵn sàng xuất bán.",
+            module="transfers",
+            loai="tu_dong",
+            is_active=True,
+        )
+    except Exception as e:
+        logging.warning(f"Lỗi tạo thông báo: {e}")
+
+    messages.success(
+        request,
+        f"Đã xác nhận & phê duyệt lệnh {lenh.ma_lenh} thành công! Toàn bộ xe đã được chuyển về kho {lenh.kho_nhap.ma_kho}."
+    )
+
+    return redirect("transfers:chi_tiet_lenh", id=id)
 
 
 @login_required
@@ -901,7 +977,7 @@ def gui_lenh_luu_chuyen(request, id):
         pk=id
     )
 
-    if lenh.nguoi_lap_id != request.user.pk:
+    if lenh.nguoi_lap_id != request.user.pk and not (request.user.is_superuser or request.user.is_staff or getattr(request.user, 'vai_tro', '') in ['ADMIN', 'SALE_ADMIN']):
         messages.error(request, "Bạn không có quyền gửi lệnh này.")
         return redirect("transfers:danh_sach_lenh")
 
@@ -917,7 +993,7 @@ def gui_lenh_luu_chuyen(request, id):
 
     try:
         html = render_to_string(
-            "lenh_luu_chuyen_pdf.html",
+            "transfers/lenh_luu_chuyen_pdf.html",
             {
                 "lenh": lenh,
                 "chi_tiet": chi_tiet,
@@ -1004,21 +1080,39 @@ def gui_lenh_luu_chuyen(request, id):
         messages.error(request, f"Lỗi gửi lệnh: {e}")
         return redirect("transfers:chi_tiet_lenh", id=id)
 
-    from django.core.exceptions import PermissionDenied, ValidationError
-    from .services import dispatch_transfer
-    try:
-        dispatch_transfer(request.user, lenh.pk)
-    except (PermissionDenied, ValidationError) as exc:
-        messages.error(request, str(exc))
-        return redirect('transfers:chi_tiet_lenh', id=id)
+    with transaction.atomic():
+        lenh.trang_thai = "DA_GUI"
+        lenh.ngay_gui = timezone.now()
+        lenh.save(update_fields=["trang_thai", "ngay_gui"])
+
+        # Cập nhật trạng thái các xe đang lưu chuyển
+        for item in lenh.chi_tiet.all():
+            Xe.objects.filter(pk=item.xe_id).update(trang_thai=TrangThaiXe.DANG_LUU_CHUYEN)
 
     if request.session.get("lenh_nhap_dang_sua_id") == lenh.pk:
         request.session.pop("lenh_nhap_dang_sua_id", None)
         request.session.pop("ds_xe_luu_chuyen", None)
 
+    try:
+        from dashboard.models import ThongBaoHoatDong
+        ten_nguoi_gui = request.user.get_full_name() or request.user.username
+        chuc_vu = "Sale Chi Nhánh" if ("giang" in request.user.username.lower() or "tu" in request.user.username.lower()) else "Nhân viên"
+        ThongBaoHoatDong.objects.create(
+            user=request.user,
+            ten_nhan_vien=ten_nguoi_gui,
+            chuc_vu=chuc_vu,
+            hanh_dong=f"Đã gửi Lệnh lưu chuyển xe {lenh.ma_lenh} — Chờ Quốc Hiếu duyệt",
+            chi_tiet=f"{ten_nguoi_gui} ({chuc_vu}) đã lập lệnh điều chuyển xe từ {lenh.kho_xuat.ma_kho} sang {lenh.kho_nhap.ma_kho}. Hệ thống đã gửi thông báo đến Sale Admin (Quốc Hiếu) để kiểm tra, phê duyệt tiếp nhận.",
+            module="transfers",
+            loai="tu_dong",
+            is_active=True,
+        )
+    except Exception as e:
+        logging.warning(f"Lỗi tạo thông báo: {e}")
+
     messages.success(
         request,
-        f"Đã gửi lệnh {lenh.ma_lenh} thành công!"
+        f"Đã gửi lệnh {lenh.ma_lenh} thành công! Hệ thống đã phát thông báo toàn hệ thống và gửi đến Sale Admin (Quốc Hiếu) để phê duyệt tiếp nhận."
     )
 
     return redirect("transfers:chi_tiet_lenh", id=lenh.pk)

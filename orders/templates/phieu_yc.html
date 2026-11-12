@@ -65,9 +65,9 @@
                     {% if phieu.status == "DRAFT" %}
                         <span class="badge badge--NHAP"><i class="bi bi-pencil"></i> Bản nháp</span>
                     {% elif phieu.status == "PENDING" %}
-                        <span class="badge badge--CHO_DUYET"><i class="bi bi-send"></i> Đã gửi Ford VN</span>
+                        <span class="badge badge--CHO_DUYET"><i class="bi bi-clock-history"></i> Chờ Sale Admin (Quốc Hiếu) xác nhận</span>
                     {% elif phieu.status == "ACCEPTED" %}
-                        <span class="badge badge--DA_DUYET"><i class="bi bi-check-circle"></i> Đã xác nhận</span>
+                        <span class="badge badge--DA_DUYET"><i class="bi bi-check-circle"></i> Đã phê duyệt tiếp nhận</span>
                     {% endif %}
                 </div>
             </div>
@@ -85,7 +85,7 @@
             </div>
             <div class="transfer-info-item">
                 <strong>Người lập phiếu:</strong>
-                <span>{{ request.user.username }}</span>
+                <span>{{ phieu.created_by.get_full_name|default:phieu.created_by.username }}</span>
             </div>
             <div class="transfer-info-item" style="grid-column: 1 / -1;">
                 <strong>Đơn vị nhận:</strong>
@@ -141,13 +141,19 @@
                 <strong>Người lập phiếu yêu cầu</strong><br>
                 <small style="color: #64748b;">(Ký, ghi rõ họ tên)</small>
                 <div style="height: 60px;"></div>
-                <div style="font-weight: 600;">{{ request.user.username }}</div>
+                <div style="font-weight: 600;">{{ phieu.created_by.get_full_name|default:phieu.created_by.username }}</div>
             </div>
             <div>
-                <strong>Đại diện tiếp nhận (Ford Việt Nam)</strong><br>
-                <small style="color: #64748b;">(Ký xác nhận, đóng dấu)</small>
+                <strong>Đại diện phê duyệt (Sale Admin)</strong><br>
+                <small style="color: #64748b;">(Ký xác nhận tiếp nhận)</small>
                 <div style="height: 60px;"></div>
-                <div style="color: #94a3b8;">...................................</div>
+                <div style="font-weight: 600; color: #0067c5;">
+                    {% if phieu.status == "ACCEPTED" %}
+                        Quốc Hiếu Phan (Đã phê duyệt)
+                    {% else %}
+                        Chờ Quốc Hiếu phê duyệt
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
@@ -160,24 +166,33 @@
             </a>
             <form method="POST" action="{% url 'orders:gui_phieu_yeu_cau' phieu.id %}" style="margin: 0;">
                 {% csrf_token %}
-                <button type="submit" class="btn btn--primary">
-                    <i class="bi bi-send-check"></i> Gửi phiếu sang Ford Việt Nam
+                <button type="submit" class="btn btn--primary" style="background: #0067c5; border-color: #0067c5; color: #fff; font-weight: 700; padding: 9px 20px;">
+                    <i class="bi bi-send-check"></i> Gửi phiếu yêu cầu (Trình Quốc Hiếu duyệt)
                 </button>
             </form>
         {% elif phieu.status == "PENDING" %}
             <a href="{% url 'orders:danh_sach_yeu_cau' %}" class="btn btn--light">
                 <i class="bi bi-arrow-left"></i> Quay lại danh sách
             </a>
+            {% if is_sale_admin %}
             <form method="POST" action="{% url 'orders:xac_nhan_phieu' phieu.id %}" style="margin: 0;">
                 {% csrf_token %}
-                <button type="submit" class="btn btn--success"
-                        onclick="return confirm('Bạn đã nhận được thông tin xác nhận tiếp nhận từ Ford Việt Nam?');">
-                    <i class="bi bi-check2-circle"></i> Cập nhật trạng thái: Đã xác nhận
+                <button type="submit" class="btn btn--success" style="background: #16a34a; border-color: #16a34a; color: #fff; font-weight: 700; padding: 9px 20px;"
+                        onclick="return confirm('Bạn xác nhận tiếp nhận và phê duyệt phiếu đặt xe này để chuyển tiếp sang kho và các quy trình tiếp theo?');">
+                    <i class="bi bi-check2-circle"></i> Xác nhận & Phê duyệt phiếu (Quốc Hiếu)
                 </button>
             </form>
+            {% else %}
+            <span class="badge badge--CHO_DUYET" style="padding: 10px 18px; font-size: 13px;">
+                <i class="bi bi-clock-history"></i> Phiếu đã gửi — Đang chờ Sale Admin (Quốc Hiếu) phê duyệt
+            </span>
+            {% endif %}
         {% elif phieu.status == "ACCEPTED" %}
             <a href="{% url 'orders:danh_sach_yeu_cau' %}" class="btn btn--light">
                 <i class="bi bi-arrow-left"></i> Quay lại danh sách yêu cầu
+            </a>
+            <a href="{% url 'warehouse:nhap' %}" class="btn btn--primary" style="background: #0067c5; color: #fff; font-weight: 700;">
+                <i class="bi bi-box-arrow-in-down"></i> Tiếp tục quy trình: Quản lý nhập kho & PDI &rarr;
             </a>
         {% endif %}
     </div>

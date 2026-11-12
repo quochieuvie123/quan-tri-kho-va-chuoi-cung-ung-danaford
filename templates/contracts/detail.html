@@ -9,15 +9,94 @@
 {% block content %}
 <div class="stack df-workflow">
   <div class="toolbar">
-    <a class="btn btn--light" href="{% url 'contracts:index' %}">
-      <i class="bi bi-arrow-left"></i> Quay lại danh sách hợp đồng
-    </a>
-    {% if hop_dong.thao_tac.de_xuat_xe %}
-    <a class="btn btn--primary" href="{% url 'contracts:xe_phu_hop' hop_dong.ma_hd %}">
-      <i class="bi bi-lightbulb"></i> Đề xuất xe phù hợp
-    </a>
-    {% endif %}
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <a class="btn btn--light" href="{% url 'contracts:index' %}">
+        <i class="bi bi-arrow-left"></i> Quay lại danh sách hợp đồng
+      </a>
+      {% if hop_dong.thao_tac.de_xuat_xe %}
+      <a class="btn btn--primary" href="{% url 'contracts:xe_phu_hop' hop_dong.ma_hd %}">
+        <i class="bi bi-lightbulb"></i> Đề xuất xe phù hợp
+      </a>
+      {% endif %}
+      {% if co_the_chinh_sua %}
+      <button type="button" class="btn btn--light" onclick="openDateModal();" style="display: inline-flex; align-items: center; gap: 6px; border-color: #94a3b8; font-weight: 600;">
+        <i class="bi bi-calendar3" style="color: #0067c5;"></i>
+        {% if hop_dong.ngay_du_kien_giao %}
+          <span>Ngày giao: <strong>{{ hop_dong.ngay_du_kien_giao|date:"d/m/Y" }}</strong></span>
+        {% else %}
+          <span style="color: #b45309;">+ Nhập ngày giao dự kiến</span>
+        {% endif %}
+      </button>
+      {% endif %}
+    </div>
+
+    <div>
+      {% if hop_dong.phieu_xuat and hop_dong.phieu_xuat.trang_thai == 'CHO_DUYET' %}
+      <a class="btn btn--primary" href="{% url 'warehouse:xuat_chi_tiet' hop_dong.phieu_xuat.ma_pxk %}" style="font-weight: 700; padding: 9px 20px;">
+        <i class="bi bi-box-arrow-up-right"></i> Duyệt xuất kho ({{ hop_dong.phieu_xuat.ma_pxk }})
+      </a>
+      {% elif hop_dong.trang_thai == 'HOAN_TAT' %}
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <span class="badge badge--DA_DUYET" style="padding: 9px 18px; font-size: 13px;">
+          <i class="bi bi-check-all"></i> Hợp đồng đã hoàn tất — Đã xuất giao xe
+        </span>
+        {% if hop_dong.phieu_xuat %}
+        <a class="btn btn--light" href="{% url 'warehouse:xuat_chi_tiet' hop_dong.phieu_xuat.ma_pxk %}">
+          <i class="bi bi-file-earmark-check"></i> Xem phiếu xuất
+        </a>
+        {% endif %}
+      </div>
+      {% elif hop_dong.xe %}
+      <form method="post" action="{% url 'contracts:hoan_tat' hop_dong.ma_hd %}" style="margin: 0;"
+            onsubmit="return confirm('Xác nhận xuất xe và hoàn tất hợp đồng {{ hop_dong.ma_hd }}? Số lượng tồn kho xe sẽ được trừ và lưu vào báo cáo.');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn--success" style="background: #15803d; border-color: #15803d; color: #fff; font-weight: 700; padding: 9px 20px;">
+          <i class="bi bi-check2-circle"></i> Xác nhận xuất kho & Hoàn tất hợp đồng
+        </button>
+      </form>
+      {% endif %}
+    </div>
   </div>
+
+  {% if hop_dong.phieu_xuat and hop_dong.phieu_xuat.trang_thai == 'CHO_DUYET' %}
+  <div class="card" style="border-left: 5px solid #d97706; background: #fffbeb; padding: 16px 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <i class="bi bi-bell-fill" style="color: #b45309; font-size: 22px;"></i>
+        <div>
+          <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #92400e;">
+            Đã gửi yêu cầu xuất kho: Phiếu {{ hop_dong.phieu_xuat.ma_pxk }} đang chờ Sale Admin phê duyệt
+          </h3>
+          <p style="margin: 3px 0 0; font-size: 13px; color: #b45309;">
+            Xe đã được chốt và giữ chỗ xuất tại <strong>{{ hop_dong.phieu_xuat.kho.ten_kho }}</strong>. Yêu cầu đã được chuyển tới phân hệ Quản lý xuất kho để Sale Admin kiểm tra và duyệt xuất kho.
+          </p>
+        </div>
+      </div>
+      <a class="btn btn--primary" href="{% url 'warehouse:xuat_chi_tiet' hop_dong.phieu_xuat.ma_pxk %}" style="font-weight: 700;">
+        <i class="bi bi-box-arrow-up-right"></i> Chuyển tới Quản lý xuất kho để duyệt
+      </a>
+    </div>
+  </div>
+  {% elif hop_dong.lenh_luu_chuyen %}
+  <div class="card" style="border-left: 5px solid #0284c7; background: #f0f9ff; padding: 16px 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <i class="bi bi-truck" style="color: #0369a1; font-size: 22px;"></i>
+        <div>
+          <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #075985;">
+            Lệnh lưu chuyển xe: {{ hop_dong.lenh_luu_chuyen.ma_lenh }} ({{ hop_dong.lenh_luu_chuyen.get_trang_thai_display }})
+          </h3>
+          <p style="margin: 3px 0 0; font-size: 13px; color: #0369a1;">
+            Xe chốt cho hợp đồng đang ở <strong>{{ hop_dong.lenh_luu_chuyen.kho_xuat.ten_kho }}</strong> và đang được điều phối lưu chuyển về Đà Nẵng.
+          </p>
+        </div>
+      </div>
+      <a class="btn btn--light" href="{% url 'transfers:chi_tiet_lenh' hop_dong.lenh_luu_chuyen.id %}" style="font-weight: 600;">
+        <i class="bi bi-truck"></i> Xem lệnh lưu chuyển
+      </a>
+    </div>
+  </div>
+  {% endif %}
 
   <div class="card">
     <h2 class="section-title">Thông tin chi tiết hợp đồng</h2>
@@ -42,19 +121,81 @@
       <dt>Ngày ký hợp đồng</dt>
       <dd>{{ hop_dong.ngay_ky|date:"d/m/Y" }}</dd>
 
-      <dt>Trạng thái</dt><dd>{{ hop_dong.trang_thai_hien_thi }}</dd>
-      <dt>Ngày giao dự kiến</dt><dd>{{ hop_dong.ngay_du_kien_giao|date:"d/m/Y"|default:"Chưa xác định" }}</dd>
+      <dt>Trạng thái</dt>
+      <dd>
+        {% if hop_dong.trang_thai == 'HOAN_TAT' %}
+          <span class="badge badge--DA_DUYET">Hoàn tất</span>
+        {% elif hop_dong.phieu_xuat and hop_dong.phieu_xuat.trang_thai == 'CHO_DUYET' %}
+          <span class="badge badge--CHO_DUYET">Đang xuất kho (Chờ Sale Admin duyệt)</span>
+        {% elif hop_dong.trang_thai == 'DU_DIEU_KIEN_XUAT' or hop_dong.trang_thai == 'CHO_XE_VE_KHO' or hop_dong.trang_thai == 'DANG_XUAT_KHO' %}
+          <span class="badge badge--CHO_DUYET">{{ hop_dong.trang_thai_hien_thi }}</span>
+        {% else %}
+          <span class="badge badge--NHAP">{{ hop_dong.trang_thai_hien_thi }}</span>
+        {% endif %}
+      </dd>
+
+      <dt style="display: flex; align-items: center; gap: 6px;">
+        <i class="bi bi-calendar-event" style="color: #0067c5;"></i> Ngày giao dự kiến
+      </dt>
+      <dd>
+        {% if co_the_chinh_sua %}
+        <form method="post" action="{% url 'contracts:cap_nhat_ngay_giao' hop_dong.ma_hd %}" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0;">
+          {% csrf_token %}
+          <div style="display: inline-flex; align-items: center;">
+            <input class="input" type="date" name="ngay_du_kien_giao" id="id_ngay_du_kien_giao"
+                   value="{{ hop_dong.ngay_du_kien_giao|date:'Y-m-d' }}"
+                   style="padding: 6px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; min-width: 165px;">
+          </div>
+          <button type="submit" class="btn btn--primary" style="padding: 6px 14px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+            <i class="bi bi-calendar-check"></i> Lưu ngày giao
+          </button>
+          {% if hop_dong.ngay_du_kien_giao %}
+            <span class="badge badge--ok" style="font-size: 13px; padding: 5px 10px;">
+              <i class="bi bi-check2"></i> Đang hẹn: {{ hop_dong.ngay_du_kien_giao|date:"d/m/Y" }}
+            </span>
+          {% else %}
+            <span class="badge badge--wait" style="font-size: 13px; padding: 5px 10px;">
+              <i class="bi bi-clock"></i> Chưa hẹn ngày giao
+            </span>
+          {% endif %}
+        </form>
+        {% else %}
+          <strong>{{ hop_dong.ngay_du_kien_giao|date:"d/m/Y"|default:"Chưa xác định" }}</strong>
+        {% endif %}
+      </dd>
+
       <dt>Số tiền đặt cọc</dt>
       <dd style="color: #166534; font-weight: 700;">{{ hop_dong.so_tien_coc }}</dd>
     </dl>
   </div>
 
-  <div class="card"><h2 class="section-title">Hóa đơn liên kết</h2>
-    {% for invoice in hop_dong.hoa_don %}<p>{{ invoice.ma_hdb }} · {{ invoice.so_hoa_don|default:"Chưa có số hóa đơn" }}</p>
-    {% empty %}<p>{{ hop_dong.hoa_don_canh_bao }}</p>{% endfor %}
-  </div>
   <div class="card">
-    <h2 class="section-title">Danh sách xe đã liên kết với hợp đồng</h2>
+    <h2 class="section-title">Hóa đơn liên kết</h2>
+    {% for invoice in hop_dong.hoa_don %}
+      <p>{{ invoice.ma_hdb }} · {{ invoice.so_hoa_don|default:"Chưa có số hóa đơn" }}</p>
+    {% empty %}
+      <p>{{ hop_dong.hoa_don_canh_bao }}</p>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h2 class="section-title" style="margin: 0;">Danh sách xe đã liên kết với hợp đồng</h2>
+      {% if hop_dong.phieu_xuat and hop_dong.phieu_xuat.trang_thai == 'CHO_DUYET' %}
+      <a class="btn btn--primary" href="{% url 'warehouse:xuat_chi_tiet' hop_dong.phieu_xuat.ma_pxk %}" style="font-weight: 700;">
+        <i class="bi bi-box-arrow-up-right"></i> Duyệt xuất kho tại Quản lý xuất kho
+      </a>
+      {% elif hop_dong.xe and hop_dong.trang_thai != 'HOAN_TAT' %}
+      <form method="post" action="{% url 'contracts:hoan_tat' hop_dong.ma_hd %}" style="margin: 0;"
+            onsubmit="return confirm('Xác nhận xuất xe và hoàn tất hợp đồng {{ hop_dong.ma_hd }}? Số lượng tồn kho xe sẽ được trừ và lưu vào báo cáo.');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn--success" style="background: #15803d; border-color: #15803d; color: #fff; font-weight: 700;">
+          <i class="bi bi-box-arrow-up-right"></i> Xuất kho xe & Hoàn tất hợp đồng
+        </button>
+      </form>
+      {% endif %}
+    </div>
+
     {% if hop_dong.xe %}
       <div class="table-wrap">
         <table class="data-table">
@@ -64,15 +205,25 @@
               <th>Dòng xe</th>
               <th>Phiên bản</th>
               <th>Màu sắc</th>
+              <th style="text-align: center;">Trạng thái xe</th>
             </tr>
           </thead>
           <tbody>
             {% for xe in hop_dong.xe %}
             <tr>
-              <td><strong>{{ xe.xe_id }}</strong></td>
-              <td>{{ xe.xe__ten_xe }}</td>
+              <td><strong style="color: #0067c5;">{{ xe.xe_id }}</strong></td>
+              <td><strong>{{ xe.xe__ten_xe }}</strong></td>
               <td>{{ xe.xe__phien_ban|default:"—" }}</td>
               <td>{{ xe.xe__mau_sac|default:"—" }}</td>
+              <td style="text-align: center;">
+                {% if hop_dong.trang_thai == 'HOAN_TAT' %}
+                  <span class="badge badge--DA_DUYET"><i class="bi bi-check-circle-fill"></i> Đã xuất bán cho khách</span>
+                {% elif hop_dong.phieu_xuat and hop_dong.phieu_xuat.trang_thai == 'CHO_DUYET' %}
+                  <span class="badge badge--CHO_DUYET"><i class="bi bi-clock-history"></i> Đã giữ chỗ xuất — Chờ Sale Admin duyệt PXK</span>
+                {% else %}
+                  <span class="badge badge--CHO_DUYET"><i class="bi bi-check2"></i> Đã giữ xe cho hợp đồng</span>
+                {% endif %}
+              </td>
             </tr>
             {% endfor %}
           </tbody>
@@ -82,8 +233,87 @@
       <div class="empty">
         <i class="bi bi-car-front" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
         <p style="margin: 0; color: #64748b;">Chưa có số khung (VIN) nào được gán cho hợp đồng này.</p>
+        {% if hop_dong.thao_tac.de_xuat_xe %}
+        <div style="margin-top: 12px;">
+          <a class="btn btn--primary" href="{% url 'contracts:xe_phu_hop' hop_dong.ma_hd %}">
+            <i class="bi bi-lightbulb"></i> Tìm và đề xuất xe khả dụng ngay
+          </a>
+        </div>
+        {% endif %}
       </div>
     {% endif %}
   </div>
 </div>
+
+{% if co_the_chinh_sua %}
+<!-- Modal Thiết lập ngày giao dự kiến -->
+<div id="dateModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+  <div style="background: #ffffff; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); overflow: hidden; margin: 16px;">
+    <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+      <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
+        <i class="bi bi-calendar-event text-primary"></i> Thiết lập ngày giao dự kiến
+      </h3>
+      <button type="button" onclick="closeDateModal();" style="border: none; background: transparent; font-size: 24px; line-height: 1; cursor: pointer; color: #64748b;">&times;</button>
+    </div>
+    <form method="post" action="{% url 'contracts:cap_nhat_ngay_giao' hop_dong.ma_hd %}" style="padding: 20px; margin: 0;">
+      {% csrf_token %}
+      <p style="margin: 0 0 14px; font-size: 13.5px; color: #475569;">
+        Hợp đồng: <strong style="color: #0067c5;">{{ hop_dong.ma_hd }}</strong> · Khách hàng: <strong>{{ hop_dong.ten_khach_hang }}</strong>
+      </p>
+
+      <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
+        Chọn ngày dự kiến bàn giao xe cho khách hàng:
+      </label>
+      <input class="input" type="date" name="ngay_du_kien_giao" id="modal_ngay_du_kien_giao"
+             value="{{ hop_dong.ngay_du_kien_giao|date:'Y-m-d' }}"
+             style="width: 100%; padding: 9px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #cbd5e1; margin-bottom: 12px;" required>
+
+      <div style="margin-bottom: 18px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+        <span style="font-size: 12px; color: #64748b;">Gợi ý nhanh:</span>
+        <button type="button" class="btn btn--light" style="padding: 3px 8px; font-size: 12px;" onclick="setPresetDays(7);">+7 ngày</button>
+        <button type="button" class="btn btn--light" style="padding: 3px 8px; font-size: 12px;" onclick="setPresetDays(15);">+15 ngày</button>
+        <button type="button" class="btn btn--light" style="padding: 3px 8px; font-size: 12px;" onclick="setPresetDays(30);">+30 ngày</button>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #f1f5f9; padding-top: 14px;">
+        <button type="button" class="btn btn--light" onclick="closeDateModal();">Hủy</button>
+        <button type="submit" class="btn btn--primary" style="font-weight: 600;">
+          <i class="bi bi-check-circle"></i> Xác nhận lưu ngày giao
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openDateModal() {
+  const m = document.getElementById('dateModal');
+  if (m) m.style.display = 'flex';
+}
+function closeDateModal() {
+  const m = document.getElementById('dateModal');
+  if (m) m.style.display = 'none';
+}
+function setPresetDays(days) {
+  const target = new Date();
+  target.setDate(target.getDate() + days);
+  const yyyy = target.getFullYear();
+  const mm = String(target.getMonth() + 1).padStart(2, '0');
+  const dd = String(target.getDate()).padStart(2, '0');
+  const str = `${yyyy}-${mm}-${dd}`;
+  const modalInput = document.getElementById('modal_ngay_du_kien_giao');
+  if (modalInput) modalInput.value = str;
+  const inlineInput = document.getElementById('id_ngay_du_kien_giao');
+  if (inlineInput) inlineInput.value = str;
+}
+window.addEventListener('click', function(e) {
+  const m = document.getElementById('dateModal');
+  if (e.target === m) {
+    m.style.display = 'none';
+  }
+});
+</script>
 {% endblock %}

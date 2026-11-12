@@ -3,6 +3,36 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
 {% block content %}
 {% include "warehouse/_messages.html" %}
+
+{% if phieu.trang_thai == 'CHO_DUYET' %}
+<div class="card" style="border-left: 5px solid #d97706; background: #fffbeb; padding: 16px 20px; margin-bottom: 20px;">
+  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <i class="bi bi-bell-fill" style="color: #b45309; font-size: 20px;"></i>
+      <div>
+        <strong style="color: #92400e; font-size: 15px;">Yêu cầu xuất kho đang chờ Sale Admin phê duyệt</strong>
+        <p style="margin: 2px 0 0; color: #b45309; font-size: 13px;">
+          Hợp đồng <strong>{{ hd.ma_hd }}</strong> đã chốt xe VIN <strong>{{ xe.vin }}</strong> tại kho Đà Nẵng. Khi duyệt xuất kho, hệ thống sẽ tự động trừ tồn kho (so_luong_ton = 0), chuyển trạng thái xe sang Đã xuất, và hoàn tất hợp đồng.
+        </p>
+      </div>
+    </div>
+    <span class="badge badge--wait" style="font-weight: 700;">Chờ Sale Admin duyệt</span>
+  </div>
+</div>
+{% elif phieu.trang_thai == 'DA_DUYET' %}
+<div class="card" style="border-left: 5px solid #16a34a; background: #f0fdf4; padding: 16px 20px; margin-bottom: 20px;">
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <i class="bi bi-check-circle-fill" style="color: #15803d; font-size: 20px;"></i>
+    <div>
+      <strong style="color: #15803d; font-size: 15px;">Phiếu xuất kho đã được duyệt thành công</strong>
+      <p style="margin: 2px 0 0; color: #166534; font-size: 13px;">
+        Xe đã xuất kho và bàn giao cho khách hàng <strong>{{ phieu.nguoi_nhan }}</strong>. Người duyệt: <strong>{{ phieu.nguoi_duyet.ten_nv|default:"Sale Admin" }}</strong> ngày {{ phieu.ngay_duyet|date:"d/m/Y H:i" }}.
+      </p>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <div class="actions">
   <a class="btn" href="{% url 'warehouse:xuat' %}?kho={{ phieu.kho_id }}"><i class="bi bi-arrow-left"></i> Danh sách</a>
   <span class="badge {% if phieu.trang_thai == 'DA_DUYET' %}badge--ok{% elif phieu.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">{{ phieu.get_trang_thai_display }}</span>
@@ -14,8 +44,8 @@
   <div class="card">
     <h3>Thông tin phiếu</h3>
     <dl class="kv">
-      <dt>Mã phiếu</dt><dd>{{ phieu.ma_pxk }}</dd>
-      <dt>Kho xuất</dt><dd>{{ phieu.kho_id }}</dd>
+      <dt>Mã phiếu</dt><dd><strong>{{ phieu.ma_pxk }}</strong></dd>
+      <dt>Kho xuất</dt><dd>{{ phieu.kho.ten_kho|default:phieu.kho_id }}</dd>
       <dt>Ngày lập</dt><dd>{{ phieu.ngay_lap|date:"d/m/Y H:i" }}</dd>
       <dt>Người lập</dt><dd>{{ phieu.nguoi_lap.ten_nv|default:"—" }}</dd>
       <dt>Người nhận xe</dt><dd>{{ phieu.nguoi_nhan|default:"—" }}</dd>
@@ -27,12 +57,12 @@
   <div class="card">
     <h3>Hợp đồng và xe</h3>
     <dl class="kv">
-      <dt>Hợp đồng</dt><dd>{{ hd.ma_hd }}</dd>
+      <dt>Hợp đồng</dt><dd><a href="{% url 'contracts:detail' hd.ma_hd %}"><strong>{{ hd.ma_hd }}</strong></a></dd>
       <dt>Khách hàng</dt><dd>{{ hd.khach_hang.ten_kh }} · {{ hd.khach_hang.sdt_kh }}</dd>
-      <dt>VIN</dt><dd>{{ xe.vin }}</dd>
-      <dt>Tên xe</dt><dd>{{ xe.ten_xe }}</dd>
+      <dt>VIN</dt><dd><code>{{ xe.vin }}</code></dd>
+      <dt>Tên xe</dt><dd><strong>{{ xe.ten_xe }}</strong></dd>
       <dt>Màu / Số máy</dt><dd>{{ xe.mau_sac|default:"—" }} / {{ xe.so_may }}</dd>
-      <dt>Trạng thái xe</dt><dd>{{ xe.get_trang_thai_display }}</dd>
+      <dt>Trạng thái xe</dt><dd><span class="badge">{{ xe.get_trang_thai_display }}</span></dd>
     </dl>
   </div>
 </div>
@@ -40,15 +70,19 @@
 <div class="card">
   <h3>Đối chiếu hợp đồng và hóa đơn bán</h3>
   {% if doi_chieu.hop_le %}
-    <p><span class="badge badge--ok">Khớp</span> Hóa đơn {{ doi_chieu.ma_hdb }} · số HĐ {{ doi_chieu.so_hoa_don }} · {{ doi_chieu.so_tien|floatformat:"0g" }} đ</p>
+    <p><span class="badge badge--ok"><i class="bi bi-check-lg"></i> Khớp dữ liệu</span> Hóa đơn <strong>{{ doi_chieu.ma_hdb }}</strong> · số HĐ <strong>{{ doi_chieu.so_hoa_don }}</strong> · {{ doi_chieu.so_tien|floatformat:"0g" }} đ</p>
   {% else %}
     <p><span class="badge badge--bad">Chưa khớp</span> {{ doi_chieu.canh_bao }}</p>
   {% endif %}
   {% if co_the_duyet or co_the_huy %}
-  <form method="post" class="actions">
+  <form method="post" class="actions" style="margin-top: 16px;">
     {% csrf_token %}
     {% include "warehouse/_chon_nv.html" %}
-    {% if co_the_duyet %}<button class="btn btn--primary" type="submit" formaction="{% url 'warehouse:xuat_duyet' phieu.ma_pxk %}"><i class="bi bi-check2-circle"></i> Duyệt xuất kho</button>{% endif %}
+    {% if co_the_duyet %}
+      <button class="btn btn--primary" type="submit" formaction="{% url 'warehouse:xuat_duyet' phieu.ma_pxk %}" style="background: #16a34a; border-color: #16a34a; font-weight: 700; padding: 9px 20px;">
+        <i class="bi bi-check2-circle"></i> Phê duyệt xuất kho
+      </button>
+    {% endif %}
     {% if co_the_huy %}
       <input class="inp" name="ly_do" placeholder="Lý do hủy phiếu (nếu hủy)">
       <button class="btn" type="submit" formaction="{% url 'warehouse:xuat_huy' phieu.ma_pxk %}" onclick="return confirm('Hủy phiếu xuất kho này?')"><i class="bi bi-x-circle"></i> Hủy phiếu</button>

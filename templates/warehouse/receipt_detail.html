@@ -28,9 +28,42 @@
   <!-- Thông tin phiếu nhập & Thao tác nghiệp vụ -->
   <div class="grid">
     <!-- Card thông tin phiếu -->
-    {% if phieu_nhap.pdi_moi_nhat.ket_qua == 'KHONG_DAT' %}
-  <div class="card"><p>PDI không đạt: lập hồ sơ sự cố, hoàn tất xử lý rồi kiểm tra lại.</p>
-  <a class="btn btn--warning" href="{% url 'incidents:ghi_nhan' %}?xe={{ phieu_nhap.vin|urlencode }}{% if phieu_nhap.ma_hdn %}&amp;hoa_don_nhap={{ phieu_nhap.ma_hdn|urlencode }}{% endif %}">Ghi nhận sự cố vận chuyển</a></div>
+    {% if phieu_nhap.incident_info and phieu_nhap.incident_info.is_open %}
+  <div class="card" style="border-left: 4px solid #0284c7; background: #f0f9ff;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <strong style="color: #0369a1; font-size: 14px;"><i class="bi bi-info-circle-fill"></i> Đang xử lý sự cố vận chuyển:</strong>
+        <p style="margin: 4px 0 0; color: #0c4a6e; font-size: 13px;">Hồ sơ sự cố <strong>{{ phieu_nhap.incident_info.ma_pdi }}</strong> đang được theo dõi và giải quyết tại module Quản lý sự cố vận chuyển.</p>
+      </div>
+      <a class="btn btn--primary" style="font-weight: 700; white-space: nowrap;" href="{% url 'incidents:chi_tiet' phieu_nhap.incident_info.ma_pdi %}">
+        <i class="bi bi-box-arrow-up-right"></i> Xem chi tiết sự cố {{ phieu_nhap.incident_info.ma_pdi }}
+      </a>
+    </div>
+  </div>
+  {% elif phieu_nhap.incident_info and phieu_nhap.incident_info.is_closed %}
+  <div class="card" style="border-left: 4px solid #16a34a; background: #f0fdf4;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <strong style="color: #15803d; font-size: 14px;"><i class="bi bi-check-circle-fill"></i> Sự cố vận chuyển đã được xử lý:</strong>
+        <p style="margin: 4px 0 0; color: #166534; font-size: 13px;">Sự cố <strong>{{ phieu_nhap.incident_info.ma_pdi }}</strong> đã hoàn tất bồi thường/khắc phục. Xe đã được cập nhật đủ điều kiện nhập kho.</p>
+      </div>
+      <a class="btn btn--light" style="font-weight: 600; white-space: nowrap;" href="{% url 'incidents:chi_tiet' phieu_nhap.incident_info.ma_pdi %}">
+        <i class="bi bi-journal-text"></i> Xem hồ sơ sự cố {{ phieu_nhap.incident_info.ma_pdi }}
+      </a>
+    </div>
+  </div>
+  {% elif phieu_nhap.pdi_moi_nhat.ket_qua == 'KHONG_DAT' %}
+  <div class="card" style="border-left: 4px solid #f59e0b; background: #fffbeb;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <strong style="color: #b45309; font-size: 14px;"><i class="bi bi-exclamation-triangle-fill"></i> PDI không đạt:</strong>
+        <p style="margin: 4px 0 0; color: #78350f; font-size: 13px;">Xe gặp sự cố kỹ thuật trong quá trình kiểm định. Hãy lập biên bản sự cố vận chuyển để chuyển tiếp xử lý bồi thường.</p>
+      </div>
+      <a class="btn btn--warning" style="font-weight: 700; white-space: nowrap;" href="{% url 'incidents:ghi_nhan' %}?xe={{ phieu_nhap.vin|urlencode }}{% if phieu_nhap.ma_hdn %}&amp;hoa_don_nhap={{ phieu_nhap.ma_hdn|urlencode }}{% endif %}&amp;pdi_id={{ phieu_nhap.pdi_moi_nhat.id }}">
+        <i class="bi bi-file-earmark-plus"></i> Ghi nhận sự cố vận chuyển (Tự động đưa dữ liệu PDI)
+      </a>
+    </div>
+  </div>
   {% endif %}
   <div class="card">
       <h2 class="section-title">Thông tin phiếu nhập kho</h2>
@@ -59,7 +92,16 @@
 
         <dt>Trạng thái phiếu</dt>
         <dd>
-          <span class="badge badge--{{ phieu_nhap.trang_thai }}">{{ phieu_nhap.trang_thai_hien_thi }}</span>
+          <span class="badge {{ phieu_nhap.badge_class|default:'badge--NHAP' }}">{{ phieu_nhap.trang_thai_hien_thi }}</span>
+          {% if phieu_nhap.incident_info %}
+            <small class="muted" style="margin-left: 6px;">
+              {% if phieu_nhap.incident_info.is_open %}
+                (Đang đợi xử lý sự cố <a href="{% url 'incidents:chi_tiet' phieu_nhap.incident_info.ma_pdi %}"><strong>{{ phieu_nhap.incident_info.ma_pdi }}</strong></a>)
+              {% else %}
+                (Đã xử lý xong sự cố <a href="{% url 'incidents:chi_tiet' phieu_nhap.incident_info.ma_pdi %}"><strong>{{ phieu_nhap.incident_info.ma_pdi }}</strong></a>)
+              {% endif %}
+            </small>
+          {% endif %}
         </dd>
       </dl>
     </div>

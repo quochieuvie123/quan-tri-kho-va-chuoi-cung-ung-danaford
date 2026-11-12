@@ -36,14 +36,17 @@
                 <th style="text-align: center;">Tồn kho hiện tại</th>
                 <th style="text-align: center;">Số lượng phân bổ</th>
                 <th style="text-align: center;">Đề xuất cần nhập</th>
-                <th style="text-align: right;">Thao tác</th>
             </tr>
         </thead>
         <tbody>
             {% for item in danh_sach %}
             <tr>
                 <td style="text-align: center;">{{ forloop.counter }}</td>
-                <td><strong>{{ item.ten_xe }}</strong></td>
+                <td>
+                    <a href="{% if item.dong_id %}{% url 'orders:proposal_detail' item.dong_id %}{% elif item.allocation_id %}{% url 'orders:proposal_detail' item.allocation_id %}{% else %}#{% endif %}" style="text-decoration: none; font-weight: 700; color: #0067c5;">
+                        {{ item.ten_xe }}
+                    </a>
+                </td>
                 <td style="text-align: center; color: #475569;">{% if item.hop_dong_cho_giao is not None %}{{ item.hop_dong_cho_giao }}{% else %}{{ item.so_ban|default:0 }}{% endif %}</td>
                 <td style="text-align: center; color: #475569;">{{ item.so_ton|default:0 }}</td>
                 <td style="text-align: center; color: #475569;">{{ item.so_phan_bo }}</td>
@@ -52,15 +55,10 @@
                         <strong>{{ item.de_xuat_nhap }}</strong> xe
                     </span>
                 </td>
-                <td style="text-align: right;">
-                    <a class="btn btn--light" href="{% if item.dong_id %}{% url 'orders:proposal_detail' item.dong_id %}{% elif item.allocation_id %}{% url 'orders:proposal_detail' item.allocation_id %}{% else %}#{% endif %}">
-                        <i class="bi bi-eye"></i> Xem chi tiết
-                    </a>
-                </td>
             </tr>
             {% empty %}
             <tr>
-                <td colspan="7" class="empty">
+                <td colspan="6" class="empty">
                     <i class="bi bi-inbox" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
                     <p style="margin: 0; color: #64748b;">Chưa có dữ liệu tính toán đề xuất nhập xe trong tháng hiện tại.</p>
                 </td>

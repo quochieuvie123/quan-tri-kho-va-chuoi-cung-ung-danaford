@@ -3,9 +3,21 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'incidents/incidents.css' %}">{% endblock %}
 {% block content %}
 {% include "incidents/_messages.html" %}
+<div class="card" style="background: #f0fdf4; border: 1px solid #bbf7d0; margin-bottom: 20px; padding: 14px 18px; border-left: 4px solid #16a34a;">
+  <div style="font-weight: 700; color: #15803d; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+    <i class="bi bi-shield-check" style="font-size: 18px;"></i>
+    Xác nhận giải quyết xong sự cố vận chuyển
+  </div>
+  <p style="margin: 4px 0 0; color: #166534; font-size: 13px;">
+    Sau khi xác nhận, sự cố <strong>{{ bb.ma_pdi }}</strong> sẽ được đóng hồ sơ (chuyển sang <strong>Đã xử lý</strong>). Hệ thống sẽ tự động cập nhật phiếu nhập kho của xe này sang trạng thái <strong>Đã xử lý (Đã nhập kho)</strong> và mở khóa xe vào tồn kho.
+  </p>
+</div>
+
 <form method="post" enctype="multipart/form-data" class="card form">
   {% csrf_token %}
-  <p>Sự cố <strong>{{ bb.ma_pdi }}</strong> · xe {{ bb.xe_id }} · {{ bb.loai_su_co }}</p>
+  <div style="margin-bottom: 15px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0; font-size: 14px;">
+    Mã sự cố: <strong style="color: #0067c5;">{{ bb.ma_pdi }}</strong> · Xe VIN: <strong>{{ bb.xe_id }}</strong> · Loại lỗi: <strong>{{ bb.loai_su_co }}</strong>
+  </div>
   {% if form.non_field_errors %}<div class="msg msg--error">{{ form.non_field_errors|join:" " }}</div>{% endif %}
   {% for f in form %}
     <div class="field">

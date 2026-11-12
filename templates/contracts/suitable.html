@@ -5,12 +5,85 @@
 <link rel="stylesheet" href="{% static 'css/operations.css' %}">
 <link rel="stylesheet" href="{% static 'css/contract-receipt-guidelines.css' %}">
 <style>
-.source-jump { color:#243b53; text-decoration:none; cursor:pointer; transition:background .15s ease, color .15s ease; }
-.source-jump:hover { background:#e3effa; color:#0067c5; }
-.source-section { padding:8px 16px 18px; }
-.source-section[hidden] { display:none; }
-.source-title { display:flex; align-items:center; gap:10px; margin:8px 0 14px; color:#102a43; font-size:16px; }
-.source-empty { margin:0; padding:14px; color:#627d98; background:#f8fafc; border-radius:8px; }
+.tab-nav {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+.source-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.source-jump:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+.source-jump.active {
+  background: #0067c5;
+  color: #ffffff;
+  border-color: #0067c5;
+  box-shadow: 0 2px 4px rgba(0, 103, 197, 0.25);
+}
+.source-jump .count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 12px;
+  background: #e2e8f0;
+  color: #1e293b;
+}
+.source-jump.active .count-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+.source-section {
+  padding: 20px 24px 28px;
+}
+.source-section[hidden] {
+  display: none;
+}
+.source-header {
+  margin-bottom: 16px;
+}
+.source-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+  color: #0f172a;
+  font-size: 17px;
+  font-weight: 700;
+}
+.source-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+.source-empty {
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+}
 </style>
 {% endblock %}
 
@@ -19,7 +92,7 @@
   <div class="page-header">
     <div>
       <h1 class="page-header__title">Kết quả đề xuất xe khả dụng</h1>
-      <p class="page-header__subtitle">Hợp đồng: <strong>{{ ma_hd }}</strong> · Danh sách xe tồn kho thỏa mãn tiêu chí dòng xe, phiên bản và màu sắc</p>
+      <p class="page-header__subtitle">Hợp đồng: <strong>{{ ma_hd }}</strong> · Danh sách xe tồn kho thỏa mãn tiêu chí dòng xe, phiên bản và màu sắc tại các chi nhánh</p>
     </div>
     <div style="display: flex; gap: 10px;">
       {% if co_the_xem_hop_dong %}<a class="btn btn--light" href="{% url 'contracts:detail' ma_hd %}">
@@ -31,42 +104,140 @@
     </div>
   </div>
 
-  <div class="card">
-    <div style="padding:16px; display:flex; gap:12px; flex-wrap:wrap">
-      <a class="badge source-jump" href="#xe-da-nang">1. Kho Đà Nẵng: {{ xe_da_nang|length }} xe</a>
-      <a class="badge source-jump" href="#xe-chi-nhanh">2. Bình Định / Gia Lai: {{ xe_chi_nhanh|length }} xe</a>
-      <form method="post" action="{% url 'contracts:wait_allocation' ma_hd %}">{% csrf_token %}<button class="btn btn--primary" type="submit">3. Chờ lịch phân bổ tháng sau</button></form>
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div class="tab-nav">
+      <a class="source-jump active" href="#xe-da-nang" id="tab-xe-da-nang">
+        <i class="bi bi-geo-alt-fill"></i> 1. Kho Đà Nẵng
+        <span class="count-badge">{{ xe_da_nang|length }} xe</span>
+      </a>
+      <a class="source-jump" href="#xe-chi-nhanh" id="tab-xe-chi-nhanh">
+        <i class="bi bi-truck"></i> 2. Bình Định / Gia Lai
+        <span class="count-badge">{{ xe_chi_nhanh|length }} xe</span>
+      </a>
+      <form method="post" action="{% url 'contracts:wait_allocation' ma_hd %}" style="margin: 0; margin-left: auto;">
+        {% csrf_token %}
+        <button class="btn btn--light" type="submit" style="color: #475569; border-color: #cbd5e1;">
+          <i class="bi bi-clock-history"></i> 3. Chờ lịch phân bổ tháng sau
+        </button>
+      </form>
     </div>
+
     {% if message %}
-      <div class="empty">
-        <i class="bi bi-car-front" style="font-size: 36px; color: #94a3b8; display: block; margin-bottom: 12px;"></i>
+      <div class="empty" style="padding: 40px 20px;">
+        <i class="bi bi-car-front" style="font-size: 40px; color: #94a3b8; display: block; margin-bottom: 12px;"></i>
         <p style="font-size: 15px; font-weight: 600; color: #334155; margin: 0 0 6px;">{{ message }}</p>
       </div>
     {% endif %}
-      {% for nguon in nhom_xe %}
-      <section id="{{ nguon.id }}" class="source-section"{% if not forloop.first %} hidden{% endif %}>
-        <div class="source-title" style="margin: 12px 0 16px; font-weight: 700; color: #0067c5;">
-          <i class="bi bi-geo-alt-fill"></i> {{ nguon.tieu_de }} ({{ nguon.xe|length }} xe)
+
+    <!-- 1. KHO ĐÀ NẴNG -->
+    <section id="xe-da-nang" class="source-section">
+      <div class="source-header">
+        <div class="source-title" style="color: #0067c5;">
+          <i class="bi bi-geo-alt-fill"></i> Xe tại kho Đà Nẵng ({{ xe_da_nang|length }} xe)
         </div>
-        {% if nguon.xe %}
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead><tr><th>Số khung (VIN)</th><th>Dòng xe</th><th>Phiên bản</th><th>Màu sắc</th><th>Vị trí lưu kho</th><th>Chất lượng / gán hợp đồng</th><th>Phương án</th><th style="text-align:center">Trạng thái</th><th>Thao tác</th></tr></thead>
-            <tbody>
-              {% for xe in nguon.xe %}
-              <tr>
-                <td><strong><a href="{{ request.path }}{{ xe.vin }}/">{{ xe.vin }}</a></strong></td><td><strong>{{ xe.xe__ten_xe }}</strong></td><td>{{ xe.xe__phien_ban }}</td><td>{{ xe.xe__mau_sac }}</td>
-                <td><span class="badge">{{ xe.vi_tri_kho }}</span></td><td>{{ xe.chat_luong }}<br>{{ xe.tinh_trang_gan }}</td><td>{{ xe.phuong_an }}</td>
-                <td style="text-align:center"><span class="badge badge--DA_DUYET">{{ xe.trang_thai_hien_thi }}</span></td>
-                <td><form method="post" action="{% url 'contracts:choose_suggested_vehicle' ma_hd xe.vin %}">{% csrf_token %}<button class="btn btn--primary" type="submit">Chốt xe</button></form></td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+        <p class="source-desc">
+          Xe sẵn sàng tại kho Đà Nẵng. Khi chốt xe, hệ thống sẽ <strong>gửi yêu cầu xuất kho sang Quản lý xuất kho</strong> để Sale Admin duyệt và bàn giao.
+        </p>
+      </div>
+      {% if xe_da_nang %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Số khung (VIN)</th>
+              <th>Dòng xe</th>
+              <th>Phiên bản</th>
+              <th>Màu sắc</th>
+              <th>Vị trí lưu kho</th>
+              <th>Chất lượng / Gán HĐ</th>
+              <th>Phương án</th>
+              <th style="text-align: center;">Trạng thái</th>
+              <th style="text-align: right;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for xe in xe_da_nang %}
+            <tr>
+              <td><strong><a href="{{ request.path }}{{ xe.vin }}/">{{ xe.vin }}</a></strong></td>
+              <td><strong>{{ xe.xe__ten_xe }}</strong></td>
+              <td>{{ xe.xe__phien_ban }}</td>
+              <td>{{ xe.xe__mau_sac }}</td>
+              <td><span class="badge">{{ xe.vi_tri_kho }}</span></td>
+              <td>{{ xe.chat_luong }}<br><small style="color: #64748b;">{{ xe.tinh_trang_gan }}</small></td>
+              <td><span class="badge badge--ok">{{ xe.phuong_an }}</span></td>
+              <td style="text-align: center;"><span class="badge badge--DA_DUYET">{{ xe.trang_thai_hien_thi }}</span></td>
+              <td style="text-align: right;">
+                <form method="post" action="{% url 'contracts:choose_suggested_vehicle' ma_hd xe.vin %}" style="margin: 0;">
+                  {% csrf_token %}
+                  <button class="btn btn--primary" type="submit" style="font-weight: 600;">
+                    <i class="bi bi-check2-circle"></i> Chốt xe & Gửi duyệt xuất kho
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <p class="source-empty">Kho Đà Nẵng hiện chưa có xe phù hợp tiêu chí hợp đồng này.</p>
+      {% endif %}
+    </section>
+
+    <!-- 2. BÌNH ĐỊNH / GIA LAI -->
+    <section id="xe-chi-nhanh" class="source-section" hidden>
+      <div class="source-header">
+        <div class="source-title" style="color: #059669;">
+          <i class="bi bi-truck"></i> Xe tại kho Bình Định / Gia Lai ({{ xe_chi_nhanh|length }} xe)
         </div>
-        {% else %}<p class="source-empty">Không có xe phù hợp.</p>{% endif %}
-      </section>
-      {% endfor %}
+        <p class="source-desc">
+          Xe sẵn sàng tại các kho chi nhánh. Khi chốt xe, hệ thống sẽ <strong>tạo lệnh lưu chuyển xe về Đà Nẵng</strong> để Sale Admin duyệt và vận chuyển.
+        </p>
+      </div>
+      {% if xe_chi_nhanh %}
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Số khung (VIN)</th>
+              <th>Dòng xe</th>
+              <th>Phiên bản</th>
+              <th>Màu sắc</th>
+              <th>Kho chi nhánh</th>
+              <th>Chất lượng / Gán HĐ</th>
+              <th>Phương án</th>
+              <th style="text-align: center;">Trạng thái</th>
+              <th style="text-align: right;">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for xe in xe_chi_nhanh %}
+            <tr>
+              <td><strong><a href="{{ request.path }}{{ xe.vin }}/">{{ xe.vin }}</a></strong></td>
+              <td><strong>{{ xe.xe__ten_xe }}</strong></td>
+              <td>{{ xe.xe__phien_ban }}</td>
+              <td>{{ xe.xe__mau_sac }}</td>
+              <td><span class="badge" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0;">{{ xe.vi_tri_kho }}</span></td>
+              <td>{{ xe.chat_luong }}<br><small style="color: #64748b;">{{ xe.tinh_trang_gan }}</small></td>
+              <td><span class="badge badge--wait">{{ xe.phuong_an }}</span></td>
+              <td style="text-align: center;"><span class="badge badge--DA_DUYET">{{ xe.trang_thai_hien_thi }}</span></td>
+              <td style="text-align: right;">
+                <form method="post" action="{% url 'contracts:choose_suggested_vehicle' ma_hd xe.vin %}" style="margin: 0;">
+                  {% csrf_token %}
+                  <button class="btn btn--primary" type="submit" style="background: #059669; border-color: #059669; font-weight: 600;">
+                    <i class="bi bi-arrow-left-right"></i> Chốt xe & Lập lệnh lưu chuyển
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <p class="source-empty">Kho Bình Định và Gia Lai hiện không có xe phù hợp tiêu chí.</p>
+      {% endif %}
+    </section>
   </div>
 </div>
 {% endblock %}
@@ -76,12 +247,22 @@
 document.querySelectorAll('.source-jump').forEach(link => {
   link.addEventListener('click', event => {
     event.preventDefault();
+    const targetId = link.getAttribute('href');
     document.querySelectorAll('.source-section').forEach(section => {
-      section.hidden = '#' + section.id !== link.getAttribute('href');
+      section.hidden = ('#' + section.id) !== targetId;
     });
-    document.querySelectorAll('.source-jump').forEach(item => item.setAttribute('aria-current', item === link ? 'true' : 'false'));
+    document.querySelectorAll('.source-jump').forEach(item => {
+      item.classList.toggle('active', item === link);
+    });
   });
 });
+
+// Nếu kho Đà Nẵng 0 xe mà chi nhánh có xe, tự động mở tab chi nhánh
+{% if not xe_da_nang and xe_chi_nhanh %}
+const tabCn = document.getElementById('tab-xe-chi-nhanh');
+if (tabCn) {
+  tabCn.click();
+}
+{% endif %}
 </script>
 {% endblock %}
-

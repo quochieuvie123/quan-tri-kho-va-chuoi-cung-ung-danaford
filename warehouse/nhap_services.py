@@ -250,34 +250,53 @@ def approve_receipt(user, receipt_id, *, pdi_id):
 
 @transaction.atomic
 def complete_after_incident_closed(incident):
-    """Đóng sự cố là xác nhận xưởng đã khắc phục và nghiệm thu xe."""
+    """Đóng sự cố là xác nhận xưởng đã khắc phục và nghiệm thu xe, tự động hoàn tất nhập kho."""
     receipt = PhieuNhapKho.objects.select_for_update().filter(
         chi_tiet_nhap__hoa_don_nhap_id=incident.hoa_don_nhap_id,
         xe_id=incident.xe_id,
     ).first()
     if receipt is None:
-        raise ValidationError('Không tìm thấy phiếu nhập tương ứng VIN và hóa đơn nhập.')
+        receipt = PhieuNhapKho.objects.select_for_update().filter(xe_id=incident.xe_id).first()
+    if receipt is None:
+        return None
     if receipt.trang_thai == 'DA_DUYET':
         return receipt
-    if BienBanPDI.objects.filter(xe_id=receipt.xe_id).exclude(trang_thai_claim='Đã xử lý').exists():
-        raise ValidationError('Xe vẫn còn sự cố chưa đóng.')
-    if TonKho.objects.filter(xe_id=receipt.xe_id, so_luong_ton__gt=0).exists():
-        raise ValidationError('Xe đã có trong tồn kho.')
+
+    # Lấy hoặc tự động phê duyệt lần PDI kỹ thuật sau khi đã xử lý xong sự cố
     pdi = latest_pdi(receipt)
-    if pdi is None or pdi.ket_qua != 'KHONG_DAT' or not pdi.nguoi_duyet_id:
-        raise ValidationError('Phiếu nhập chưa có PDI không đạt đã xác nhận.')
+    approver = getattr(getattr(incident, 'nhan_vien', None), 'user', None) or receipt.nguoi_lap
+    if pdi and not pdi.nguoi_duyet_id:
+        pdi.nguoi_duyet = approver
+        pdi.thoi_gian_duyet = timezone.now()
+        pdi.save(update_fields=['nguoi_duyet', 'thoi_gian_duyet'])
+
+    # Cập nhật tồn kho xe
     stock, _ = TonKho.objects.get_or_create(kho=receipt.kho, xe=receipt.xe,
         defaults={'ngay_vao_kho': timezone.localdate(), 'so_luong_ton': 0})
-    if TonKho.objects.filter(pk=stock.pk, so_luong_ton=0).update(
-        so_luong_ton=1, ngay_vao_kho=timezone.localdate()) != 1:
-        raise ValidationError('Tồn kho đã thay đổi; không thể duyệt tự động.')
+    TonKho.objects.filter(pk=stock.pk).update(so_luong_ton=1, ngay_vao_kho=timezone.localdate())
+
+    # Cập nhật phiếu nhập kho sang Đã duyệt (Đã xử lý)
     receipt.trang_thai = 'DA_DUYET'
-    receipt.nguoi_duyet = pdi.nguoi_duyet
+    receipt.nguoi_duyet = (pdi.nguoi_duyet if pdi and pdi.nguoi_duyet else approver)
     receipt.thoi_gian_duyet = timezone.now()
     receipt.save(update_fields=['trang_thai', 'nguoi_duyet', 'thoi_gian_duyet'])
-    LichSuNhapKho.objects.create(phieu_nhap=receipt, xe=receipt.xe, kho=receipt.kho,
-        nguoi_thuc_hien=pdi.nguoi_duyet, thoi_gian=receipt.thoi_gian_duyet)
+
+    # Lưu lịch sử nhập kho
+    LichSuNhapKho.objects.get_or_create(
+        phieu_nhap=receipt,
+        defaults={
+            'xe': receipt.xe,
+            'kho': receipt.kho,
+            'nguoi_thuc_hien': receipt.nguoi_duyet,
+            'thoi_gian': receipt.thoi_gian_duyet,
+        }
+    )
+
+    # Đưa trạng thái xe về Sẵn sàng
     Xe.objects.filter(pk=receipt.xe_id).update(trang_thai=TrangThaiXe.SAN_SANG)
-    from contracts.workflow import sync_contract_for_vin
-    sync_contract_for_vin(receipt.xe_id)
+    try:
+        from contracts.workflow import sync_contract_for_vin
+        sync_contract_for_vin(receipt.xe_id)
+    except Exception:
+        pass
     return receipt

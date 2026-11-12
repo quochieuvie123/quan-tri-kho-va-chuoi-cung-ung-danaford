@@ -25,20 +25,19 @@
 <div class="card">
   <p class="muted">{% if co_loc %}Tìm thấy {{ tong }} sự cố phù hợp.{% else %}Tổng cộng {{ tong }} sự cố.{% endif %}</p>
   <table class="tbl">
-    <thead><tr><th>Mã sự cố</th><th>Mã VIN xe</th><th>Loại lỗi</th><th>Tên ĐVVC</th><th>Ngày ghi nhận</th><th>Trạng thái</th><th></th></tr></thead>
+    <thead><tr><th>Mã sự cố</th><th>Mã VIN xe</th><th>Loại lỗi</th><th>Tên ĐVVC</th><th>Ngày ghi nhận</th><th>Trạng thái</th></tr></thead>
     <tbody>
     {% for bb in trang %}
       <tr>
-        <td><strong style="color: #1f4e79;">{{ bb.ma_pdi }}</strong></td>
-        <td>{{ bb.xe_id }}</td>
+        <td><a href="{% url 'incidents:chi_tiet' bb.ma_pdi %}" style="text-decoration: none; font-weight: 700; color: #0067c5;">{{ bb.ma_pdi }}</a></td>
+        <td><a href="{% url 'incidents:chi_tiet' bb.ma_pdi %}" style="text-decoration: none; color: inherit; font-weight: 600;">{{ bb.xe_id }}</a></td>
         <td>{{ bb.loai_su_co }}</td>
         <td>{{ bb.hoa_don_nhap.don_vi_van_chuyen.ten_dvvc }}</td>
         <td>{{ bb.ngay_ghi_nhan|date:"d/m/Y H:i" }}</td>
         <td><span class="badge {% if bb.nhan_tt == 'Đã đóng' %}badge--done{% else %}badge--open{% endif %}">{{ bb.nhan_tt }}</span></td>
-        <td><a class="btn btn--sm" href="{% url 'incidents:chi_tiet' bb.ma_pdi %}" style="padding: 4px 10px; font-size: 13px;"><i class="bi bi-eye"></i> Xem chi tiết</a></td>
       </tr>
     {% empty %}
-      <tr><td colspan="7" class="none">
+      <tr><td colspan="6" class="none">
         {% if co_loc %}Không tìm thấy kết quả phù hợp với điều kiện tìm kiếm{% else %}Hiện chưa có sự cố vận chuyển nào trong hệ thống{% endif %}
       </td></tr>
     {% endfor %}

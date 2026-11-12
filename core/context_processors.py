@@ -76,9 +76,28 @@ def layout(request):
         {"ma_kho": "KHO03", "ten": "Kho Gia Lai (KHO03)"},
     ]
 
+    # Số lượng phiếu yêu cầu đặt xe đang chờ Sale Admin (Quốc Hiếu) phê duyệt
+    try:
+        from orders.models import VehicleRequest
+        pending_orders_count = VehicleRequest.objects.filter(status=VehicleRequest.Status.PENDING).count()
+    except Exception:
+        pending_orders_count = 0
+
+    # Số lượng yêu cầu xuất kho đang chờ Sale Admin phê duyệt
+    try:
+        from database.models import PhieuXuatKho, TrangThaiPhieuXuat
+        pending_exports_count = PhieuXuatKho.objects.filter(trang_thai=TrangThaiPhieuXuat.CHO_DUYET).count()
+    except Exception:
+        pending_exports_count = 0
+
+    total_pending_admin = pending_orders_count + pending_exports_count
+
     return {
         "menu_items": items,
         "role_info": role_info,
+        "pending_orders_count": pending_orders_count,
+        "pending_exports_count": pending_exports_count,
+        "total_pending_admin": total_pending_admin,
         "current_kho": current_kho,
         "current_cn": current_cn,
         "ds_kho_header": ds_kho_header,

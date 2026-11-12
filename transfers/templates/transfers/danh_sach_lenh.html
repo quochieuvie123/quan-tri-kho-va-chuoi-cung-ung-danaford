@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/transfers.css' %}">
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+    <div class="page-header">
+        <div>
+            <h1 class="page-header__title">Danh sách lệnh lưu chuyển xe</h1>
+            <p class="page-header__subtitle">Quản lý, theo dõi trạng thái và tiến độ xử lý các lệnh lưu chuyển nội bộ</p>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <a href="{% url 'transfers:index' %}" class="btn btn--primary">
+                <i class="bi bi-plus-lg"></i> Lập lệnh lưu chuyển mới
+            </a>
+        </div>
+    </div>
+
+    <!-- Thanh tab điều hướng nhanh -->
+    <div class="transfer-tabs">
+        <a href="{% url 'transfers:index' %}" class="transfer-tab">
+            <i class="bi bi-box-seam"></i> Tồn kho khả dụng & Chọn xe
+        </a>
+        <a href="{% url 'transfers:index' %}?tab=da-chon" class="transfer-tab">
+            <i class="bi bi-check2-circle"></i> Xe đã chọn
+        </a>
+        <a href="{% url 'transfers:danh_sach_lenh' %}" class="transfer-tab active">
+            <i class="bi bi-card-checklist"></i> Danh sách lệnh lưu chuyển
+        </a>
+    </div>
+
+    <!-- Bộ lọc trạng thái & tìm kiếm -->
+    <div class="card" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <a href="{% url 'transfers:danh_sach_lenh' %}{% if tu_khoa %}?q={{ tu_khoa }}{% endif %}"
+                   class="btn {% if not trang_thai %}btn--primary{% else %}btn--light{% endif %}" style="padding: 7px 16px; font-size: 13px;">
+                    Tất cả
+                </a>
+                <a href="{% url 'transfers:danh_sach_lenh' %}?trang_thai=NHAP{% if tu_khoa %}&q={{ tu_khoa }}{% endif %}"
+                   class="btn {% if trang_thai == 'NHAP' %}btn--primary{% else %}btn--light{% endif %}" style="padding: 7px 16px; font-size: 13px;">
+                    Bản nháp
+                </a>
+                <a href="{% url 'transfers:danh_sach_lenh' %}?trang_thai=DA_GUI{% if tu_khoa %}&q={{ tu_khoa }}{% endif %}"
+                   class="btn {% if trang_thai == 'DA_GUI' %}btn--primary{% else %}btn--light{% endif %}" style="padding: 7px 16px; font-size: 13px;">
+                    Đã gửi
+                </a>
+                <a href="{% url 'transfers:danh_sach_lenh' %}?trang_thai=DA_XAC_NHAN{% if tu_khoa %}&q={{ tu_khoa }}{% endif %}"
+                   class="btn {% if trang_thai == 'DA_XAC_NHAN' %}btn--primary{% else %}btn--light{% endif %}" style="padding: 7px 16px; font-size: 13px;">
+                    Đã xác nhận
+                </a>
+            </div>
+
+            <form method="GET" action="{% url 'transfers:danh_sach_lenh' %}" style="display: flex; gap: 8px; margin: 0;">
+                {% if trang_thai %}
+                <input type="hidden" name="trang_thai" value="{{ trang_thai }}">
+                {% endif %}
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ tu_khoa }}"
+                    placeholder="Tìm theo mã lệnh, kho, người lập..."
+                    class="input"
+                    style="min-width: 280px; padding: 7px 12px; font-size: 13px;"
+                >
+                <button type="submit" class="btn btn--primary" style="padding: 7px 14px; font-size: 13px;">
+                    <i class="bi bi-search"></i> Tìm kiếm
+                </button>
+                {% if tu_khoa %}
+                <a href="{% url 'transfers:danh_sach_lenh' %}{% if trang_thai %}?trang_thai={{ trang_thai }}{% endif %}" class="btn btn--light" style="padding: 7px 14px; font-size: 13px;">
+                    <i class="bi bi-x-circle"></i> Xóa lọc
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="table-wrap">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px; text-align: center;">STT</th>
+                        <th>Mã lệnh</th>
+                        <th>Ngày lập</th>
+                        <th>Kho xuất</th>
+                        <th>Kho nhập</th>
+                        <th>Người lập</th>
+                        <th style="text-align: center;">Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lenh in ds_lenh %}
+                    <tr>
+                        <td style="text-align: center;">{{ forloop.counter }}</td>
+                        <td>
+                            <a href="{% url 'transfers:chi_tiet_lenh' lenh.id %}" style="text-decoration: none; font-weight: 700; color: #0b66c3;">
+                                {{ lenh.ma_lenh }}
+                            </a>
+                        </td>
+                        <td>{{ lenh.ngay_lap|date:"d/m/Y H:i" }}</td>
+                        <td><span class="badge">{{ lenh.kho_xuat.ma_kho }}</span> {{ lenh.kho_xuat.chi_nhanh }}</td>
+                        <td><span class="badge">{{ lenh.kho_nhap.ma_kho }}</span> {{ lenh.kho_nhap.chi_nhanh }}</td>
+                        <td>{{ lenh.nguoi_lap.username }}</td>
+                        <td style="text-align: center;">
+                            {% if lenh.trang_thai == "NHAP" %}
+                                <span class="badge badge--NHAP">
+                                    <i class="bi bi-pencil"></i> Bản nháp
+                                </span>
+                            {% elif lenh.trang_thai == "DA_GUI" %}
+                                <span class="badge badge--CHO_DUYET">
+                                    <i class="bi bi-send"></i> Đã gửi
+                                </span>
+                            {% elif lenh.trang_thai == "DA_XAC_NHAN" %}
+                                <span class="badge badge--DA_DUYET">
+                                    <i class="bi bi-check-circle"></i> Đã xác nhận
+                                </span>
+                            {% else %}
+                                <span class="badge">{{ lenh.trang_thai }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="empty">
+                            <i class="bi bi-card-checklist" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
+                            <p style="margin: 0; color: #64748b;">Không có lệnh lưu chuyển nào phù hợp.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <a href="{% url 'transfers:index' %}" class="btn btn--light">
+                <i class="bi bi-arrow-left"></i> Quay lại quản lý lưu chuyển
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -34,9 +34,18 @@
 
   <div class="topbar__right">
 
-    <a href="{% url 'dashboard:home' %}#khu-vuc-thong-bao" class="icon-btn" title="Xem thông báo cập nhật mới nhất" style="text-decoration:none;">
+    <a href="{% url 'dashboard:home' %}#khu-vuc-thong-bao" class="icon-btn" title="Xem thông báo cập nhật mới nhất" style="text-decoration:none; position: relative;">
 
       <i class="bi bi-bell"></i>
+      {% if total_pending_admin %}
+        <span style="position: absolute; top: -3px; right: -3px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; border-radius: 9999px; min-width: 17px; height: 17px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid #fff;" title="Có {{ total_pending_admin }} thông báo / yêu cầu chờ Sale Admin xử lý">
+          {{ total_pending_admin }}
+        </span>
+      {% elif pending_orders_count %}
+        <span style="position: absolute; top: -3px; right: -3px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; border-radius: 9999px; min-width: 17px; height: 17px; display: inline-flex; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid #fff;" title="Có {{ pending_orders_count }} phiếu yêu cầu đang chờ phê duyệt">
+          {{ pending_orders_count }}
+        </span>
+      {% endif %}
 
     </a>
 
