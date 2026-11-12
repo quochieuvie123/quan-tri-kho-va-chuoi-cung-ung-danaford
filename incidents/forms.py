@@ -45,7 +45,7 @@ class GhiNhanForm(forms.Form):
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         from transfers.models import LenhLuuChuyen
-        self.fields["lenh_luu_chuyen"].queryset = LenhLuuChuyen.objects.order_by("-ngay_tao")
+        self.fields["lenh_luu_chuyen"].queryset = LenhLuuChuyen.objects.order_by("-ngay_lap")
         self.nv_tai_khoan = getattr(user, "nhan_vien", None)
         if self.nv_tai_khoan:
             del self.fields["nhan_vien"]
