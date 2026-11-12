@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/transfers.css' %}">
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div>
+            <a class="btn btn--light" href="{% url 'transfers:index' %}">
+                <i class="bi bi-arrow-left"></i> Quay lại danh sách tồn kho
+            </a>
+        </div>
+    </div>
+
+    <!-- Thông tin xe -->
+    <div class="card">
+        <h2 class="section-title">Thông tin xe khả dụng trong kho</h2>
+        <div class="transfer-table-wrap">
+            <table class="transfer-table">
+                <thead>
+                    <tr>
+                        <th>Mã VIN</th>
+                        <th>Số máy</th>
+                        <th>Tên xe</th>
+                        <th>Loại xe</th>
+                        <th>Màu sắc</th>
+                        <th>Mã kho</th>
+                        <th>Tên kho hiện tại</th>
+                        <th style="text-align: center;">Tồn khả dụng</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>{{ ton_kho.xe.vin }}</strong></td>
+                        <td>{{ ton_kho.xe.so_may }}</td>
+                        <td>{{ ton_kho.xe.ten_xe }}</td>
+                        <td>{{ ton_kho.xe.loai_xe }}</td>
+                        <td>{{ ton_kho.xe.mau_sac|default:"Chưa cập nhật" }}</td>
+                        <td><span class="badge">{{ ton_kho.kho.ma_kho }}</span></td>
+                        <td>{{ ton_kho.kho.chi_nhanh }}</td>
+                        <td style="text-align: center; font-size: 16px; font-weight: 700; color: #0b66c3;">
+                            {{ ton_kho.so_luong_ton }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Thiết lập điều chuyển -->
+    <div class="card" style="max-width: 650px;">
+        <h2 class="section-title">Thiết lập thông tin lưu chuyển</h2>
+        
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="field" style="margin-bottom: 16px;">
+                <label>Kho xuất hiện tại:</label>
+                <input
+                    class="input"
+                    type="text"
+                    value="{{ ton_kho.kho.ma_kho }} - {{ ton_kho.kho.chi_nhanh }}"
+                    readonly
+                    style="background: #f1f5f9; cursor: not-allowed;"
+                >
+            </div>
+
+            <div class="field" style="margin-bottom: 16px;">
+                <label>Số lượng điều chuyển (Tối đa: {{ ton_kho.so_luong_ton }}):</label>
+                <input
+                    class="input"
+                    type="number"
+                    name="so_luong"
+                    min="1"
+                    max="{{ ton_kho.so_luong_ton }}"
+                    value="1"
+                    required
+                >
+            </div>
+
+            <div class="field" style="margin-bottom: 24px;">
+                <label>Kho chi nhánh tiếp nhận:</label>
+                <select class="select" name="kho_nhan" required>
+                    <option value="">-- Chọn kho chi nhánh đích --</option>
+                    {% for kho in ds_kho_nhan %}
+                    <option value="{{ kho.pk }}">
+                        {{ kho.ma_kho }} - {{ kho.chi_nhanh }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <button class="btn btn--primary" type="submit">
+                    <i class="bi bi-cart-plus"></i> Thêm vào danh sách điều chuyển
+                </button>
+                <a class="btn btn--light" href="{% url 'transfers:index' %}">
+                    Hủy bỏ
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,3 +1,4 @@
+from core.roles import get_user_role_info
 from django.shortcuts import render
 from django.db.models import Q
 from database.models import Kho, TonKho, Xe, TrangThaiXe
@@ -112,7 +113,7 @@ def danh_sach_ton_kho(request):
     context['danh_sach_da_chon'] = danh_sach_da_chon
     return render(
         request,
-        'danh_sach_ton_kho.html',
+        'transfers/danh_sach_ton_kho.html',
         context
     )
 
@@ -242,7 +243,7 @@ def chi_tiet_xe(request, id):
 
     return render(
         request,
-        'chi_tiet_xe.html',
+        'transfers/chi_tiet_xe.html',
         {
             'ton_kho': ton_kho,
             'ds_kho_nhan': ds_kho_nhan,
@@ -578,7 +579,7 @@ def xac_nhan_lenh_luu_chuyen(request):
     try:
         # Bước 1: Lấy nội dung HTML của phiếu PDF
         html = render_to_string(
-            "lenh_luu_chuyen_pdf.html",
+            "transfers/lenh_luu_chuyen_pdf.html",
             context
         )
 
@@ -676,7 +677,7 @@ def danh_sach_lenh_luu_chuyen(request):
             | Q(nguoi_lap__username__icontains=tu_khoa)
         )
 
-    return render(request, "danh_sach_lenh.html", {
+    return render(request, "transfers/danh_sach_lenh.html", {
         "ds_lenh": ds_lenh,
         "trang_thai": trang_thai,
         "tu_khoa": tu_khoa,
@@ -701,9 +702,18 @@ def chi_tiet_lenh_luu_chuyen(request, id):
         item.so_luong for item in lenh.chi_tiet.all()
     )
 
-    return render(request, "chi_tiet_lenh.html", {
+    role_info = get_user_role_info(request.user)
+    is_sale_admin = (
+        request.user.is_superuser
+        or request.user.is_staff
+        or (role_info and role_info.get("code") in ("ADMIN", "SALE_ADMIN"))
+        or request.user.groups.filter(name__in=["Sale Admin", "Quản lý"]).exists()
+    )
+
+    return render(request, "transfers/chi_tiet_lenh.html", {
         "lenh": lenh,
         "tong_so_luong": tong_so_luong,
+        "is_sale_admin": is_sale_admin,
     })
 
 
@@ -716,6 +726,20 @@ def cap_nhat_trang_thai_lenh(request, id):
         LenhLuuChuyen.objects.select_related("kho_xuat", "kho_nhap").prefetch_related("chi_tiet__xe"),
         pk=id
     )
+
+    role_info = get_user_role_info(request.user)
+    is_sale_admin = (
+        request.user.is_superuser
+        or request.user.is_staff
+        or (role_info and role_info.get("code") in ("ADMIN", "SALE_ADMIN"))
+        or request.user.groups.filter(name__in=["Sale Admin", "Quản lý"]).exists()
+    )
+    if not is_sale_admin:
+        messages.error(
+            request,
+            "Chỉ Quản trị viên (Sale Admin - Quốc Hiếu) mới có quyền phê duyệt & xác nhận tiếp nhận lệnh lưu chuyển."
+        )
+        return redirect("transfers:chi_tiet_lenh", id=id)
 
     if lenh.trang_thai != "DA_GUI":
         messages.error(
@@ -754,9 +778,26 @@ def cap_nhat_trang_thai_lenh(request, id):
             # 3. Trạng thái xe sẵn sàng tại kho mới
             Xe.objects.filter(pk=item.xe_id).update(trang_thai=TrangThaiXe.SAN_SANG)
 
+    try:
+        from dashboard.models import ThongBaoHoatDong
+        ten_admin = request.user.get_full_name() or request.user.username
+        creator_name = lenh.nguoi_lap.get_full_name() or lenh.nguoi_lap.username if lenh.nguoi_lap else "Chi nhánh"
+        ThongBaoHoatDong.objects.create(
+            user=request.user,
+            ten_nhan_vien=ten_admin,
+            chuc_vu="Quản trị viên (Sale Admin)",
+            hanh_dong=f"Đã xác nhận & phê duyệt Lệnh lưu chuyển {lenh.ma_lenh}",
+            chi_tiet=f"Sale Admin {ten_admin} đã phê duyệt lệnh lưu chuyển của {creator_name}. Toàn bộ xe đã được chuyển về {lenh.kho_nhap.ma_kho} và sẵn sàng xuất bán.",
+            module="transfers",
+            loai="tu_dong",
+            is_active=True,
+        )
+    except Exception as e:
+        logging.warning(f"Lỗi tạo thông báo: {e}")
+
     messages.success(
         request,
-        "Đã cập nhật trạng thái lệnh thành Đã xác nhận."
+        f"Đã xác nhận & phê duyệt lệnh {lenh.ma_lenh} thành công! Toàn bộ xe đã được chuyển về kho {lenh.kho_nhap.ma_kho}."
     )
 
     return redirect("transfers:chi_tiet_lenh", id=id)
@@ -952,7 +993,7 @@ def gui_lenh_luu_chuyen(request, id):
 
     try:
         html = render_to_string(
-            "lenh_luu_chuyen_pdf.html",
+            "transfers/lenh_luu_chuyen_pdf.html",
             {
                 "lenh": lenh,
                 "chi_tiet": chi_tiet,
@@ -1052,9 +1093,26 @@ def gui_lenh_luu_chuyen(request, id):
         request.session.pop("lenh_nhap_dang_sua_id", None)
         request.session.pop("ds_xe_luu_chuyen", None)
 
+    try:
+        from dashboard.models import ThongBaoHoatDong
+        ten_nguoi_gui = request.user.get_full_name() or request.user.username
+        chuc_vu = "Sale Chi Nhánh" if ("giang" in request.user.username.lower() or "tu" in request.user.username.lower()) else "Nhân viên"
+        ThongBaoHoatDong.objects.create(
+            user=request.user,
+            ten_nhan_vien=ten_nguoi_gui,
+            chuc_vu=chuc_vu,
+            hanh_dong=f"Đã gửi Lệnh lưu chuyển xe {lenh.ma_lenh} — Chờ Quốc Hiếu duyệt",
+            chi_tiet=f"{ten_nguoi_gui} ({chuc_vu}) đã lập lệnh điều chuyển xe từ {lenh.kho_xuat.ma_kho} sang {lenh.kho_nhap.ma_kho}. Hệ thống đã gửi thông báo đến Sale Admin (Quốc Hiếu) để kiểm tra, phê duyệt tiếp nhận.",
+            module="transfers",
+            loai="tu_dong",
+            is_active=True,
+        )
+    except Exception as e:
+        logging.warning(f"Lỗi tạo thông báo: {e}")
+
     messages.success(
         request,
-        f"Đã gửi lệnh {lenh.ma_lenh} thành công!"
+        f"Đã gửi lệnh {lenh.ma_lenh} thành công! Hệ thống đã phát thông báo toàn hệ thống và gửi đến Sale Admin (Quốc Hiếu) để phê duyệt tiếp nhận."
     )
 
     return redirect("transfers:chi_tiet_lenh", id=lenh.pk)

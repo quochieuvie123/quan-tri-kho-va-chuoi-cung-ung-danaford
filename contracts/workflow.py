@@ -7,11 +7,8 @@ from database.models import ChiTietHopDong, HopDong, TonKho, TrangThaiHopDong, T
 
 
 def matches_contract(car, contract):
-    return all((actual or '').strip().casefold() == (expected or '').strip().casefold() for actual, expected in (
-        (car.ten_xe, contract.dong_xe_yeu_cau),
-        (car.phien_ban, contract.phien_ban_yeu_cau),
-        (car.mau_sac, contract.mau_sac_yeu_cau),
-    ))
+    from .matching import matches_contract_smart
+    return matches_contract_smart(car, contract)
 
 
 @transaction.atomic

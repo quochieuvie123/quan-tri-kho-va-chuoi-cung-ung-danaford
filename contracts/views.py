@@ -1,3 +1,6 @@
+from .matching import car_matches_criterion, matches_contract_smart
+from database.models import PhieuXuatKho, LichSuXuatKho, NhanVien, TrangThaiPhieuXuat, Kho
+from django.utils import timezone
 """Backend III; GET chỉ tra cứu, không gán VIN hoặc giữ xe."""
 from datetime import date
 from django.conf import settings
@@ -169,18 +172,8 @@ def find_suitable(hd):
         criteria = remaining_requirements(hd, include_reserved=True)
     if not criteria:
         return [], [], 'Các yêu cầu xe đã được giao hoặc đang có phiếu giữ xe.'
-    query = Q()
-    for item in criteria:
-        q_item = Q()
-        if item.get('dong_xe'):
-            q_item &= Q(xe__ten_xe__iexact=item['dong_xe'])
-        if item.get('phien_ban'):
-            q_item &= Q(xe__phien_ban__iexact=item['phien_ban'])
-        if item.get('mau_sac'):
-            q_item &= Q(xe__mau_sac__iexact=item['mau_sac'])
-        if q_item:
-            query |= q_item
-    stocks = TonKho.objects.filter(query, so_luong_ton__gt=0, xe__trang_thai=TrangThaiXe.SAN_SANG).select_related('xe', 'kho__chi_nhanh').order_by('kho_id', 'xe_id')
+
+    stocks = TonKho.objects.filter(so_luong_ton__gt=0, xe__trang_thai=TrangThaiXe.SAN_SANG).select_related('xe', 'kho__chi_nhanh').order_by('kho_id', 'xe_id')
     results = []
     for row in stocks:
         if ChiTietHopDong.objects.filter(xe_id=row.xe_id).exclude(hop_dong=hd).exists():
@@ -188,19 +181,45 @@ def find_suitable(hd):
         from database.models import BienBanPDI
         if BienBanPDI.objects.filter(xe_id=row.xe_id).exclude(trang_thai_claim='Đã xử lý').exists():
             continue
-        item = stock_data(row)
         local = is_da_nang_branch(row.kho.chi_nhanh)
         if not local and row.kho.chi_nhanh_id not in getattr(settings, 'III_IV_TRANSFER_BRANCH_IDS', ['CN02', 'CN03']):
             continue
-        from .demand import matches
-        item['tieu_chi_chi_so'] = [i for i, criterion in enumerate(criteria) if matches(row.xe, criterion)]
-        item['phuong_an'] = 'Xe tại Đà Nẵng' if local else 'Cần lưu chuyển về Đà Nẵng'
-        item['uu_tien'] = 0 if local else 1
+
+        matched_criteria = []
+        is_exact_color_any = False
+        for i, criterion in enumerate(criteria):
+            match_mt, match_c = car_matches_criterion(row.xe, criterion)
+            if match_mt:
+                matched_criteria.append(i)
+                if match_c:
+                    is_exact_color_any = True
+
+        if not matched_criteria:
+            continue
+
+        item = stock_data(row)
+        item['tieu_chi_chi_so'] = matched_criteria
+        if local:
+            if is_exact_color_any:
+                item['phuong_an'] = 'Xe tại Đà Nẵng (Khớp màu)'
+                item['uu_tien'] = 0
+            else:
+                item['phuong_an'] = f'Xe tại Đà Nẵng (Màu: {row.xe.mau_sac or "Khác"})'
+                item['uu_tien'] = 2
+        else:
+            if is_exact_color_any:
+                item['phuong_an'] = 'Cần lưu chuyển về Đà Nẵng'
+                item['uu_tien'] = 1
+            else:
+                item['phuong_an'] = f'Lưu chuyển về ĐN (Màu: {row.xe.mau_sac or "Khác"})'
+                item['uu_tien'] = 3
         results.append(item)
-    local_counts = {i: sum(row['uu_tien'] == 0 and i in row['tieu_chi_chi_so'] for row in results) for i in range(len(criteria))}
-    results = [row for row in results if row['uu_tien'] == 0 or any(
+
+    local_counts = {i: sum(row['uu_tien'] in (0, 2) and i in row['tieu_chi_chi_so'] for row in results) for i in range(len(criteria))}
+    results = [row for row in results if row['uu_tien'] in (0, 2) or any(
         local_counts[i] < criteria[i].get('so_luong', 1) for i in row['tieu_chi_chi_so'])]
     results.sort(key=lambda item: (item['uu_tien'], item['kho_id'], item['vin']))
+
     # PYC đã sinh phiếu nhập nháp cũng là nguồn xe dự kiến, chưa phải tồn kho.
     from warehouse.models import PhieuNhapKho
     from .workflow import matches_contract
@@ -211,7 +230,7 @@ def find_suitable(hd):
         results.append({'vin': receipt.xe_id, 'xe__ten_xe': receipt.xe.ten_xe, 'xe__phien_ban': receipt.xe.phien_ban or '',
                         'xe__mau_sac': receipt.xe.mau_sac or '', 'kho_id': receipt.kho_id,
                         'vi_tri_kho': 'PYC / chờ PDI', 'chat_luong': 'Chưa có PDI', 'tinh_trang_gan': 'Chưa gán hợp đồng',
-                        'trang_thai_hien_thi': 'Chờ PDI', 'phuong_an': 'Xe từ PYC - chờ PDI', 'uu_tien': 2,
+                        'trang_thai_hien_thi': 'Chờ PDI', 'phuong_an': 'Xe từ PYC - chờ PDI', 'uu_tien': 4,
                         'tieu_chi_chi_so': list(range(len(criteria))), 'nguon_pyc': True})
     return criteria, results, None
 
@@ -314,8 +333,8 @@ def suitable_vehicles(request, ma_hd):
         return JsonResponse({'error': error}, status=400)
     payload = {'ma_hd': hd.pk, 'co_the_xem_hop_dong': has_role(request.user, SALE_ADMIN), 'tieu_chi_xac_nhan': criteria,
                          'xe_phu_hop': results, 'message': '' if results else 'Cả ba kho chưa có xe phù hợp. Hợp đồng chờ xe; nhu cầu được dùng để đối chiếu kỳ phân bổ tiếp theo.'}
-    payload['xe_da_nang'] = [row for row in results if row['uu_tien'] == 0]
-    payload['xe_chi_nhanh'] = [row for row in results if row['uu_tien'] == 1]
+    payload['xe_da_nang'] = [row for row in results if row['uu_tien'] in (0, 2)]
+    payload['xe_chi_nhanh'] = [row for row in results if row['uu_tien'] in (1, 3)]
     payload['nhom_xe'] = [
         {'id': 'xe-da-nang', 'tieu_de': 'Xe tại kho Đà Nẵng', 'xe': payload['xe_da_nang']},
         {'id': 'xe-chi-nhanh', 'tieu_de': 'Xe tại kho Bình Định / Gia Lai', 'xe': payload['xe_chi_nhanh']},
@@ -347,3 +366,108 @@ def suggested_vehicle_detail(request, ma_hd, vin):
     if wants_html(request):
         return render(request, 'contracts/vehicle_detail.html', {'page_title': 'Thông tin xe được đề xuất', 'ma_hd': hd.pk, 'xe': selected[0]})
     return JsonResponse({'ma_hd': hd.pk, 'xe': selected})
+
+
+@login_required
+@role_required(SALE_ADMIN)
+@permission_required('database.change_hopdong', raise_exception=True)
+@require_POST
+def hoan_tat_hop_dong(request, ma_hd):
+    """
+    Xác nhận giao xe và hoàn tất hợp đồng:
+    1. Trừ tồn kho về 0 (nhưng giữ bản ghi TonKho trong DB).
+    2. Cập nhật trạng thái xe thành DA_XUAT.
+    3. Tạo phiếu xuất kho & lưu lịch sử xuất kho để phục vụ báo cáo và thống kê.
+    4. Cập nhật hợp đồng thành HOAN_TAT.
+    5. Phát thông báo hoạt động hệ thống.
+    """
+    hd = get_object_or_404(HopDong.objects.select_for_update(), pk=ma_hd)
+    if hd.trang_thai == TrangThaiHopDong.HOAN_TAT:
+        messages.info(request, f'Hợp đồng {ma_hd} đã ở trạng thái hoàn tất.')
+        return redirect('contracts:detail', ma_hd=ma_hd)
+
+    lines = list(hd.chitiethopdong_set.select_related('xe').all())
+    if not lines:
+        messages.error(request, f'Hợp đồng {ma_hd} chưa được chốt xe. Vui lòng chọn xe đề xuất trước khi hoàn tất.')
+        return redirect('contracts:detail', ma_hd=ma_hd)
+
+    now = timezone.now()
+    nv = getattr(request.user, 'nhan_vien', None) or NhanVien.objects.first()
+
+    for line in lines:
+        car = line.xe
+        # 1. Trừ tồn kho (giữ lại bản ghi trong danh sách tồn kho với so_luong_ton = 0)
+        tk = TonKho.objects.filter(xe=car, so_luong_ton__gt=0).first()
+        if not tk:
+            tk = TonKho.objects.filter(xe=car).first()
+
+        if tk:
+            tk.so_luong_ton = 0
+            tk.save(update_fields=['so_luong_ton'])
+            kho_xuat = tk.kho
+        else:
+            kho_xuat = Kho.objects.get(pk='KHO01')
+            tk, _ = TonKho.objects.get_or_create(kho=kho_xuat, xe=car, defaults={'so_luong_ton': 0, 'ngay_vao_kho': now.date()})
+
+        # 2. Cập nhật trạng thái xe sang DA_XUAT
+        car.trang_thai = TrangThaiXe.DA_XUAT
+        car.save(update_fields=['trang_thai'])
+
+        # 3. Tạo/Cập nhật Phiếu xuất kho
+        ma_pxk = f"PXK-{hd.ma_hd}-{car.vin[-6:]}"[:50]
+        pxk, _ = PhieuXuatKho.objects.get_or_create(
+            chi_tiet_hop_dong=line,
+            defaults={
+                'ma_pxk': ma_pxk,
+                'kho': kho_xuat,
+                'nguoi_nhan': hd.khach_hang.ten_kh,
+                'nguoi_duyet': nv,
+                'ngay_duyet': now,
+                'ngay_xuat': now,
+                'trang_thai': TrangThaiPhieuXuat.DA_DUYET,
+                'ghi_chu': f"Xuất kho giao xe cho khách {hd.khach_hang.ten_kh} theo hợp đồng {hd.ma_hd}."
+            }
+        )
+        if pxk.trang_thai != TrangThaiPhieuXuat.DA_DUYET:
+            pxk.trang_thai = TrangThaiPhieuXuat.DA_DUYET
+            pxk.nguoi_duyet = nv
+            pxk.ngay_duyet = now
+            pxk.ngay_xuat = now
+            pxk.save(update_fields=['trang_thai', 'nguoi_duyet', 'ngay_duyet', 'ngay_xuat'])
+
+        # 4. Ghi lịch sử xuất kho để phục vụ thống kê & báo cáo
+        LichSuXuatKho.objects.create(
+            phieu_xuat=pxk,
+            xe=car,
+            kho=kho_xuat,
+            hanh_dong="XUAT_KHO_BAN_XE",
+            nguoi_thuc_hien=nv,
+            ghi_chu=f"Đã xuất bán xe {car.vin} cho hợp đồng {hd.ma_hd}. Tồn kho đã trừ và chuyển sang Đã xuất."
+        )
+
+    # 5. Cập nhật trạng thái hợp đồng thành HOAN_TAT
+    hd.trang_thai = TrangThaiHopDong.HOAN_TAT
+    hd.save(update_fields=['trang_thai'])
+
+    # 6. Tạo thông báo toàn hệ thống
+    try:
+        from dashboard.models import ThongBaoHoatDong
+        ten_admin = request.user.get_full_name() or request.user.username
+        ThongBaoHoatDong.objects.create(
+            user=request.user,
+            ten_nhan_vien=ten_admin,
+            chuc_vu="Quản trị viên (Sale Admin)",
+            hanh_dong=f"Đã xuất kho & Hoàn tất hợp đồng {hd.ma_hd}",
+            chi_tiet=f"Sale Admin {ten_admin} đã xác nhận giao xe và hoàn tất hợp đồng {hd.ma_hd} cho khách hàng {hd.khach_hang.ten_kh}. Xe đã xuất kho và tồn kho được cập nhật.",
+            module="contracts",
+            loai="tu_dong",
+            is_active=True,
+        )
+    except Exception:
+        pass
+
+    messages.success(
+        request,
+        f"Đã xác nhận xuất kho giao xe và hoàn tất hợp đồng {hd.ma_hd} thành công! Số lượng tồn kho đã được trừ và cập nhật vào thống kê báo cáo."
+    )
+    return redirect('contracts:detail', ma_hd=ma_hd)
