@@ -22,6 +22,7 @@ from xhtml2pdf import pisa
 
 from .models import Allocation, VehicleRequest, VehicleRequestItem
 from database.models import ChiNhanh
+from core.roles import get_user_role_info
 
 import os
 from django.contrib.staticfiles import finders
@@ -616,12 +617,7 @@ def lap_phieu_yeu_cau(request):
                 quantity=item["quantity"]
             )
 
-        # PYC là chứng từ nguồn: tạo ngay phiếu nhập nháp theo từng VIN để import PDI.
-        try:
-            from warehouse.order_intake import sync_request
-            sync_request(phieu.pk)
-        except Exception:
-            pass
+        # Ghi nhận phiếu nháp thành công, chờ người dùng gửi để Sale Admin duyệt trước khi chuyển sang kho.
 
     # 4. Chuyển sang trang xem phiếu
     return redirect(
@@ -631,12 +627,20 @@ def lap_phieu_yeu_cau(request):
 
 @login_required
 def phieu_yeu_cau(request, id):
+    role_info = get_user_role_info(request.user)
+    is_admin = request.user.is_superuser or (role_info and role_info.get("code") == "ADMIN")
 
-    phieu = get_object_or_404(
-        VehicleRequest.objects.prefetch_related("items__allocation"),
-        id=id,
-        created_by=request.user
-    )
+    if is_admin:
+        phieu = get_object_or_404(
+            VehicleRequest.objects.prefetch_related("items__allocation", "created_by"),
+            id=id
+        )
+    else:
+        phieu = get_object_or_404(
+            VehicleRequest.objects.prefetch_related("items__allocation", "created_by"),
+            id=id,
+            created_by=request.user
+        )
 
     tong_so_luong = (
         phieu.items.aggregate(total=Sum("quantity"))["total"] or 0
@@ -644,7 +648,8 @@ def phieu_yeu_cau(request, id):
 
     context = {
         "phieu": phieu,
-        "tong_so_luong": tong_so_luong
+        "tong_so_luong": tong_so_luong,
+        "is_sale_admin": is_admin,
     }
 
     return render(request, "phieu_yc.html", context)
@@ -660,17 +665,25 @@ def link_callback(uri, rel):
     return uri
 @login_required
 def gui_phieu_yeu_cau(request, id):
-    print("===== ĐÃ VÀO HÀM GỬI PHIẾU =====", flush=True)
     # 1. Chỉ cho phép gửi phiếu bằng phương thức POST
     if request.method != "POST":
         return HttpResponse(status=405)
 
-    # 2. Lấy phiếu yêu cầu đặt xe
-    phieu = get_object_or_404(
-        VehicleRequest.objects.prefetch_related("items__allocation"),
-        id=id,
-        created_by=request.user,
-    )
+    role_info = get_user_role_info(request.user)
+    is_admin = request.user.is_superuser or (role_info and role_info.get("code") == "ADMIN")
+
+    # 2. Lấy phiếu yêu cầu đặt xe (Người tạo hoặc Sale Admin)
+    if is_admin:
+        phieu = get_object_or_404(
+            VehicleRequest.objects.prefetch_related("items__allocation"),
+            id=id
+        )
+    else:
+        phieu = get_object_or_404(
+            VehicleRequest.objects.prefetch_related("items__allocation"),
+            id=id,
+            created_by=request.user,
+        )
 
     # 3. Chỉ cho phép gửi phiếu ở trạng thái DRAFT
     if phieu.status != VehicleRequest.Status.DRAFT:
@@ -699,127 +712,111 @@ def gui_phieu_yeu_cau(request, id):
             id=phieu.id
         )
 
-    # 6. Tạo nội dung HTML cho PDF
-    html = render_to_string(
-        "phieu_yc_pdf.html",
-        {
-            "phieu": phieu,
-            "tong_so_luong": tong_so_luong,
-        },
-    )
-
-    # 7. Chuyển HTML thành PDF
-    pdf_buffer = BytesIO()
-
-    result = pisa.CreatePDF(
-        html,
-        dest=pdf_buffer,
-        link_callback=link_callback
-    )
-
-    if result.err:
-        messages.error(
-            request,
-            "Không thể tạo file PDF."
-        )
-        return redirect(
-            "orders:phieu_yeu_cau",
-            id=phieu.id
-        )
-    # 8. Tạo email gửi đến Ford Việt Nam
-    email = EmailMessage(
-        subject=f"Phiếu yêu cầu đặt xe {phieu.request_number}",
-
-        body=(
-            "Kính gửi Công ty TNHH FORD Việt Nam,\n\n"
-            "DanaFord gửi phiếu yêu cầu đặt xe đính kèm.\n\n"
-            "Trân trọng."
-        ),
-
-        from_email=settings.DEFAULT_FROM_EMAIL,
-
-        to=getattr(settings, "ORDER_RECEIVER_EMAILS", []) or ["fordvn04@gmail.com"],
-    )
-
-
-    # 9. Đính kèm file PDF
-    email.attach(
-        f"Phieu_yeu_cau_{phieu.request_number}.pdf",
-        pdf_buffer.getvalue(),
-        "application/pdf",
-    )
-
-    # 10. Thực hiện gửi email
+    # 6. Tạo file PDF đính kèm (nếu môi trường hỗ trợ pisa)
+    pdf_data = None
     try:
-        print("===== BẮT ĐẦU GỬI EMAIL =====", flush=True)
-        print("Email gửi:", settings.DEFAULT_FROM_EMAIL)
-
-        print(
-            "SMTP username:",
-            settings.MAILERS["default"]["OPTIONS"]["username"]
+        html = render_to_string(
+            "phieu_yc_pdf.html",
+            {
+                "phieu": phieu,
+                "tong_so_luong": tong_so_luong,
+            },
         )
-
-        print(
-            "Có mật khẩu:",
-            bool(settings.MAILERS["default"]["OPTIONS"]["password"])
+        pdf_buffer = BytesIO()
+        result = pisa.CreatePDF(
+            html,
+            dest=pdf_buffer,
+            link_callback=link_callback
         )
-        so_email = email.send(fail_silently=False)
-
-        print("Số email gửi thành công:", so_email)
-
-        if so_email != 1:
-            raise RuntimeError(
-                "Máy chủ email chưa xác nhận gửi."
-            )
-
+        if not result.err:
+            pdf_data = pdf_buffer.getvalue()
     except Exception as e:
-        print("LỖI GỬI EMAIL:", repr(e))
+        print("Lưu ý: Không tạo được PDF phiếu yêu cầu:", repr(e))
 
-        messages.error(
-            request,
-            "Gửi email thất bại."
+    # 7. Thử gửi email nhưng không chặn workflow nếu chưa cấu hình SMTP
+    try:
+        email = EmailMessage(
+            subject=f"Phiếu yêu cầu đặt xe {phieu.request_number}",
+            body=(
+                "Kính gửi Công ty TNHH FORD Việt Nam,\n\n"
+                f"DanaFord gửi phiếu yêu cầu đặt xe {phieu.request_number} đính kèm.\n\n"
+                "Trân trọng."
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=getattr(settings, "ORDER_RECEIVER_EMAILS", []) or ["fordvn04@gmail.com"],
         )
+        if pdf_data:
+            email.attach(
+                f"Phieu_yeu_cau_{phieu.request_number}.pdf",
+                pdf_data,
+                "application/pdf",
+            )
+        email.send(fail_silently=True)
+    except Exception as e:
+        print("Lưu ý: Không thể gửi email (tiếp tục quy trình nội bộ):", repr(e))
 
-        return redirect(
-            "orders:phieu_yeu_cau",
-            id=phieu.id
-        )
-
-
-    # 11. Cập nhật trạng thái sau khi gửi thành công
+    # 8. Cập nhật trạng thái sang PENDING (Chờ Quốc Hiếu / Sale Admin duyệt)
     phieu.status = VehicleRequest.Status.PENDING
     phieu.sent_at = timezone.now()
-
     phieu.save(
         update_fields=["status", "sent_at"]
     )
 
-    # 12. Làm trống danh sách xe đang chọn trong Session
+    # 9. Làm trống danh sách xe đang chọn trong Session
     request.session.pop("selected_vehicles", None)
 
-    # 13. Thông báo gửi thành công
+    # 10. Tạo thông báo toàn hệ thống & gửi tới Quốc Hiếu (Sale Admin)
+    try:
+        from dashboard.models import ThongBaoHoatDong
+        ten_sender = request.user.get_full_name() or request.user.username
+        chuc_vu_sender = "Sale Chi Nhánh"
+        ThongBaoHoatDong.objects.create(
+            user=request.user,
+            ten_nhan_vien=ten_sender,
+            chuc_vu=chuc_vu_sender,
+            hanh_dong=f"Đã gửi Phiếu yêu cầu đặt xe {phieu.request_number} — Chờ Quốc Hiếu duyệt",
+            chi_tiet=f"{ten_sender} đã tạo và gửi phiếu đặt {tong_so_luong} xe lên hệ thống. Đang chờ Sale Admin (Quốc Hiếu Phan) kiểm tra, xác nhận và phê duyệt sang quy trình kho.",
+            module="orders",
+            loai="tu_dong",
+            is_active=True,
+        )
+    except Exception as e:
+        print("Lỗi tạo thông báo hoạt động:", repr(e))
+
+    # 11. Thông báo gửi thành công trên giao diện
     messages.success(
         request,
-        "Đã gửi phiếu yêu cầu đặt xe thành công! "
-        "Bạn có thể chọn xe để lập phiếu mới."
+        f"Đã gửi phiếu yêu cầu {phieu.request_number} thành công! Hệ thống đã phát thông báo và gửi đến Sale Admin (Quốc Hiếu) để kiểm tra, xác nhận tiếp nhận."
     )
 
-    # 14. Quay về giao diện tìm kiếm xe
-    return redirect("orders:vehicle_orders")
+    # 12. Xem chi tiết phiếu
+    return redirect("orders:phieu_yeu_cau", id=phieu.id)
 
 @login_required
 def danh_sach_yeu_cau(request):
-    phieu_yeu_cau = (
-        VehicleRequest.objects
-        .filter(created_by=request.user)
-        .order_by("-created_at")
-    )
+    role_info = get_user_role_info(request.user)
+    is_admin = request.user.is_superuser or (role_info and role_info.get("code") == "ADMIN")
+
+    if is_admin:
+        phieu_yeu_cau = (
+            VehicleRequest.objects
+            .select_related("created_by")
+            .order_by("-created_at")
+        )
+    else:
+        phieu_yeu_cau = (
+            VehicleRequest.objects
+            .filter(created_by=request.user)
+            .select_related("created_by")
+            .order_by("-created_at")
+        )
 
     return render(
         request,
         "danh_sach_yc.html",
         {
-            "phieu_yeu_cau": phieu_yeu_cau
+            "phieu_yeu_cau": phieu_yeu_cau,
+            "is_sale_admin": is_admin,
         }
     )
 
@@ -827,24 +824,31 @@ def danh_sach_yeu_cau(request):
 @login_required
 @require_POST
 def xac_nhan_phieu(request, id):
+    role_info = get_user_role_info(request.user)
+    is_admin = (
+        request.user.is_superuser
+        or (role_info and role_info.get("code") == "ADMIN")
+        or request.user.groups.filter(name__in=["Sale Admin", "Quản lý"]).exists()
+    )
 
-    # Chỉ người thuộc nhóm Sale Admin được xác nhận
-    if not request.user.groups.filter(
-        name="Sale Admin"
-    ).exists() and not request.user.is_superuser:
-        return HttpResponse(status=403)
+    # Chỉ người thuộc nhóm Sale Admin (Quốc Hiếu) được xác nhận
+    if not is_admin:
+        messages.error(
+            request,
+            "Chỉ Quản trị viên (Sale Admin - Quốc Hiếu) mới có quyền xác nhận phê duyệt phiếu yêu cầu đặt xe."
+        )
+        return redirect("orders:phieu_yeu_cau", id=id)
 
     phieu = get_object_or_404(
-        VehicleRequest,
-        id=id,
-        created_by=request.user
+        VehicleRequest.objects.prefetch_related("items__allocation"),
+        id=id
     )
 
     # Chỉ cho phép xác nhận phiếu đã gửi
     if phieu.status != VehicleRequest.Status.PENDING:
         messages.error(
             request,
-            "Chỉ có thể xác nhận phiếu đã gửi."
+            "Chỉ có thể xác nhận phiếu đang ở trạng thái chờ duyệt."
         )
         return redirect(
             "orders:phieu_yeu_cau",
@@ -853,15 +857,35 @@ def xac_nhan_phieu(request, id):
 
     phieu.status = VehicleRequest.Status.ACCEPTED
     phieu.save(update_fields=["status"])
+
+    # Đồng bộ sang Kho và tạo chứng từ nhập kho cho từng VIN
     try:
         from warehouse.order_intake import sync_request
         sync_request(phieu.pk)
-    except Exception:
-        pass
+    except Exception as e:
+        print("Lỗi sync_request sang kho:", repr(e))
+
+    # Phát thông báo toàn hệ thống đã phê duyệt
+    try:
+        from dashboard.models import ThongBaoHoatDong
+        ten_admin = request.user.get_full_name() or request.user.username
+        creator_name = phieu.created_by.get_full_name() or phieu.created_by.username if phieu.created_by else "Chi nhánh"
+        ThongBaoHoatDong.objects.create(
+            user=request.user,
+            ten_nhan_vien=ten_admin,
+            chuc_vu="Quản trị viên (Sale Admin)",
+            hanh_dong=f"Đã xác nhận & phê duyệt Phiếu yêu cầu {phieu.request_number}",
+            chi_tiet=f"Sale Admin {ten_admin} đã phê duyệt phiếu đặt xe của {creator_name}. Toàn bộ xe đã được chuyển sang Quản lý nhập kho và kiểm định PDI.",
+            module="orders",
+            loai="tu_dong",
+            is_active=True,
+        )
+    except Exception as e:
+        print("Lỗi tạo thông báo hoạt động khi duyệt:", repr(e))
 
     messages.success(
         request,
-        "Phiếu yêu cầu đã được xác nhận tiếp nhận."
+        f"Đã xác nhận & phê duyệt thành công phiếu yêu cầu {phieu.request_number}! Toàn bộ xe đã được chuyển sang Quản lý nhập kho."
     )
 
     return redirect(
