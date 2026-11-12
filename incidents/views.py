@@ -13,7 +13,7 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone
 
-from database.models import BienBanPDI, ChiTietNhap
+from database.models import BienBanPDI, ChiTietNhap, Xe
 
 from . import exports
 from .forms import GhiNhanForm, GuiYeuCauForm, KetQuaForm, LocForm
