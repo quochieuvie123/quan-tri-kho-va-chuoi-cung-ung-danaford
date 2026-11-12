@@ -170,7 +170,7 @@ def receipt_list(request):
                     'mau_sac': ct.xe.mau_sac,
                     'ma_phieu': f'Lệnh {ct.lenh.ma_lenh}',
                     'ten_kho': ct.lenh.kho_nhap.chi_nhanh.ten_cn if ct.lenh.kho_nhap and ct.lenh.kho_nhap.chi_nhanh else 'Đà Nẵng',
-                    'ngay_lap': ct.lenh.ngay_giao or ct.lenh.ngay_duyet or ct.lenh.ngay_tao,
+                    'ngay_lap': ct.lenh.ngay_giao or ct.lenh.ngay_duyet or ct.lenh.ngay_lap,
                     'nguoi_lap': (ct.lenh.nguoi_duyet.get_full_name() if ct.lenh.nguoi_duyet else None) or (ct.lenh.nguoi_giao.get_full_name() if ct.lenh.nguoi_giao else 'Sale Admin đã duyệt'),
                     'trang_thai_hien_thi': 'Chờ lập phiếu nhập',
                     'badge_class': 'badge--CHO_DUYET',
