@@ -304,6 +304,11 @@ class InventoryService:
                 if ct.phan_loai == PhanLoaiKiemKe.DANG_XU_LY_NGHIEP_VU:
                     continue
 
+                current_car = Xe.objects.select_for_update().get(pk=ct.xe_id)
+                current_stock = TonKho.objects.select_for_update().filter(kho=phieu.kho, xe=ct.xe).first()
+                if current_car.trang_thai != TrangThaiXe.SAN_SANG or current_stock is None or current_stock.so_luong_ton != ct.ton_he_thong:
+                    raise InventoryError('Tồn kho hoặc trạng thái VIN đã thay đổi sau kiểm đếm; cần kiểm đếm lại.')
+
                 ton, _ = TonKho.objects.get_or_create(
                     kho=phieu.kho,
                     xe=ct.xe,

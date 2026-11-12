@@ -6,6 +6,9 @@ Cung cấp toàn bộ hàm nghiệp vụ cốt lõi cho phân hệ Quản lý Xu
 import uuid
 from decimal import Decimal
 from django.db import transaction
+from django.db.models import Q
+from core.iii_iv_access import is_da_nang_branch
+from contracts.demand import matches, remaining_requirements
 from django.utils import timezone
 
 from database.models import (
@@ -23,22 +26,23 @@ class XuatKhoError(Exception):
 class XuatKhoService:
 
     @staticmethod
-    def doi_chieu_hop_dong_hoa_don(ma_hd: str) -> dict:
+    def doi_chieu_hop_dong_hoa_don(ma_hd: str, vin=None) -> dict:
         """
         Nghiệp vụ UC-LPXK-02 & UC-LPXK-04:
         Đối chiếu thông tin hợp đồng và hóa đơn bán hàng.
-        Nếu khớp: Cập nhật trạng thái hợp đồng -> DU_DIEU_KIEN_XUAT.
+        Chỉ đối chiếu; GET không thay đổi trạng thái hợp đồng.
         """
         try:
             hop_dong = HopDong.objects.select_related('khach_hang', 'chi_nhanh').get(ma_hd=ma_hd)
         except HopDong.DoesNotExist:
             raise XuatKhoError(f"Hợp đồng {ma_hd} không tồn tại trên hệ thống.")
 
-        # Lấy hóa đơn bán hàng tương ứng của khách hàng và chi nhánh này
-        hoa_don = HoaDonBan.objects.filter(
-            khach_hang=hop_dong.khach_hang,
-            chi_nhanh=hop_dong.chi_nhanh
-        ).order_by('-ngay_ban').first()
+        # Bảng HoaDonBan không có MaHD theo tài liệu; đối chiếu bằng khách hàng,
+        # chi nhánh và VIN tại ChiTietBan.
+        hoa_don = HoaDonBan.objects.filter(khach_hang=hop_dong.khach_hang, chi_nhanh=hop_dong.chi_nhanh)
+        if vin is not None:
+            hoa_don = hoa_don.filter(chitietban__xe_id=vin)
+        hoa_don = hoa_don.order_by('ma_hdb').first()
 
         if not hoa_don:
             raise XuatKhoError(f"Chưa có hóa đơn bán hàng hợp lệ cho hợp đồng {ma_hd}.")
@@ -52,6 +56,8 @@ class XuatKhoService:
         is_khop = True
         ly_do_sai_lech = []
 
+        if hoa_don.khach_hang_id != hop_dong.khach_hang_id or hoa_don.chi_nhanh_id != hop_dong.chi_nhanh_id:
+            raise XuatKhoError('Hóa đơn không khớp khách hàng hoặc chi nhánh hợp đồng.')
         if not hoa_don.so_hoa_don:
             is_khop = False
             ly_do_sai_lech.append("Hóa đơn chưa có số chứng từ hợp lệ.")
@@ -62,11 +68,6 @@ class XuatKhoService:
 
         if not is_khop:
             raise XuatKhoError(f"Đối chiếu thất bại: {'; '.join(ly_do_sai_lech)}")
-
-        # Nếu khớp, cập nhật trạng thái hợp đồng thành Đủ điều kiện xuất kho (UC-LPXK-04)
-        if hop_dong.trang_thai == TrangThaiHopDong.CHO_XU_LY:
-            hop_dong.trang_thai = TrangThaiHopDong.DU_DIEU_KIEN_XUAT
-            hop_dong.save(update_fields=['trang_thai'])
 
         return {
             "hop_le": True,
@@ -85,14 +86,6 @@ class XuatKhoService:
         Tra cứu xe tồn kho Đà Nẵng phù hợp tiêu chí hợp đồng và CHƯA BỊ KHÓA BỞI BẤT KỲ NGHIỆP VỤ NÀO.
         """
         hop_dong = HopDong.objects.get(ma_hd=ma_hd)
-
-        # Lấy thông tin dòng xe dự kiến từ chi tiết bán của hóa đơn liên quan
-        hoa_don = HoaDonBan.objects.filter(khach_hang=hop_dong.khach_hang).first()
-        xe_chot = None
-        if hoa_don:
-            ct = ChiTietBan.objects.filter(hoa_don_ban=hoa_don).first()
-            if ct:
-                xe_chot = ct.xe
 
         # Query xe trong kho Đà Nẵng có số lượng tồn > 0
         qs = TonKho.objects.filter(
@@ -113,14 +106,8 @@ class XuatKhoService:
         ).values_list('chi_tiet_hop_dong__xe_id', flat=True)
         qs = qs.exclude(xe__vin__in=xe_dang_giu_ids)
 
-        # Nếu hợp đồng đã chỉ định chính xác dòng xe/loại xe
-        if xe_chot:
-            qs = qs.filter(
-                xe__loai_xe=xe_chot.loai_xe,
-                xe__mau_sac=xe_chot.mau_sac
-            )
-
-        return [item.xe for item in qs]
+        requirements = remaining_requirements(hop_dong, include_reserved=True)
+        return [item.xe for item in qs if any(matches(item.xe, row) for row in requirements)]
 
     @classmethod
     def lap_phieu_xuat_kho(cls, ma_hd: str, vin: str, ma_kho: str, ma_nv_lap: str, nguoi_nhan: str, ghi_chu: str = "") -> PhieuXuatKho:
@@ -138,14 +125,11 @@ class XuatKhoService:
             except HopDong.DoesNotExist:
                 raise XuatKhoError(f"Hợp đồng {ma_hd} không tồn tại.")
 
-            # Kiểm tra Exception Flow: lọc qua chi_tiet_hop_dong__hop_dong
-            if PhieuXuatKho.objects.filter(
-                chi_tiet_hop_dong__hop_dong=hop_dong
-            ).exclude(trang_thai=TrangThaiPhieuXuat.DA_HUY).exists():
-                raise XuatKhoError(f"Hợp đồng {ma_hd} đã có phiếu xuất kho đang xử lý hoặc đã duyệt. Không thể tạo phiếu thứ hai.")
-
-            if hop_dong.trang_thai not in [TrangThaiHopDong.DU_DIEU_KIEN_XUAT, TrangThaiHopDong.CHO_XU_LY]:
-                raise XuatKhoError(f"Hợp đồng {ma_hd} đang ở trạng thái '{hop_dong.get_trang_thai_display()}', chưa sẵn sàng xuất kho.")
+            if hop_dong.trang_thai == TrangThaiHopDong.HOAN_TAT:
+                raise XuatKhoError('Hợp đồng đã hoàn tất.')
+            if not is_da_nang_branch(hop_dong.chi_nhanh):
+                raise XuatKhoError('Chỉ xuất xe cho hợp đồng tại Đà Nẵng.')
+            cls.doi_chieu_hop_dong_hoa_don(ma_hd, vin=vin)
 
             # 2. Khóa và kiểm tra Xe
             try:
@@ -155,6 +139,17 @@ class XuatKhoService:
 
             if xe.trang_thai != TrangThaiXe.SAN_SANG:
                 raise XuatKhoError(f"Xe số VIN {vin} hiện không khả dụng (Trạng thái: {xe.get_trang_thai_display()}). Đã có phiếu khác giữ chỗ hoặc xe đang gặp sự cố.")
+
+            requirements = remaining_requirements(hop_dong, include_reserved=True)
+            requirement = next((row for row in requirements if matches(xe, row)), None)
+            if requirement is None:
+                raise XuatKhoError('VIN không khớp nhu cầu còn thiếu của hợp đồng.')
+            if ChiTietHopDong.objects.filter(xe=xe).exclude(hop_dong=hop_dong).exists():
+                raise XuatKhoError('VIN đã liên kết hợp đồng khác.')
+            if not is_da_nang_branch(Kho.objects.get(pk=ma_kho).chi_nhanh):
+                raise XuatKhoError('Phải lưu chuyển xe về Đà Nẵng trước khi xuất.')
+            if not ChiTietBan.objects.filter(hoa_don_ban__khach_hang=hop_dong.khach_hang, hoa_don_ban__chi_nhanh=hop_dong.chi_nhanh, xe=xe).exists():
+                raise XuatKhoError('Hóa đơn liên kết chưa có đúng VIN xuất.')
 
             # 3. Kiểm tra tồn kho
             try:
@@ -175,15 +170,15 @@ class XuatKhoService:
             ct_hd, _ = ChiTietHopDong.objects.get_or_create(hop_dong=hop_dong, xe=xe)
 
             # 7. Tạo phiếu xuất kho qua chi_tiet_hop_dong
-            phieu_xuat = PhieuXuatKho.objects.create(
-                ma_pxk=ma_pxk,
-                chi_tiet_hop_dong=ct_hd,
-                kho_id=ma_kho,
-                nguoi_lap_id=ma_nv_lap,
-                nguoi_nhan=nguoi_nhan.strip(),
-                ghi_chu=ghi_chu,
-                trang_thai=TrangThaiPhieuXuat.CHO_DUYET
-            )
+            old = PhieuXuatKho.objects.filter(chi_tiet_hop_dong=ct_hd).first()
+            if old and old.trang_thai != TrangThaiPhieuXuat.DA_HUY:
+                raise XuatKhoError('VIN đã có phiếu xuất chưa hủy.')
+            phieu_xuat, _ = PhieuXuatKho.objects.update_or_create(
+                chi_tiet_hop_dong=ct_hd, defaults=dict(
+                    ma_pxk=old.pk if old else ma_pxk, kho_id=ma_kho,
+                    nguoi_lap_id=ma_nv_lap, nguoi_nhan=nguoi_nhan.strip(), ghi_chu=ghi_chu,
+                    trang_thai=TrangThaiPhieuXuat.CHO_DUYET,
+                    nguoi_duyet=None, ngay_duyet=None, ngay_xuat=None))
 
             # 8. Cập nhật trạng thái Xe & Hợp đồng
             xe.trang_thai = TrangThaiXe.GIU_CHO_XUAT
@@ -232,6 +227,12 @@ class XuatKhoService:
             if ton_kho.so_luong_ton <= 0 or xe.trang_thai == TrangThaiXe.DA_XUAT:
                 raise XuatKhoError(f"Xe {xe.vin} đã bị xuất hoặc không còn khả dụng trong kho.")
 
+            cls.doi_chieu_hop_dong_hoa_don(phieu.chi_tiet_hop_dong.hop_dong_id, vin=xe.pk)
+            if xe.trang_thai != TrangThaiXe.GIU_CHO_XUAT or BienBanPDI.objects.filter(xe=xe).exclude(trang_thai_claim='Đã xử lý').exists():
+                raise XuatKhoError('Xe không còn được giữ hợp lệ hoặc đang có sự cố.')
+            if not ChiTietBan.objects.filter(hoa_don_ban__khach_hang=phieu.chi_tiet_hop_dong.hop_dong.khach_hang, hoa_don_ban__chi_nhanh=phieu.chi_tiet_hop_dong.hop_dong.chi_nhanh, xe=xe).exists():
+                raise XuatKhoError('Hóa đơn không còn liên kết đúng VIN.')
+
             # Trừ tồn kho về 0
             ton_kho.so_luong_ton = 0
             ton_kho.save(update_fields=['so_luong_ton'])
@@ -242,7 +243,7 @@ class XuatKhoService:
 
             # Cập nhật hợp đồng sang Hoàn tất
             hop_dong = phieu.chi_tiet_hop_dong.hop_dong
-            hop_dong.trang_thai = TrangThaiHopDong.HOAN_TAT
+            hop_dong.trang_thai = TrangThaiHopDong.DANG_XUAT_KHO
             hop_dong.save(update_fields=['trang_thai'])
 
             # Cập nhật phiếu xuất
@@ -252,6 +253,8 @@ class XuatKhoService:
             phieu.ngay_duyet = now
             phieu.ngay_xuat = now
             phieu.save(update_fields=['trang_thai', 'nguoi_duyet', 'ngay_duyet', 'ngay_xuat'])
+            hop_dong.trang_thai = TrangThaiHopDong.DANG_XUAT_KHO if remaining_requirements(hop_dong) else TrangThaiHopDong.HOAN_TAT
+            hop_dong.save(update_fields=['trang_thai'])
 
             # Ghi nhật ký lịch sử
             LichSuXuatKho.objects.create(
@@ -285,7 +288,8 @@ class XuatKhoService:
                 xe.save(update_fields=['trang_thai'])
 
             hop_dong = phieu.chi_tiet_hop_dong.hop_dong
-            hop_dong.trang_thai = TrangThaiHopDong.DU_DIEU_KIEN_XUAT
+            still_waiting = PhieuXuatKho.objects.filter(chi_tiet_hop_dong__hop_dong=hop_dong, trang_thai=TrangThaiPhieuXuat.CHO_DUYET).exclude(pk=phieu.pk).exists()
+            hop_dong.trang_thai = TrangThaiHopDong.DANG_XUAT_KHO if still_waiting else TrangThaiHopDong.DU_DIEU_KIEN_XUAT
             hop_dong.save(update_fields=['trang_thai'])
 
             phieu.trang_thai = TrangThaiPhieuXuat.DA_HUY

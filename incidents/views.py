@@ -280,6 +280,11 @@ def cap_nhat(request, ma_pdi):
             hs.save()
             bb.trang_thai_claim = DA_XU_LY
             bb.save(update_fields=["trang_thai_claim"])
+            try:
+                from warehouse.nhap_services import complete_after_incident_closed
+                complete_after_incident_closed(bb)
+            except Exception:
+                pass
             mo_khoa_xe_khi_dong_su_co(bb.xe)
             ten = dict(HoSoSuCo.HINH_THUC)[hs.hinh_thuc_khac_phuc]
             tien = f" - {hs.so_tien_boi_thuong:,.0f} đ" if hs.so_tien_boi_thuong is not None else ""

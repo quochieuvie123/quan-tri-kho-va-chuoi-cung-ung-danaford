@@ -14,6 +14,8 @@ class TrangThaiXe(models.TextChoices):
 
 class TrangThaiHopDong(models.TextChoices):
     CHO_XU_LY = "CHO_XU_LY", "Chờ xử lý"
+    CHO_PHAN_BO = "CHO_PHAN_BO", "Chờ lịch phân bổ"
+    CHO_XE_VE_KHO = "CHO_XE_VE_KHO", "Đã phân bổ - chờ xe về kho"
     DU_DIEU_KIEN_XUAT = "DU_DIEU_KIEN_XUAT", "Đủ điều kiện xuất kho"
     DANG_XUAT_KHO = "DANG_XUAT_KHO", "Đang xuất kho"
     HOAN_TAT = "HOAN_TAT", "Hoàn tất"

@@ -14,6 +14,7 @@ class PhieuNhapKho(models.Model):
         DA_DUYET = 'DA_DUYET', 'Đã duyệt'
 
     ma_phieu = models.CharField(max_length=50, unique=True)
+    # Nguồn nhập duy nhất theo tài liệu CSDL: ChiTietNhap (MaHDN, MaSP).
     chi_tiet_nhap = models.ForeignKey('database.ChiTietNhap', on_delete=models.PROTECT)
     xe = models.ForeignKey('database.Xe', on_delete=models.PROTECT)
     kho = models.ForeignKey('database.Kho', on_delete=models.PROTECT)
@@ -37,10 +38,9 @@ class PhieuNhapKho(models.Model):
         super().clean()
         if not isinstance(self.ma_phieu, str) or not self.ma_phieu.strip():
             raise ValidationError('Mã phiếu không được rỗng.')
-        if self.chi_tiet_nhap_id:
-            line = self.chi_tiet_nhap
-            if line.xe_id != self.xe_id or line.so_luong_nhap != 1:
-                raise ValidationError('Chi tiết nhập phải đúng một chiếc và đúng VIN.')
+        line = self.chi_tiet_nhap
+        if line.xe_id != self.xe_id or line.so_luong_nhap != 1:
+            raise ValidationError('Chi tiết nhập phải đúng một chiếc và đúng VIN.')
 
     def __str__(self):
         return self.ma_phieu

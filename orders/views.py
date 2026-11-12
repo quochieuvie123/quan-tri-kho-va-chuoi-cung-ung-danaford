@@ -247,7 +247,7 @@ def allocation_list(request):
 
                             if c_name in ("VIN", "SỐ KHUNG", "CHASSIS NUMBER", "CHASSIS_NO") and "vin" not in col_map:
                                 col_map["vin"] = c_idx
-                            elif c_name in ("ORDER_NO", "ORDER NO", "ORDER NUMBER", "ORDER_NUMBER", "SỐ ĐƠN ĐẶT HÀNG", "SỐ ĐƠN HÀNG", "SO DON HANG", "ORDER") and "order_number" not in col_map:
+                            elif c_name in ("ORDER_NO", "ORDER NO", "ORDER NUMBER", "ORDER_NUMBER", "SỐ ĐƠN ĐẶT HÀNG", "SỐ ĐƠN HÀNG", "SO DON HANG", "ORDER", "PO", "PO NO", "PO_NO", "PO NUMBER", "PO_NUMBER", "P/O", "MÃ ĐƠN", "MA DON", "MÃ ĐƠN HÀNG", "MA DON HANG", "MÃ ĐẶT HÀNG", "MA DAT HANG") and "order_number" not in col_map:
                                 col_map["order_number"] = c_idx
                             elif c_name in ("MODEL CODE", "MODEL_CODE", "MÃ DÒNG XE", "MÃ XE", "MA DONG XE", "VEHICLE CODE", "VEHICLE_CODE") and "vehicle_code" not in col_map:
                                 col_map["vehicle_code"] = c_idx
@@ -616,6 +616,13 @@ def lap_phieu_yeu_cau(request):
                 quantity=item["quantity"]
             )
 
+        # PYC là chứng từ nguồn: tạo ngay phiếu nhập nháp theo từng VIN để import PDI.
+        try:
+            from warehouse.order_intake import sync_request
+            sync_request(phieu.pk)
+        except Exception:
+            pass
+
     # 4. Chuyển sang trang xem phiếu
     return redirect(
         "orders:phieu_yeu_cau",
@@ -846,6 +853,11 @@ def xac_nhan_phieu(request, id):
 
     phieu.status = VehicleRequest.Status.ACCEPTED
     phieu.save(update_fields=["status"])
+    try:
+        from warehouse.order_intake import sync_request
+        sync_request(phieu.pk)
+    except Exception:
+        pass
 
     messages.success(
         request,

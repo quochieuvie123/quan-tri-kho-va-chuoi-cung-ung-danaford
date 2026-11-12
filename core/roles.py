@@ -199,8 +199,8 @@ def get_user_role_info(user):
         role_code = USER_ROLE_MAPPING.get(username, None)
         if not role_code:
             # Fallback từ Django Groups nếu có
-            group_name = user.groups.values_list("name", flat=True).first()
-            if group_name in ["Quản lý", "Admin", "Quản trị viên"]:
+            groups = set(user.groups.values_list("name", flat=True))
+            if groups.intersection({"Quản lý", "Admin", "Quản trị viên", "III-IV Sale Admin"}):
                 role_code = "ADMIN"
             else:
                 role_code = "SALE"

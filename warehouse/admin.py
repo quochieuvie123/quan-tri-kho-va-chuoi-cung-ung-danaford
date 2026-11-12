@@ -18,19 +18,24 @@ class PhieuNhapKhoAdmin(admin.ModelAdmin):
     readonly_fields = ('xe', 'trang_thai', 'nguoi_lap', 'ngay_lap', 'nguoi_duyet', 'thoi_gian_duyet')
     actions = ('gui_cho_duyet', 'duyet_nhap_kho')
 
+    def has_add_permission(self, request):
+        return False
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return tuple(field.name for field in self.model._meta.fields)
+        return self.readonly_fields
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
     def save_model(self, request, obj, form, change):
         if change:
-            obj.full_clean()
-            obj.save()
-            return
+            raise PermissionDenied('Không sửa trực tiếp phiếu đã lập; xử lý qua dịch vụ nghiệp vụ.')
         created = services.create_receipt(request.user, ma_phieu=obj.ma_phieu,
-            chi_tiet_nhap_id=obj.chi_tiet_nhap_id, kho_id=obj.kho_id, ngay_nhap=obj.ngay_nhap)
-        obj.pk = created.pk
-        obj.xe_id = created.xe_id
-        obj.trang_thai = created.trang_thai
-        obj.nguoi_lap_id = created.nguoi_lap_id
-        obj.ngay_lap = created.ngay_lap
-        obj._state.adding = False
+            chi_tiet_nhap_id=obj.chi_tiet_nhap_id,
+            kho_id=obj.kho_id, ngay_nhap=obj.ngay_nhap)
+        obj.__dict__.update(created.__dict__)
 
     @admin.action(description='Gửi các phiếu đã chọn sang chờ duyệt')
     def gui_cho_duyet(self, request, queryset):
@@ -67,15 +72,14 @@ class KetQuaPDIAdmin(admin.ModelAdmin):
     readonly_fields = ('nguoi_kiem_tra', 'thoi_gian_kiem_tra', 'nguoi_duyet', 'thoi_gian_duyet')
     actions = ('duyet_ket_qua_pdi',)
 
-    def save_model(self, request, obj, form, change):
-        current = services.latest_pdi(obj.phieu_nhap)
-        created = services.record_pdi(request.user, obj.phieu_nhap_id,
-            tinh_trang=obj.tinh_trang, ket_qua=obj.ket_qua, ghi_chu=obj.ghi_chu,
-            hang_muc=obj.hang_muc, pdi_id=current.pk if current else None)
-        obj.pk = created.pk
-        obj.nguoi_kiem_tra_id = created.nguoi_kiem_tra_id
-        obj.thoi_gian_kiem_tra = created.thoi_gian_kiem_tra
-        obj._state.adding = False
+    def has_add_permission(self, request):
+        return False
+
+    def get_readonly_fields(self, request, obj=None):
+        return tuple(field.name for field in self.model._meta.fields)
+
+    def has_change_permission(self, request, obj=None):
+        return request.method in ('GET', 'HEAD', 'OPTIONS')
 
     @admin.action(description='Duyệt các kết quả PDI đã chọn')
     def duyet_ket_qua_pdi(self, request, queryset):

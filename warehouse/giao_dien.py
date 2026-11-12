@@ -149,9 +149,7 @@ def xuat_lap(request):
             xe_kha_dung = XuatKhoService.lay_danh_sach_xe_kha_dung(ma_hd=ma_hd, ma_kho=ma_kho)
         except HopDong.DoesNotExist:
             messages.error(request, f"Hợp đồng {ma_hd} không tồn tại.")
-    chua_co_phieu = HopDong.objects.exclude(
-        chitiethopdong__phieuxuatkho__trang_thai__in=[TrangThaiPhieuXuat.CHO_DUYET, TrangThaiPhieuXuat.DA_DUYET]
-    ).exclude(trang_thai=TrangThaiHopDong.HOAN_TAT).select_related("khach_hang").order_by("ma_hd")
+    chua_co_phieu = HopDong.objects.exclude(trang_thai=TrangThaiHopDong.HOAN_TAT).select_related("khach_hang").order_by("ma_hd")
     return render(request, "warehouse/xuat_lap.html", _ngu_canh(
         request, "Lập phiếu xuất kho", ma_hd=ma_hd, ds_hop_dong=chua_co_phieu, xe_kha_dung=xe_kha_dung,
         doi_chieu=doi_chieu))
