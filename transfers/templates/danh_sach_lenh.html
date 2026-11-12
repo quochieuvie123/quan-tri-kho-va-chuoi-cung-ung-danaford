@@ -33,6 +33,52 @@
         </a>
     </div>
 
+    <!-- Bộ lọc trạng thái & tìm kiếm -->
+    <div class="card" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <a href="{% url 'transfers:danh_sach_lenh' %}{% if tu_khoa %}?q={{ tu_khoa }}{% endif %}"
+                   class="btn {% if not trang_thai %}btn--primary{% else %}btn--light{% endif %}" style="padding: 7px 16px; font-size: 13px;">
+                    Tất cả
+                </a>
+                <a href="{% url 'transfers:danh_sach_lenh' %}?trang_thai=NHAP{% if tu_khoa %}&q={{ tu_khoa }}{% endif %}"
+                   class="btn {% if trang_thai == 'NHAP' %}btn--primary{% else %}btn--light{% endif %}" style="padding: 7px 16px; font-size: 13px;">
+                    Bản nháp
+                </a>
+                <a href="{% url 'transfers:danh_sach_lenh' %}?trang_thai=DA_GUI{% if tu_khoa %}&q={{ tu_khoa }}{% endif %}"
+                   class="btn {% if trang_thai == 'DA_GUI' %}btn--primary{% else %}btn--light{% endif %}" style="padding: 7px 16px; font-size: 13px;">
+                    Đã gửi
+                </a>
+                <a href="{% url 'transfers:danh_sach_lenh' %}?trang_thai=DA_XAC_NHAN{% if tu_khoa %}&q={{ tu_khoa }}{% endif %}"
+                   class="btn {% if trang_thai == 'DA_XAC_NHAN' %}btn--primary{% else %}btn--light{% endif %}" style="padding: 7px 16px; font-size: 13px;">
+                    Đã xác nhận
+                </a>
+            </div>
+
+            <form method="GET" action="{% url 'transfers:danh_sach_lenh' %}" style="display: flex; gap: 8px; margin: 0;">
+                {% if trang_thai %}
+                <input type="hidden" name="trang_thai" value="{{ trang_thai }}">
+                {% endif %}
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ tu_khoa }}"
+                    placeholder="Tìm theo mã lệnh, kho, người lập..."
+                    class="input"
+                    style="min-width: 280px; padding: 7px 12px; font-size: 13px;"
+                >
+                <button type="submit" class="btn btn--primary" style="padding: 7px 14px; font-size: 13px;">
+                    <i class="bi bi-search"></i> Tìm kiếm
+                </button>
+                {% if tu_khoa %}
+                <a href="{% url 'transfers:danh_sach_lenh' %}{% if trang_thai %}?trang_thai={{ trang_thai }}{% endif %}" class="btn btn--light" style="padding: 7px 14px; font-size: 13px;">
+                    <i class="bi bi-x-circle"></i> Xóa lọc
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
     <div class="card">
         <div class="table-wrap">
             <table class="data-table">
@@ -82,7 +128,7 @@
                     <tr>
                         <td colspan="7" class="empty">
                             <i class="bi bi-card-checklist" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
-                            <p style="margin: 0; color: #64748b;">Chưa có lệnh lưu chuyển nào được tạo trong hệ thống.</p>
+                            <p style="margin: 0; color: #64748b;">Không có lệnh lưu chuyển nào phù hợp.</p>
                         </td>
                     </tr>
                     {% endfor %}
