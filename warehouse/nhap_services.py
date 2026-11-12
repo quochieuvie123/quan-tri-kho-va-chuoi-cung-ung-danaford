@@ -167,8 +167,12 @@ def create_receipt(user, *, ma_phieu, kho_id, ngay_nhap, chi_tiet_nhap_id=None, 
     else:
         from transfers.models import LenhLuuChuyen
         lenh = LenhLuuChuyen.objects.select_for_update().select_related('kho_nhap__chi_nhanh').get(pk=lenh_luu_chuyen_id)
-        if lenh.trang_thai != LenhLuuChuyen.TrangThai.DA_GIAO_DEN_DA_NANG:
-            raise ValidationError('Chỉ được tạo phiếu nhập cho lệnh lưu chuyển đã giao đến Đà Nẵng.')
+        if lenh.trang_thai not in (
+            LenhLuuChuyen.TrangThai.DA_DUYET,
+            LenhLuuChuyen.TrangThai.DANG_VAN_CHUYEN,
+            LenhLuuChuyen.TrangThai.DA_GIAO_DEN_DA_NANG,
+        ):
+            raise ValidationError('Chỉ được tạo phiếu nhập cho lệnh lưu chuyển đã được phê duyệt.')
         if lenh.kho_nhap_id != kho.pk and lenh.kho_nhap.chi_nhanh_id != kho.chi_nhanh_id:
             raise ValidationError('Lệnh lưu chuyển không có điểm đến tại kho nhận này.')
         if not xe_id:
@@ -182,8 +186,12 @@ def create_receipt(user, *, ma_phieu, kho_id, ngay_nhap, chi_tiet_nhap_id=None, 
         line = None
 
     car = Xe.objects.select_for_update().get(pk=target_vin)
-    if car.trang_thai in (TrangThaiXe.DA_XUAT, TrangThaiXe.GIU_CHO_XUAT):
-        raise ValidationError('Xe đã xuất hoặc đang giữ cho phiếu xuất.')
+    if has_hdn:
+        if car.trang_thai in (TrangThaiXe.DA_XUAT, TrangThaiXe.GIU_CHO_XUAT):
+            raise ValidationError('Xe đã xuất hoặc đang giữ cho phiếu xuất.')
+    else:
+        if car.trang_thai == TrangThaiXe.DA_XUAT:
+            raise ValidationError('Xe đã xuất.')
     if PhieuNhapKho.objects.filter(xe_id=target_vin, trang_thai__in=['NHAP', 'CHO_DUYET']).exists():
         raise ValidationError('VIN này đang có phiếu nhập chưa hoàn tất.')
     if TonKho.objects.filter(xe_id=target_vin, so_luong_ton__gt=0).exists():
@@ -286,8 +294,12 @@ def approve_receipt(user, receipt_id, *, pdi_id):
         lenh = receipt.lenh_luu_chuyen
         if not lenh or not lenh.chi_tiet.filter(xe_id=receipt.xe_id).exists():
             raise ValidationError('Chứng từ nguồn không còn khớp VIN.')
-    if receipt.xe.trang_thai in (TrangThaiXe.DA_XUAT, TrangThaiXe.GIU_CHO_XUAT):
-        raise ValidationError('Trạng thái xe không cho phép nhập kho.')
+    if receipt.loai_nguon == PhieuNhapKho.LoaiNguon.HOA_DON:
+        if receipt.xe.trang_thai in (TrangThaiXe.DA_XUAT, TrangThaiXe.GIU_CHO_XUAT):
+            raise ValidationError('Trạng thái xe không cho phép nhập kho.')
+    else:
+        if receipt.xe.trang_thai == TrangThaiXe.DA_XUAT:
+            raise ValidationError('Trạng thái xe không cho phép nhập kho.')
     if BienBanPDI.objects.filter(xe_id=receipt.xe_id).exclude(trang_thai_claim='Đã xử lý').exists():
         raise ValidationError('VIN còn sự cố chưa hoàn tất.')
     if TonKho.objects.filter(xe_id=receipt.xe_id, so_luong_ton__gt=0).exists():

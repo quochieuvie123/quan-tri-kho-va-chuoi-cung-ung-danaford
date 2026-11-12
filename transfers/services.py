@@ -7,7 +7,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from database.models import TonKho, Xe, TrangThaiXe, DonViVanChuyen, ChiTietHopDong
+from database.models import TonKho, Xe, TrangThaiXe, DonViVanChuyen, ChiTietHopDong, HopDong, PhieuXuatKho, TrangThaiHopDong, TrangThaiPhieuXuat
 from dashboard.models import ThongBaoHoatDong
 from .models import LenhLuuChuyen, ChiTietLenhLuuChuyen
 
@@ -93,8 +93,16 @@ def tao_lenh_luu_chuyen(user, kho_xuat, kho_nhap, ds_xe=None):
     now = timezone.now()
     thang_nam = now.strftime("%Y%m")
     prefix = f"LC-{thang_nam}-"
-    so_hien_tai = LenhLuuChuyen.objects.filter(ma_lenh__startswith=prefix).count() + 1
-    ma_lenh = f"{prefix}{so_hien_tai:03d}"
+    existing_nums = []
+    for m in LenhLuuChuyen.objects.filter(ma_lenh__startswith=prefix).values_list("ma_lenh", flat=True):
+        suffix = m[len(prefix):]
+        if suffix.isdigit():
+            existing_nums.append(int(suffix))
+    max_num = max(existing_nums, default=0) + 1
+    ma_lenh = f"{prefix}{max_num:03d}"
+    while LenhLuuChuyen.objects.filter(ma_lenh=ma_lenh).exists():
+        max_num += 1
+        ma_lenh = f"{prefix}{max_num:03d}"
 
     lenh = LenhLuuChuyen.objects.create(
         ma_lenh=ma_lenh,
@@ -210,9 +218,30 @@ def duyet_lenh_luu_chuyen(user, order_id):
 
     for item in lines:
         car = Xe.objects.select_for_update().get(pk=item.xe_id)
-        stock = TonKho.objects.select_for_update().filter(kho=order.kho_xuat, xe=car, so_luong_ton__gt=0).first()
-        if not stock:
-            raise ValidationError(f"Xe {car.vin} không còn tồn tại kho {order.kho_xuat.ma_kho}.")
+        stock = TonKho.objects.select_for_update().filter(kho=order.kho_xuat, xe=car).first()
+        if stock and stock.so_luong_ton > 0:
+            stock.so_luong_ton = max(0, stock.so_luong_ton - 1)
+            stock.save(update_fields=["so_luong_ton"])
+        car.trang_thai = TrangThaiXe.DANG_LUU_CHUYEN
+        car.save(update_fields=["trang_thai"])
+
+        # Hợp đồng chuyển sang trạng thái HOÀN TẤT
+        linked_contracts = HopDong.objects.select_for_update().filter(
+            chitiethopdong__xe=car
+        ).distinct()
+        for hd in linked_contracts:
+            hd.trang_thai = TrangThaiHopDong.HOAN_TAT
+            hd.save(update_fields=["trang_thai"])
+            PhieuXuatKho.objects.filter(
+                chi_tiet_hop_dong__hop_dong=hd,
+                trang_thai=TrangThaiPhieuXuat.CHO_DUYET
+            ).update(trang_thai=TrangThaiPhieuXuat.DA_DUYET)
+            ghi_thong_bao(
+                user,
+                f"Hoàn tất hợp đồng {hd.ma_hd}",
+                f"Hợp đồng {hd.ma_hd} đã chuyển trạng thái Hoàn tất sau khi lệnh lưu chuyển xe {car.vin} được Sale Admin phê duyệt.",
+                loai="THANH_CONG"
+            )
 
     order.trang_thai = LenhLuuChuyen.TrangThai.DA_DUYET
     order.nguoi_duyet = user
@@ -222,7 +251,7 @@ def duyet_lenh_luu_chuyen(user, order_id):
     ghi_thong_bao(
         user,
         f"Phê duyệt lệnh lưu chuyển {order.ma_lenh}",
-        f"Sale Admin đã phê duyệt lệnh lưu chuyển {order.ma_lenh}. Kho nguồn {order.kho_xuat.ma_kho} chuẩn bị xuất xe.",
+        f"Sale Admin đã phê duyệt lệnh lưu chuyển {order.ma_lenh}. Hợp đồng liên quan đã chuyển trạng thái Hoàn tất, xe đã sẵn sàng tiếp nhận tại Quản lý nhập kho.",
         loai="THANH_CONG"
     )
     return order
@@ -346,12 +375,9 @@ def xac_nhan_xuat_kho_nguon(user, order_id, *, don_vi_van_chuyen_id, bien_so_xe,
     for item in lines:
         car = Xe.objects.select_for_update().get(pk=item.xe_id)
         stock = TonKho.objects.select_for_update().filter(kho=order.kho_xuat, xe=car).first()
-        if not stock or stock.so_luong_ton < 1:
-            raise ValidationError(f"Xe {car.vin} không còn tồn tại kho xuất {order.kho_xuat.ma_kho}.")
-
-        # 1. TRỪ TỒN KHO NGUỒN (đảm bảo tồn không âm)
-        stock.so_luong_ton = max(0, stock.so_luong_ton - 1)
-        stock.save(update_fields=["so_luong_ton"])
+        if stock and stock.so_luong_ton > 0:
+            stock.so_luong_ton = max(0, stock.so_luong_ton - 1)
+            stock.save(update_fields=["so_luong_ton"])
 
         # 2. CHUYỂN TRẠNG THÁI XE SANG ĐANG LƯU CHUYỂN
         car.trang_thai = TrangThaiXe.DANG_LUU_CHUYEN

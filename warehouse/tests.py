@@ -189,7 +189,7 @@ class InventoryConflictPreventionTests(TestCase):
         )
         self.ton = TonKho.objects.create(
             kho=self.kho, xe=self.xe,
-            ngay_vao_kho=timezone.now().date() - timedelta(days=45),
+            ngay_vao_kho=timezone.localdate() - timedelta(days=45),
             so_luong_ton=1, vi_tri="A01"
         )
     def test_05_tinh_tuoi_ton_chinh_xac(self):
@@ -278,40 +278,40 @@ class TransferToIntakeWorkflowTests(TestCase):
         ChiTietLenhLuuChuyen.objects.create(lenh=self.lenh, xe=self.xe)
 
     def test_01_nhap_tu_lenh_khi_xe_chua_den_da_nang(self):
-        """Không cho phép lập phiếu nhập kho khi lệnh lưu chuyển chưa giao đến Đà Nẵng."""
+        """Không cho phép lập phiếu nhập kho khi lệnh lưu chuyển chưa được phê duyệt."""
         from django.core.exceptions import ValidationError
         from transfers.models import LenhLuuChuyen
         from warehouse import nhap_services as services
 
-        # Thử với trạng thái DANG_VAN_CHUYEN
-        self.lenh.trang_thai = LenhLuuChuyen.TrangThai.DANG_VAN_CHUYEN
+        # Thử với trạng thái NHAP (chưa duyệt)
+        self.lenh.trang_thai = LenhLuuChuyen.TrangThai.NHAP
         self.lenh.save(update_fields=['trang_thai'])
 
         with self.assertRaises(ValidationError) as ctx:
             services.create_receipt(
                 self.user,
-                ma_phieu="PN-TEST-CHUA-DEN",
+                ma_phieu="PN-TEST-CHUA-DUYET",
                 kho_id=self.kho_dn.pk,
                 ngay_nhap=timezone.localdate(),
                 lenh_luu_chuyen_id=self.lenh.pk,
                 xe_id=self.xe.vin
             )
-        self.assertIn("đã giao đến Đà Nẵng", str(ctx.exception))
+        self.assertIn("đã được phê duyệt", str(ctx.exception))
 
-        # Thử với trạng thái DA_DUYET
-        self.lenh.trang_thai = LenhLuuChuyen.TrangThai.DA_DUYET
+        # Thử với trạng thái CHO_DUYET (chưa duyệt)
+        self.lenh.trang_thai = LenhLuuChuyen.TrangThai.CHO_DUYET
         self.lenh.save(update_fields=['trang_thai'])
 
         with self.assertRaises(ValidationError) as ctx:
             services.create_receipt(
                 self.user,
-                ma_phieu="PN-TEST-CHUA-DEN-2",
+                ma_phieu="PN-TEST-CHUA-DUYET-2",
                 kho_id=self.kho_dn.pk,
                 ngay_nhap=timezone.localdate(),
                 lenh_luu_chuyen_id=self.lenh.pk,
                 xe_id=self.xe.vin
             )
-        self.assertIn("đã giao đến Đà Nẵng", str(ctx.exception))
+        self.assertIn("đã được phê duyệt", str(ctx.exception))
 
     def test_02_nhap_trung_vin_tu_lenh(self):
         """Chống nhập trùng VIN: không cho lập 2 phiếu nhập cùng VIN hoặc khi VIN đã có tồn kho."""

@@ -150,7 +150,11 @@ def receipt_list(request):
 
         from transfers.models import ChiTietLenhLuuChuyen, LenhLuuChuyen
         arrived_transfers = ChiTietLenhLuuChuyen.objects.filter(
-            lenh__trang_thai=LenhLuuChuyen.TrangThai.DA_GIAO_DEN_DA_NANG,
+            lenh__trang_thai__in=[
+                LenhLuuChuyen.TrangThai.DA_DUYET,
+                LenhLuuChuyen.TrangThai.DANG_VAN_CHUYEN,
+                LenhLuuChuyen.TrangThai.DA_GIAO_DEN_DA_NANG,
+            ],
             lenh__kho_nhap__chi_nhanh_id='CN01'
         ).exclude(
             xe_id__in=known_vins
@@ -166,8 +170,8 @@ def receipt_list(request):
                     'mau_sac': ct.xe.mau_sac,
                     'ma_phieu': f'Lệnh {ct.lenh.ma_lenh}',
                     'ten_kho': ct.lenh.kho_nhap.chi_nhanh.ten_cn if ct.lenh.kho_nhap and ct.lenh.kho_nhap.chi_nhanh else 'Đà Nẵng',
-                    'ngay_lap': ct.lenh.ngay_giao or ct.lenh.ngay_tao,
-                    'nguoi_lap': ct.lenh.nguoi_giao.get_full_name() if ct.lenh.nguoi_giao else 'Tài xế bàn giao',
+                    'ngay_lap': ct.lenh.ngay_giao or ct.lenh.ngay_duyet or ct.lenh.ngay_tao,
+                    'nguoi_lap': (ct.lenh.nguoi_duyet.get_full_name() if ct.lenh.nguoi_duyet else None) or (ct.lenh.nguoi_giao.get_full_name() if ct.lenh.nguoi_giao else 'Sale Admin đã duyệt'),
                     'trang_thai_hien_thi': 'Chờ lập phiếu nhập',
                     'badge_class': 'badge--CHO_DUYET',
                     'pending_order': True,
@@ -313,7 +317,11 @@ def eligible_vehicles(request):
 
     # Bổ sung xe từ lệnh lưu chuyển đã giao đến Đà Nẵng
     transfer_rows = ChiTietLenhLuuChuyen.objects.filter(
-        lenh__trang_thai=LenhLuuChuyen.TrangThai.DA_GIAO_DEN_DA_NANG,
+        lenh__trang_thai__in=[
+            LenhLuuChuyen.TrangThai.DA_DUYET,
+            LenhLuuChuyen.TrangThai.DANG_VAN_CHUYEN,
+            LenhLuuChuyen.TrangThai.DA_GIAO_DEN_DA_NANG,
+        ],
         lenh__kho_nhap__chi_nhanh_id='CN01'
     ).exclude(
         xe__tonkho__so_luong_ton__gt=0
@@ -365,7 +373,11 @@ def receipt_create_page(request):
     ).select_related('xe', 'hoa_don_nhap__nha_cung_cap').order_by('pk')
 
     xe_luu_chuyen = ChiTietLenhLuuChuyen.objects.filter(
-        lenh__trang_thai=LenhLuuChuyen.TrangThai.DA_GIAO_DEN_DA_NANG,
+        lenh__trang_thai__in=[
+            LenhLuuChuyen.TrangThai.DA_DUYET,
+            LenhLuuChuyen.TrangThai.DANG_VAN_CHUYEN,
+            LenhLuuChuyen.TrangThai.DA_GIAO_DEN_DA_NANG,
+        ],
         lenh__kho_nhap__chi_nhanh_id='CN01'
     ).exclude(
         xe__phieunhapkho__trang_thai__in=['NHAP', 'CHO_DUYET', 'DA_DUYET']

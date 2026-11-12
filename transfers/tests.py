@@ -189,10 +189,10 @@ class TransfersWorkflowTests(TestCase):
         self.assertEqual(self.ton1.so_luong_ton, 1)
         self.assertFalse(TonKho.objects.filter(kho=self.kho_danang, xe=self.xe1).exists())
 
-        # Bước 2: Duyệt lệnh -> Tồn Bình Định vẫn = 1
+        # Bước 2: Duyệt lệnh -> Tồn Bình Định được trừ về 0, Xe chuyển DANG_LUU_CHUYEN
         services.duyet_lenh_luu_chuyen(self.user_admin, lenh.pk)
         self.ton1.refresh_from_db()
-        self.assertEqual(self.ton1.so_luong_ton, 1)
+        self.assertEqual(self.ton1.so_luong_ton, 0)
 
         # Bước 3: Kho nguồn xuất xe -> Tồn Bình Định bị trừ về 0, Xe chuyển DANG_LUU_CHUYEN
         services.xac_nhan_xuat_kho_nguon(
@@ -260,3 +260,55 @@ class TransfersWorkflowTests(TestCase):
 
         self.xe2.refresh_from_db()
         self.assertEqual(self.xe2.trang_thai, TrangThaiXe.SAN_SANG)
+
+    def test_duyet_lenh_hoan_tat_hop_dong_va_ma_lenh_unique(self):
+        """Kiểm tra: Duyệt lệnh lưu chuyển tự động hoàn tất hợp đồng liên kết và sinh mã lệnh không bị trùng."""
+        from database.models import HopDong, ChiTietHopDong, KhachHang, TrangThaiHopDong
+        from warehouse import nhap_services
+
+        kh = KhachHang.objects.create(ma_kh="KH_TEST_LC", ten_kh="Khách Hàng Test LC", sdt_kh="0905999999")
+        hd = HopDong.objects.create(
+            ma_hd="HD-TEST-LC-01",
+            ngay_ky=date.today(),
+            khach_hang=kh,
+            chi_nhanh=self.cn_danang,
+            so_tien_coc=10000000,
+            trang_thai=TrangThaiHopDong.CHO_XE_VE_KHO
+        )
+        self.xe2.mau_sac = "Trắng"
+        self.xe2.save()
+        ChiTietHopDong.objects.create(hop_dong=hd, xe=self.xe2)
+
+        # Tạo lệnh lưu chuyển cho xe2
+        lenh1 = services.tao_lenh_luu_chuyen(
+            self.user_binhdinh,
+            kho_xuat=self.kho_binhdinh,
+            kho_nhap=self.kho_danang,
+            ds_xe=[self.xe2]
+        )
+        services.gui_lenh_luu_chuyen(self.user_binhdinh, lenh1.pk)
+
+        # Duyệt lệnh: Hợp đồng phải chuyển sang HOAN_TAT
+        services.duyet_lenh_luu_chuyen(self.user_admin, lenh1.pk)
+        hd.refresh_from_db()
+        self.assertEqual(hd.trang_thai, TrangThaiHopDong.HOAN_TAT)
+
+        # Tạo lệnh tiếp theo để kiểm tra tính duy nhất của mã lệnh
+        lenh2 = services.tao_lenh_luu_chuyen(
+            self.user_binhdinh,
+            kho_xuat=self.kho_binhdinh,
+            kho_nhap=self.kho_danang,
+            ds_xe=None
+        )
+        self.assertNotEqual(lenh1.ma_lenh, lenh2.ma_lenh)
+
+        # Xe sẵn sàng lập phiếu nhập tại kho Đà Nẵng
+        receipt = nhap_services.create_receipt(
+            self.user_admin,
+            ma_phieu="PN-TEST-LC-002",
+            kho_id=self.kho_danang.pk,
+            ngay_nhap=date.today(),
+            lenh_luu_chuyen_id=lenh1.pk,
+            xe_id=self.xe2.vin
+        )
+        self.assertEqual(receipt.trang_thai, "NHAP")
