@@ -1,24 +1,27 @@
-from core.roles import get_user_role_info
-from django.shortcuts import render
-from django.db.models import Q
-from database.models import Kho, TonKho, Xe, TrangThaiXe
-from django.shortcuts import render, redirect, get_object_or_404
+import logging
+from io import BytesIO
+from django.conf import settings
 from django.contrib import messages
-from django.urls import reverse
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.mail import EmailMessage
+from django.db import transaction
+from django.db.models import Q
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
-from django.db import transaction
-from .models import LenhLuuChuyen, ChiTietLenhLuuChuyen
-from django.http import HttpResponse
-from django.conf import settings
-from io import BytesIO
-import logging
-from django.core.mail import EmailMessage
-from django.template.loader import render_to_string
-from xhtml2pdf import pisa
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from xhtml2pdf import pisa
+
+from core.roles import get_user_role_info
+from database.models import Kho, TonKho, Xe, DonViVanChuyen
+from .models import LenhLuuChuyen, ChiTietLenhLuuChuyen
+from . import services
+
 FONT_DIR = settings.BASE_DIR / "transfers" / "static" / "fonts"
 
 pdfmetrics.registerFont(
@@ -41,25 +44,21 @@ pdfmetrics.registerFontFamily(
     bold="DejaVuSans-Bold",
 )
 
+
 def link_callback(uri, rel):
     font_files = {
         "DejaVuSans.ttf": "DejaVuSans.ttf",
         "DejaVuSans-Bold.ttf": "DejaVuSans-Bold.ttf",
     }
-
     if uri in font_files:
         return str(FONT_DIR / font_files[uri])
-
     return uri
+
+
 @login_required
 def danh_sach_ton_kho(request):
-
-    # 1. Lấy danh sách các kho và thông tin chi nhánh
-    ds_kho = Kho.objects.select_related(
-        'chi_nhanh'
-    ).all()
-
-    # 2. Lấy danh sách xe đang tồn kho
+    """Màn hình danh sách xe tồn kho sẵn sàng lập lệnh lưu chuyển."""
+    ds_kho = Kho.objects.select_related('chi_nhanh').all()
     ds_ton_kho = TonKho.objects.select_related(
         'kho',
         'kho__chi_nhanh',
@@ -67,10 +66,8 @@ def danh_sach_ton_kho(request):
     ).filter(
         so_luong_ton__gt=0
     )
-    # 3. Lấy từ khóa tìm kiếm từ URL
-    tu_khoa = request.GET.get('q', '').strip()
 
-    # 4. Tìm kiếm xe
+    tu_khoa = request.GET.get('q', '').strip()
     if tu_khoa:
         ds_ton_kho = ds_ton_kho.filter(
             Q(xe__ten_xe__icontains=tu_khoa) |
@@ -79,19 +76,15 @@ def danh_sach_ton_kho(request):
             Q(kho__chi_nhanh__ten_cn__icontains=tu_khoa)
         )
 
-    # 5. Sắp xếp theo mã kho
-    ds_ton_kho = ds_ton_kho.order_by(
-        'kho__ma_kho'
-    )
+    ds_ton_kho = ds_ton_kho.order_by('kho__ma_kho')
 
-    # 6. Truyền dữ liệu sang HTML
     context = {
         'ds_kho': ds_kho,
         'ds_ton_kho': ds_ton_kho,
         'tu_khoa': tu_khoa,
     }
-    ds_da_chon = request.session.get("ds_xe_luu_chuyen", [])
 
+    ds_da_chon = request.session.get("ds_xe_luu_chuyen", [])
     danh_sach_da_chon = []
 
     for index, item in enumerate(ds_da_chon):
@@ -105,576 +98,183 @@ def danh_sach_ton_kho(request):
 
         if ton_kho and kho_nhan:
             danh_sach_da_chon.append({
-                "index": index,  # THÊM DÒNG NÀY
+                "index": index,
                 "ton_kho": ton_kho,
                 "kho_nhan": kho_nhan,
-                "so_luong": item["so_luong"]
+                "so_luong": item.get("so_luong", 1)
             })
     context['danh_sach_da_chon'] = danh_sach_da_chon
-    return render(
-        request,
-        'transfers/danh_sach_ton_kho.html',
-        context
-    )
+    return render(request, 'transfers/danh_sach_ton_kho.html', context)
 
 
-
+@login_required
 def chi_tiet_xe(request, id):
-
+    """Chi tiết xe trước khi thêm vào danh sách điều chuyển."""
     ton_kho = get_object_or_404(
-        TonKho.objects.select_related(
-            'xe',
-            'kho',
-            'kho__chi_nhanh'
-        ),
-        pk=id,
-        so_luong_ton__gt=0
+        TonKho.objects.select_related("xe", "kho", "kho__chi_nhanh"),
+        pk=id
     )
 
-    ds_kho_nhan = Kho.objects.select_related(
-        'chi_nhanh'
-    ).exclude(
-        pk=ton_kho.kho_id
-    )
+    ds_kho_nhan = Kho.objects.exclude(pk=ton_kho.kho_id).select_related("chi_nhanh")
 
-    if request.method == 'POST':
-
-        so_luong_nhap = request.POST.get('so_luong', '')
-        kho_nhan_id = request.POST.get('kho_nhan', '')
+    if request.method == "POST":
+        kho_nhan_id = request.POST.get("kho_nhan")
+        so_luong_nhap = request.POST.get("so_luong", "1")
 
         try:
             so_luong = int(so_luong_nhap)
         except (ValueError, TypeError):
-            so_luong = 0
-
-        kho_nhan = Kho.objects.filter(
-            pk=kho_nhan_id
-        ).exclude(
-            pk=ton_kho.kho_id
-        ).first()
+            so_luong = 1
 
         if so_luong <= 0:
-            messages.error(
-                request,
-                "Số lượng lưu chuyển phải lớn hơn 0."
-            )
+            messages.error(request, "Số lượng điều chuyển phải lớn hơn 0.")
+            return redirect("transfers:chi_tiet_xe", id=id)
 
-        elif not kho_nhan:
-            messages.error(
-                request,
-                "Vui lòng chọn kho nhận hợp lệ."
-            )
-
-        else:
-            danh_sach = request.session.get(
-                'ds_xe_luu_chuyen', []
-            )
-
-            # Kiểm tra kho xuất của TẤT CẢ xe đã chọn
-            for item in danh_sach:
-                xe_da_chon = TonKho.objects.filter(
-                    pk=item['ton_kho_id']
-                ).first()
-
-                if xe_da_chon and xe_da_chon.kho_id != ton_kho.kho_id:
-                    messages.error(
-                        request,
-                        f"Danh sách đã có xe từ kho {xe_da_chon.kho_id}. "
-                        f"Không thể thêm xe từ kho {ton_kho.kho_id}."
-                    )
-
-                    return redirect(
-                        reverse('transfers:index') + '?tab=da-chon'
-                    )
-
-            # Kiểm tra tổng số lượng đã chọn
-            so_luong_da_chon = sum(
-                item['so_luong']
-                for item in danh_sach
-                if item['ton_kho_id'] == ton_kho.pk
-            )
-
-            if so_luong + so_luong_da_chon > ton_kho.so_luong_ton:
-                messages.error(
-                    request,
-                    "Số lượng lưu chuyển vượt quá tồn kho."
-                )
-
-            else:
-                danh_sach.append({
-                    'ton_kho_id': ton_kho.pk,
-                    'kho_nhan_id': kho_nhan.pk,
-                    'so_luong': so_luong,
-                })
-
-                request.session['ds_xe_luu_chuyen'] = danh_sach
-
-                messages.success(
-                    request,
-                    "Đã thêm xe vào danh sách lưu chuyển."
-                )
-
-                return redirect(
-                    reverse('transfers:index') + '?tab=da-chon'
-                )
-            if so_luong + so_luong_da_chon > ton_kho.so_luong_ton:
-                messages.error(
-                    request,
-                    "Số lượng lưu chuyển vượt quá tồn kho."
-                )
-
-            else:
-                danh_sach.append({
-                    'ton_kho_id': ton_kho.pk,
-                    'kho_nhan_id': kho_nhan.pk,
-                    'so_luong': so_luong,
-                })
-
-                request.session['ds_xe_luu_chuyen'] = danh_sach
-
-                messages.success(
-                    request,
-                    "Đã thêm xe vào danh sách lưu chuyển."
-                )
-
-                return redirect(
-                    reverse('transfers:index') + '?tab=da-chon'
-                )
-
-    return render(
-        request,
-        'transfers/chi_tiet_xe.html',
-        {
-            'ton_kho': ton_kho,
-            'ds_kho_nhan': ds_kho_nhan,
-        }
-    )
-
-def xoa_xe_da_chon(request, index):
-
-    if request.method == "POST":
-
-        danh_sach = request.session.get(
-            "ds_xe_luu_chuyen", []
-        )
-
-        if 0 <= index < len(danh_sach):
-
-            danh_sach.pop(index)
-
-            request.session["ds_xe_luu_chuyen"] = danh_sach
-
-            messages.success(
-                request,
-                "Đã xóa xe khỏi danh sách lưu chuyển."
-            )
-
-        else:
-            messages.error(
-                request,
-                "Không tìm thấy xe cần xóa."
-            )
-
-    return redirect(
-        reverse("transfers:index") + "?tab=da-chon"
-    )
-
-
-
-def lay_du_lieu_lenh_tu_session(request):
-    danh_sach = request.session.get("ds_xe_luu_chuyen", [])
-
-    if not danh_sach:
-        raise ValueError("Bạn chưa chọn xe để tạo lệnh lưu chuyển.")
-
-    chi_tiet = []
-    kho_xuat_id = None
-    kho_nhap_id = None
-    so_luong_theo_ton_kho = {}
-
-    for item in danh_sach:
-        try:
-            ton_kho_id = int(item["ton_kho_id"])
-            kho_nhan_id = item["kho_nhan_id"]
-            so_luong = int(item["so_luong"])
-        except (KeyError, TypeError, ValueError):
-            raise ValueError("Dữ liệu xe đã chọn không hợp lệ.")
-
-        ton_kho = TonKho.objects.select_related(
-            "xe", "kho"
-        ).filter(pk=ton_kho_id).first()
-
-        kho_nhan = Kho.objects.filter(
-            pk=kho_nhan_id
-        ).first()
-
-        if ton_kho is None or kho_nhan is None:
-            raise ValueError("Xe hoặc kho nhận không còn tồn tại.")
-
-        if so_luong <= 0:
-            raise ValueError("Số lượng xe phải lớn hơn 0.")
-
+        kho_nhan = get_object_or_404(Kho, pk=kho_nhan_id)
         if ton_kho.kho_id == kho_nhan.pk:
-            raise ValueError("Kho xuất và kho nhập phải khác nhau.")
+            messages.error(request, "Kho xuất và kho tiếp nhận không được trùng nhau.")
+            return redirect("transfers:chi_tiet_xe", id=id)
 
-        if kho_xuat_id is None:
-            kho_xuat_id = ton_kho.kho_id
-            kho_nhap_id = kho_nhan.pk
-        elif (
-            ton_kho.kho_id != kho_xuat_id
-            or kho_nhan.pk != kho_nhap_id
-        ):
-            raise ValueError(
-                "Các xe trong một lệnh phải có cùng kho xuất và kho nhập."
-            )
+        # Kiểm tra VIN có đang nằm trong lệnh lưu chuyển khác chưa hoàn tất
+        try:
+            services.kiem_tra_vin_trong_lenh_mo(ton_kho.xe)
+        except ValidationError as exc:
+            messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
+            return redirect("transfers:chi_tiet_xe", id=id)
 
-        so_luong_theo_ton_kho[ton_kho_id] = (
-            so_luong_theo_ton_kho.get(ton_kho_id, 0) + so_luong
-        )
+        ds_da_chon = request.session.get("ds_xe_luu_chuyen", [])
+        da_co = False
+        for item in ds_da_chon:
+            if item["ton_kho_id"] == ton_kho.pk:
+                item["so_luong"] = 1
+                item["kho_nhan_id"] = kho_nhan.pk
+                da_co = True
+                break
 
-        if so_luong_theo_ton_kho[ton_kho_id] > ton_kho.so_luong_ton:
-            raise ValueError(
-                f"Số lượng xe vượt tồn kho tại {ton_kho.kho}."
-            )
+        if not da_co:
+            ds_da_chon.append({
+                "ton_kho_id": ton_kho.pk,
+                "kho_nhan_id": kho_nhan.pk,
+                "so_luong": 1,
+            })
 
-        chi_tiet.append({
-            "ton_kho": ton_kho,
-            "kho_nhan": kho_nhan,
-            "so_luong": so_luong,
-        })
+        request.session["ds_xe_luu_chuyen"] = ds_da_chon
+        messages.success(request, f"Đã thêm xe {ton_kho.xe.vin} vào danh sách dự kiến lưu chuyển.")
+        return redirect(reverse("transfers:index") + "?tab=da-chon")
 
-    return (
-        Kho.objects.get(pk=kho_xuat_id),
-        Kho.objects.get(pk=kho_nhap_id),
-        chi_tiet,
-    )
+    return render(request, "transfers/chi_tiet_xe.html", {
+        "ton_kho": ton_kho,
+        "ds_kho_nhan": ds_kho_nhan,
+    })
 
+
+@login_required
+@require_POST
+def xoa_xe_da_chon(request, index):
+    """Xóa một xe khỏi danh sách tạm trong session."""
+    ds = request.session.get("ds_xe_luu_chuyen", [])
+    if 0 <= index < len(ds):
+        ds.pop(index)
+        request.session["ds_xe_luu_chuyen"] = ds
+        messages.success(request, "Đã xóa xe khỏi danh sách dự kiến lưu chuyển.")
+    return redirect(reverse("transfers:index") + "?tab=da-chon")
 
 
 @login_required
 def tao_lenh_luu_chuyen(request):
+    """Xem và xác nhận tạo lệnh lưu chuyển từ session."""
     danh_sach = request.session.get("ds_xe_luu_chuyen", [])
-
     if not danh_sach:
-        messages.error(request, "Chưa có xe nào được chọn.")
-        return redirect(
-            reverse("transfers:index") + "?tab=da-chon"
-        )
+        messages.warning(request, "Chưa có xe nào trong danh sách điều chuyển.")
+        return redirect("transfers:index")
 
     chi_tiet = []
-    so_luong_theo_ton_kho = {}
-
     for item in danh_sach:
-        try:
-            ton_kho_id = int(item["ton_kho_id"])
-            kho_nhan_id = item["kho_nhan_id"]
-            so_luong = int(item["so_luong"])
-        except (KeyError, TypeError, ValueError):
-            messages.error(request, "Dữ liệu xe không hợp lệ.")
-            return redirect(
-                reverse("transfers:index") + "?tab=da-chon"
-            )
-
-        ton_kho = get_object_or_404(
-            TonKho.objects.select_related(
-                "xe", "kho", "kho__chi_nhanh"
-            ),
-            pk=ton_kho_id
-        )
-
-        kho_nhan = get_object_or_404(
-            Kho.objects.select_related("chi_nhanh"),
-            pk=kho_nhan_id
-        )
-
-        if so_luong <= 0:
-            messages.error(
-                request,
-                "Số lượng xe phải lớn hơn 0."
-            )
-            return redirect(
-                reverse("transfers:index") + "?tab=da-chon"
-            )
-
-        if ton_kho.kho_id == kho_nhan.pk:
-            messages.error(
-                request,
-                "Kho xuất và kho nhập phải khác nhau."
-            )
-            return redirect(
-                reverse("transfers:index") + "?tab=da-chon"
-            )
-
-        so_luong_theo_ton_kho[ton_kho_id] = (
-            so_luong_theo_ton_kho.get(ton_kho_id, 0)
-            + so_luong
-        )
-
-        if so_luong_theo_ton_kho[ton_kho_id] > ton_kho.so_luong_ton:
-            messages.error(
-                request,
-                f"Số lượng xe vượt quá tồn kho của {ton_kho.xe}."
-            )
-            return redirect(
-                reverse("transfers:index") + "?tab=da-chon"
-            )
-
+        ton_kho = get_object_or_404(TonKho.objects.select_related("xe", "kho", "kho__chi_nhanh"), pk=item["ton_kho_id"])
+        kho_nhan = get_object_or_404(Kho.objects.select_related("chi_nhanh"), pk=item["kho_nhan_id"])
         chi_tiet.append({
             "ton_kho": ton_kho,
             "kho_nhan": kho_nhan,
-            "so_luong": so_luong,
+            "so_luong": item.get("so_luong", 1),
         })
 
-    # Xác định kho xuất và kho nhập
     kho_xuat = chi_tiet[0]["ton_kho"].kho
     kho_nhap = chi_tiet[0]["kho_nhan"]
 
-    # Kiểm tra các xe cùng kho xuất và kho nhập
     for item in chi_tiet:
-        if (
-            item["ton_kho"].kho_id != kho_xuat.pk
-            or item["kho_nhan"].pk != kho_nhap.pk
-        ):
-            messages.error(
-                request,
-                "Một lệnh lưu chuyển phải có cùng kho xuất và kho nhập."
-            )
-            return redirect(
-                reverse("transfers:index") + "?tab=da-chon"
-            )
+        if item["ton_kho"].kho_id != kho_xuat.pk or item["kho_nhan"].pk != kho_nhap.pk:
+            messages.error(request, "Một lệnh lưu chuyển phải có cùng kho xuất và kho tiếp nhận.")
+            return redirect(reverse("transfers:index") + "?tab=da-chon")
 
-    # Lưu lệnh và danh sách xe vào database
-    with transaction.atomic():
-        lenh_id = request.session.get(
-            "lenh_nhap_dang_sua_id"
-        )
+    if request.method == "POST":
+        lenh_id = request.session.get("lenh_nhap_dang_sua_id")
+        try:
+            if lenh_id:
+                lenh = get_object_or_404(LenhLuuChuyen.objects.select_for_update(), pk=lenh_id, trang_thai=LenhLuuChuyen.TrangThai.NHAP)
+                services.kiem_tra_quyen_chi_nhanh(request.user, kho_xuat)
+                with transaction.atomic():
+                    lenh.kho_xuat = kho_xuat
+                    lenh.kho_nhap = kho_nhap
+                    lenh.save(update_fields=["kho_xuat", "kho_nhap"])
+                    lenh.chi_tiet.all().delete()
+                    for it in chi_tiet:
+                        services.kiem_tra_vin_trong_lenh_mo(it["ton_kho"].xe, exclude_order_id=lenh.pk)
+                        ChiTietLenhLuuChuyen.objects.create(lenh=lenh, xe=it["ton_kho"].xe, so_luong=1)
+            else:
+                ds_xe = [it["ton_kho"].xe for it in chi_tiet]
+                lenh = services.tao_lenh_luu_chuyen(request.user, kho_xuat, kho_nhap, ds_xe=ds_xe)
 
-        if lenh_id:
-            lenh = LenhLuuChuyen.objects.select_for_update().filter(
-                pk=lenh_id,
-                trang_thai="NHAP",
-                nguoi_lap=request.user
-            ).first()
+            request.session.pop("lenh_nhap_dang_sua_id", None)
+            request.session.pop("ds_xe_luu_chuyen", None)
+            messages.success(request, f"Đã lưu lệnh lưu chuyển bản nháp {lenh.ma_lenh}.")
+            return redirect("transfers:chi_tiet_lenh", id=lenh.pk)
+        except (PermissionDenied, ValidationError) as exc:
+            messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
+            return redirect(reverse("transfers:index") + "?tab=da-chon")
 
-            if lenh is None:
-                messages.error(
-                    request,
-                    "Không tìm thấy bản nháp đang chỉnh sửa."
-                )
-                return redirect("transfers:danh_sach_lenh")
-
-            lenh.kho_xuat = kho_xuat
-            lenh.kho_nhap = kho_nhap
-            lenh.save(update_fields=["kho_xuat", "kho_nhap"])
-
-            # Xóa chi tiết cũ để thay bằng danh sách mới
-            lenh.chi_tiet.all().delete()
-
-        else:
-            lenh = LenhLuuChuyen.objects.create(
-                kho_xuat=kho_xuat,
-                kho_nhap=kho_nhap,
-                nguoi_lap=request.user,
-                trang_thai="NHAP"
-            )
-
-            # Tự động tạo mã lệnh
-            lenh.ma_lenh = f"LC{lenh.pk:05d}"
-            lenh.save(update_fields=["ma_lenh"])
-
-        # Lưu từng xe thuộc lệnh
-        for item in chi_tiet:
-            ChiTietLenhLuuChuyen.objects.create(
-                lenh=lenh,
-                xe=item["ton_kho"].xe,
-                so_luong=item["so_luong"]
-            )
-
-    # Ghi nhớ bản nháp đang làm việc
-    request.session["lenh_nhap_dang_sua_id"] = lenh.pk
-
-    # Chuyển đến trang chi tiết bản nháp
-    return redirect(
-        "transfers:chi_tiet_lenh",
-        id=lenh.pk
-    )
-
+    return render(request, "transfers/lenh_luu_chuyen.html", {
+        "kho_xuat": kho_xuat,
+        "kho_nhap": kho_nhap,
+        "chi_tiet": chi_tiet,
+        "tong_so_luong": len(chi_tiet),
+    })
 
 
 @login_required
 @require_POST
 def xac_nhan_lenh_luu_chuyen(request):
-    danh_sach = request.session.get("ds_xe_luu_chuyen", [])
-
-    if not danh_sach:
-        messages.error(request, "Chưa có xe nào được chọn.")
-        return redirect("transfers:index")
-
-    chi_tiet = []
-
-    for item in danh_sach:
-        ton_kho = get_object_or_404(
-            TonKho.objects.select_related(
-                "xe", "kho", "kho__chi_nhanh"
-            ),
-            pk=item["ton_kho_id"]
-        )
-
-        kho_nhan = get_object_or_404(
-            Kho.objects.select_related("chi_nhanh"),
-            pk=item["kho_nhan_id"]
-        )
-
-        try:
-            so_luong = int(item["so_luong"])
-        except (ValueError, TypeError, KeyError):
-            messages.error(request, "Số lượng xe không hợp lệ.")
-            return redirect("transfers:tao_lenh")
-
-        if so_luong <= 0 or so_luong > ton_kho.so_luong_ton:
-            messages.error(
-                request,
-                "Số lượng xe không hợp lệ hoặc vượt quá tồn kho."
-            )
-            return redirect("transfers:tao_lenh")
-
-        if ton_kho.kho_id == kho_nhan.pk:
-            messages.error(
-                request,
-                "Kho xuất và kho nhập không được trùng nhau."
-            )
-            return redirect("transfers:tao_lenh")
-
-        chi_tiet.append({
-            "ton_kho": ton_kho,
-            "kho_nhan": kho_nhan,
-            "so_luong": so_luong,
-        })
-
-    kho_xuat = chi_tiet[0]["ton_kho"].kho
-    kho_nhap = chi_tiet[0]["kho_nhan"]
-
-    for item in chi_tiet:
-        if (
-            item["ton_kho"].kho_id != kho_xuat.pk
-            or item["kho_nhan"].pk != kho_nhap.pk
-        ):
-            messages.error(
-                request,
-                "Các xe phải có cùng kho xuất và kho nhập."
-            )
-            return redirect("transfers:tao_lenh")
-
-    context = {
-        "chi_tiet": chi_tiet,
-        "kho_xuat": kho_xuat,
-        "kho_nhap": kho_nhap,
-        "tong_so_luong": sum(
-            item["so_luong"] for item in chi_tiet
-        ),
-        "ngay_lap": timezone.localdate(),
-        "nguoi_lap": request.user.username,
-    }
-
-    try:
-        # Bước 1: Lấy nội dung HTML của phiếu PDF
-        html = render_to_string(
-            "transfers/lenh_luu_chuyen_pdf.html",
-            context
-        )
-
-        # Bước 2: Chuyển HTML thành PDF
-        pdf_buffer = BytesIO()
-
-        ket_qua = pisa.CreatePDF(
-            src=html,
-            dest=pdf_buffer,
-            encoding="utf-8",
-            link_callback=link_callback
-        )
-
-        if ket_qua.err:
-            messages.error(request, "Không thể tạo file PDF.")
-            return redirect("transfers:tao_lenh")
-
-        # Bước 3: Kiểm tra người nhận
-        if not settings.TRANSFER_RECEIVER_EMAILS:
-            messages.error(request, "Chưa cấu hình email người nhận.")
-            return redirect("transfers:tao_lenh")
-
-        # Bước 4: Tạo email
-        email = EmailMessage(
-            subject="Lệnh lưu chuyển xe - Dana Ford",
-            body=(
-                "Kính gửi bộ phận quản lý kho,\n\n"
-                "Hệ thống gửi phiếu lệnh lưu chuyển xe.\n\n"
-                f"Kho xuất: {kho_xuat.ma_kho}\n"
-                f"Kho nhập: {kho_nhap.ma_kho}\n"
-                f"Tổng số lượng: {context['tong_so_luong']}\n\n"
-                "Vui lòng xem file PDF đính kèm.\n\n"
-                "Trân trọng,\n"
-                "Hệ thống Dana Ford"
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=settings.TRANSFER_RECEIVER_EMAILS,
-        )
-
-        # Bước 5: Đính kèm PDF
-        email.attach(
-            "Lenh_luu_chuyen.pdf",
-            pdf_buffer.getvalue(),
-            "application/pdf"
-        )
-
-        # Bước 6: Gửi email
-        so_email = email.send(fail_silently=False)
-
-        if so_email == 1:
-            request.session.pop("ds_xe_luu_chuyen", None)
-
-            messages.success(
-                request,
-                "Đã gửi phiếu lệnh lưu chuyển PDF thành công!"
-            )
-            return redirect("transfers:index")
-
-        messages.error(request, "Không gửi được email.")
-        return redirect("transfers:tao_lenh")
-
-    except Exception:
-        logging.getLogger(__name__).exception(
-            "Lỗi tạo PDF hoặc gửi email lưu chuyển"
-        )
-
-        messages.error(
-            request,
-            "Có lỗi khi tạo PDF hoặc gửi email. "
-            "Vui lòng kiểm tra Terminal."
-        )
-        return redirect("transfers:tao_lenh")
+    """Chuyển hướng hoặc xử lý xác nhận lập lệnh."""
+    return tao_lenh_luu_chuyen(request)
 
 
 @login_required
 def danh_sach_lenh_luu_chuyen(request):
-    from .models import LenhLuuChuyen
-
+    """Màn hình danh sách tất cả các lệnh lưu chuyển nội bộ."""
     trang_thai = request.GET.get("trang_thai", "").strip()
     tu_khoa = request.GET.get("q", "").strip()
 
     ds_lenh = LenhLuuChuyen.objects.select_related(
-        "kho_xuat",
-        "kho_nhap",
-        "nguoi_lap"
+        "kho_xuat", "kho_xuat__chi_nhanh",
+        "kho_nhap", "kho_nhap__chi_nhanh",
+        "nguoi_lap", "don_vi_van_chuyen"
     ).order_by("-ngay_lap")
-    if trang_thai in ["NHAP", "DA_GUI", "DA_XAC_NHAN"]:
-        ds_lenh = ds_lenh.filter(trang_thai=trang_thai)
+
+    if trang_thai:
+        if trang_thai == "CHO_DUYET":
+            ds_lenh = ds_lenh.filter(trang_thai__in=["CHO_DUYET", "DA_GUI"])
+        elif trang_thai == "HOAN_TAT":
+            ds_lenh = ds_lenh.filter(trang_thai__in=["HOAN_TAT", "DA_XAC_NHAN"])
+        else:
+            ds_lenh = ds_lenh.filter(trang_thai=trang_thai)
 
     if tu_khoa:
         ds_lenh = ds_lenh.filter(
-            Q(ma_lenh__icontains=tu_khoa)
-            | Q(kho_xuat__ma_kho__icontains=tu_khoa)
-            | Q(kho_nhap__ma_kho__icontains=tu_khoa)
-            | Q(nguoi_lap__username__icontains=tu_khoa)
+            Q(ma_lenh__icontains=tu_khoa) |
+            Q(kho_xuat__ma_kho__icontains=tu_khoa) |
+            Q(kho_nhap__ma_kho__icontains=tu_khoa) |
+            Q(nguoi_lap__username__icontains=tu_khoa) |
+            Q(bien_so_xe__icontains=tu_khoa) |
+            Q(tai_xe__icontains=tu_khoa)
         )
 
     return render(request, "transfers/danh_sach_lenh.html", {
@@ -686,433 +286,193 @@ def danh_sach_lenh_luu_chuyen(request):
 
 @login_required
 def chi_tiet_lenh_luu_chuyen(request, id):
-    from .models import LenhLuuChuyen
-
+    """Xem văn bản tờ lệnh lưu chuyển & hiển thị các nút thao tác tương ứng từng bước."""
     lenh = get_object_or_404(
         LenhLuuChuyen.objects.select_related(
-            "kho_xuat",
-            "kho_nhap",
-            "nguoi_lap",
-            "nguoi_xac_nhan"
+            "kho_xuat", "kho_xuat__chi_nhanh",
+            "kho_nhap", "kho_nhap__chi_nhanh",
+            "nguoi_lap", "nguoi_duyet", "nguoi_xuat", "nguoi_giao", "nguoi_xac_nhan",
+            "don_vi_van_chuyen"
         ).prefetch_related("chi_tiet__xe"),
         pk=id
     )
 
-    tong_so_luong = sum(
-        item.so_luong for item in lenh.chi_tiet.all()
+    chi_tiet = list(lenh.chi_tiet.all())
+    tong_so_luong = len(chi_tiet)
+
+    is_admin = services.is_admin_or_sale_admin(request.user)
+    nv = getattr(request.user, "nhan_vien", None)
+    is_kho_xuat = is_admin or (nv and nv.chi_nhanh_id == lenh.kho_xuat.chi_nhanh_id)
+    is_kho_nhap = is_admin or (nv and nv.chi_nhanh_id == lenh.kho_nhap.chi_nhanh_id)
+
+    can_cancel = (
+        lenh.trang_thai in [
+            LenhLuuChuyen.TrangThai.NHAP,
+            LenhLuuChuyen.TrangThai.CHO_DUYET,
+            LenhLuuChuyen.TrangThai.DA_GUI,
+            LenhLuuChuyen.TrangThai.DA_DUYET
+        ] and (is_admin or lenh.nguoi_lap_id == request.user.pk or is_kho_xuat)
     )
 
-    role_info = get_user_role_info(request.user)
-    is_sale_admin = (
-        request.user.is_superuser
-        or request.user.is_staff
-        or (role_info and role_info.get("code") in ("ADMIN", "SALE_ADMIN"))
-        or request.user.groups.filter(name__in=["Sale Admin", "Quản lý"]).exists()
-    )
+    ds_dvvc = DonViVanChuyen.objects.all().order_by("ma_dvvc")
 
     return render(request, "transfers/chi_tiet_lenh.html", {
         "lenh": lenh,
+        "chi_tiet": chi_tiet,
         "tong_so_luong": tong_so_luong,
-        "is_sale_admin": is_sale_admin,
+        "is_sale_admin": is_admin,
+        "is_kho_xuat": is_kho_xuat,
+        "is_kho_nhap": is_kho_nhap,
+        "can_cancel": can_cancel,
+        "ds_dvvc": ds_dvvc,
     })
 
 
 @login_required
 @require_POST
-def cap_nhat_trang_thai_lenh(request, id):
-    from .models import LenhLuuChuyen
-
-    lenh = get_object_or_404(
-        LenhLuuChuyen.objects.select_related("kho_xuat", "kho_nhap").prefetch_related("chi_tiet__xe"),
-        pk=id
-    )
-
-    role_info = get_user_role_info(request.user)
-    is_sale_admin = (
-        request.user.is_superuser
-        or request.user.is_staff
-        or (role_info and role_info.get("code") in ("ADMIN", "SALE_ADMIN"))
-        or request.user.groups.filter(name__in=["Sale Admin", "Quản lý"]).exists()
-    )
-    if not is_sale_admin:
-        messages.error(
-            request,
-            "Chỉ Quản trị viên (Sale Admin - Quốc Hiếu) mới có quyền phê duyệt & xác nhận tiếp nhận lệnh lưu chuyển."
-        )
-        return redirect("transfers:chi_tiet_lenh", id=id)
-
-    if lenh.trang_thai != "DA_GUI":
-        messages.error(
-            request,
-            "Chỉ có thể xác nhận lệnh đang ở trạng thái Đã gửi."
-        )
-        return redirect("transfers:chi_tiet_lenh", id=id)
-
-    with transaction.atomic():
-        lenh.trang_thai = "DA_XAC_NHAN"
-        lenh.ngay_xac_nhan = timezone.now()
-        lenh.nguoi_xac_nhan = request.user
-        lenh.save(update_fields=[
-            "trang_thai",
-            "ngay_xac_nhan",
-            "nguoi_xac_nhan"
-        ])
-
-        # Cập nhật chuyển kho thực tế cho xe
-        for item in lenh.chi_tiet.select_related("xe"):
-            # 1. Trừ tồn kho tại kho xuất
-            tk_xuat = TonKho.objects.filter(kho=lenh.kho_xuat, xe=item.xe).first()
-            if tk_xuat:
-                tk_xuat.so_luong_ton = max(0, tk_xuat.so_luong_ton - item.so_luong)
-                tk_xuat.save(update_fields=["so_luong_ton"])
-
-            # 2. Cộng tồn kho tại kho nhập đích
-            tk_nhap, _ = TonKho.objects.get_or_create(
-                kho=lenh.kho_nhap,
-                xe=item.xe,
-                defaults={"ngay_vao_kho": timezone.localdate(), "so_luong_ton": 0}
-            )
-            tk_nhap.so_luong_ton += item.so_luong
-            tk_nhap.save(update_fields=["so_luong_ton"])
-
-            # 3. Trạng thái xe sẵn sàng tại kho mới
-            Xe.objects.filter(pk=item.xe_id).update(trang_thai=TrangThaiXe.SAN_SANG)
-
+def gui_lenh_luu_chuyen(request, id):
+    """Sale Chi Nhánh gửi lệnh (NHAP -> CHO_DUYET). Không trừ tồn."""
     try:
-        from dashboard.models import ThongBaoHoatDong
-        ten_admin = request.user.get_full_name() or request.user.username
-        creator_name = lenh.nguoi_lap.get_full_name() or lenh.nguoi_lap.username if lenh.nguoi_lap else "Chi nhánh"
-        ThongBaoHoatDong.objects.create(
-            user=request.user,
-            ten_nhan_vien=ten_admin,
-            chuc_vu="Quản trị viên (Sale Admin)",
-            hanh_dong=f"Đã xác nhận & phê duyệt Lệnh lưu chuyển {lenh.ma_lenh}",
-            chi_tiet=f"Sale Admin {ten_admin} đã phê duyệt lệnh lưu chuyển của {creator_name}. Toàn bộ xe đã được chuyển về {lenh.kho_nhap.ma_kho} và sẵn sàng xuất bán.",
-            module="transfers",
-            loai="tu_dong",
-            is_active=True,
+        lenh = services.gui_lenh_luu_chuyen(request.user, id)
+        messages.success(
+            request,
+            f"Đã gửi lệnh {lenh.ma_lenh} thành công! Lệnh đang chờ Sale Admin phê duyệt."
         )
-    except Exception as e:
-        logging.warning(f"Lỗi tạo thông báo: {e}")
-
-    messages.success(
-        request,
-        f"Đã xác nhận & phê duyệt lệnh {lenh.ma_lenh} thành công! Toàn bộ xe đã được chuyển về kho {lenh.kho_nhap.ma_kho}."
-    )
-
+    except (PermissionDenied, ValidationError) as exc:
+        messages.error(request, f"Lỗi gửi lệnh: {exc.message if hasattr(exc, 'message') else exc}")
     return redirect("transfers:chi_tiet_lenh", id=id)
 
 
 @login_required
-def chinh_sua_lenh_luu_chuyen(request, id):
-    from .models import LenhLuuChuyen
-
-    lenh = get_object_or_404(
-        LenhLuuChuyen.objects.prefetch_related("chi_tiet__xe"),
-        pk=id
-    )
-
-    # Chỉ cho phép chỉnh sửa bản nháp
-    if lenh.trang_thai != "NHAP":
-        messages.error(
+@require_POST
+def phe_duyet_lenh(request, id):
+    """Sale Admin phê duyệt lệnh (CHO_DUYET -> DA_DUYET). Không trừ tồn."""
+    try:
+        lenh = services.duyet_lenh_luu_chuyen(request.user, id)
+        messages.success(
             request,
-            "Chỉ có thể chỉnh sửa lệnh ở trạng thái Bản nháp."
+            f"Đã phê duyệt lệnh lưu chuyển {lenh.ma_lenh}. Kho nguồn {lenh.kho_xuat.ma_kho} có thể tiến hành xuất xe."
         )
+    except (PermissionDenied, ValidationError) as exc:
+        messages.error(request, f"Lỗi duyệt lệnh: {exc.message if hasattr(exc, 'message') else exc}")
+    return redirect("transfers:chi_tiet_lenh", id=id)
+
+
+@login_required
+@require_POST
+def tu_choi_lenh(request, id):
+    """Sale Admin từ chối lệnh (CHO_DUYET -> TU_CHOI). Nhả giữ chỗ xe."""
+    ly_do = request.POST.get("ly_do_tu_choi", "")
+    try:
+        lenh = services.tu_choi_lenh_luu_chuyen(request.user, id, ly_do=ly_do)
+        messages.warning(
+            request,
+            f"Đã từ chối lệnh {lenh.ma_lenh}. Xe đã được hoàn lại trạng thái SẴN SÀNG."
+        )
+    except (PermissionDenied, ValidationError) as exc:
+        messages.error(request, f"Lỗi từ chối lệnh: {exc.message if hasattr(exc, 'message') else exc}")
+    return redirect("transfers:chi_tiet_lenh", id=id)
+
+
+@login_required
+@require_POST
+def huy_lenh(request, id):
+    """Hủy lệnh lưu chuyển trước khi xuất kho. Nhả giữ chỗ xe."""
+    ly_do = request.POST.get("ghi_chu_huy", "")
+    try:
+        lenh = services.huy_lenh_luu_chuyen(request.user, id, ly_do=ly_do)
+        messages.info(
+            request,
+            f"Đã hủy lệnh lưu chuyển {lenh.ma_lenh}. Xe đã được hoàn lại trạng thái SẴN SÀNG."
+        )
+    except (PermissionDenied, ValidationError) as exc:
+        messages.error(request, f"Lỗi hủy lệnh: {exc.message if hasattr(exc, 'message') else exc}")
+    return redirect("transfers:chi_tiet_lenh", id=id)
+
+
+@login_required
+@require_POST
+def xuat_kho_nguon(request, id):
+    """Kho nguồn xác nhận xuất xe (DA_DUYET -> DANG_VAN_CHUYEN).
+    Trừ tồn kho nguồn, xe = DANG_LUU_CHUYEN.
+    """
+    dvvc_id = request.POST.get("don_vi_van_chuyen_id")
+    bien_so = request.POST.get("bien_so_xe")
+    tai_xe = request.POST.get("tai_xe")
+    sdt_tai_xe = request.POST.get("sdt_tai_xe")
+    ngay_du_kien = request.POST.get("ngay_du_kien_den")
+
+    try:
+        lenh = services.xac_nhan_xuat_kho_nguon(
+            request.user,
+            id,
+            don_vi_van_chuyen_id=dvvc_id,
+            bien_so_xe=bien_so,
+            tai_xe=tai_xe,
+            sdt_tai_xe=sdt_tai_xe,
+            ngay_du_kien_den=ngay_du_kien
+        )
+        messages.success(
+            request,
+            f"Kho nguồn {lenh.kho_xuat.ma_kho} đã xuất xe thành công! Tồn kho nguồn đã trừ, xe đang lưu chuyển về Đà Nẵng."
+        )
+    except (PermissionDenied, ValidationError) as exc:
+        messages.error(request, f"Lỗi xuất xe: {exc.message if hasattr(exc, 'message') else exc}")
+    return redirect("transfers:chi_tiet_lenh", id=id)
+
+
+@login_required
+@require_POST
+def xac_nhan_den_da_nang(request, id):
+    """Tiếp nhận xe đến bãi Đà Nẵng (DANG_VAN_CHUYEN -> DA_GIAO_DEN_DA_NANG).
+    TUYỆT ĐỐI KHÔNG CỘNG TỒN TẠI BƯỚC NÀY.
+    """
+    try:
+        lenh = services.xac_nhan_den_da_nang(request.user, id)
+        messages.success(
+            request,
+            f"Lệnh {lenh.ma_lenh}: Xe đã đến bãi Đà Nẵng (chờ nhập kho). Vui lòng chuyển sang module Quản lý nhập kho để lập phiếu nhập và kiểm tra PDI."
+        )
+    except (PermissionDenied, ValidationError) as exc:
+        messages.error(request, f"Lỗi tiếp nhận: {exc.message if hasattr(exc, 'message') else exc}")
+    return redirect("transfers:chi_tiet_lenh", id=id)
+
+
+@login_required
+@require_POST
+def cap_nhat_trang_thai_lenh(request, id):
+    """Tương thích ngược: Điều hướng thao tác theo trạng thái hiện tại của lệnh."""
+    lenh = get_object_or_404(LenhLuuChuyen, pk=id)
+    if lenh.trang_thai in (LenhLuuChuyen.TrangThai.CHO_DUYET, LenhLuuChuyen.TrangThai.DA_GUI):
+        return phe_duyet_lenh(request, id)
+    elif lenh.trang_thai == LenhLuuChuyen.TrangThai.DANG_VAN_CHUYEN:
+        return xac_nhan_den_da_nang(request, id)
+    else:
+        messages.warning(request, f"Lệnh đang ở trạng thái {lenh.get_trang_thai_display()}, không thể chuyển đổi nhanh.")
         return redirect("transfers:chi_tiet_lenh", id=id)
 
-    # Lấy danh sách xe từ bản nháp
+
+@login_required
+def chinh_sua_lenh_luu_chuyen(request, id):
+    """Nạp danh sách xe của bản nháp vào session để người dùng chỉnh sửa."""
+    lenh = get_object_or_404(LenhLuuChuyen.objects.prefetch_related("chi_tiet__xe"), pk=id)
+    if lenh.trang_thai != LenhLuuChuyen.TrangThai.NHAP:
+        messages.error(request, "Chỉ có thể chỉnh sửa lệnh ở trạng thái Bản nháp.")
+        return redirect("transfers:chi_tiet_lenh", id=id)
+
+    services.kiem_tra_quyen_chi_nhanh(request.user, lenh.kho_xuat)
+
     danh_sach = []
-
     for item in lenh.chi_tiet.all():
+        ton_kho = TonKho.objects.filter(kho=lenh.kho_xuat, xe=item.xe).first()
+        if ton_kho:
+            danh_sach.append({
+                "ton_kho_id": ton_kho.pk,
+                "kho_nhan_id": lenh.kho_nhap_id,
+                "so_luong": 1,
+            })
 
-        ton_kho = TonKho.objects.filter(
-            kho=lenh.kho_xuat,
-            xe=item.xe
-        ).first()
-
-        if not ton_kho:
-            messages.error(
-                request,
-                f"Không tìm thấy tồn kho của xe {item.xe.vin}."
-            )
-            return redirect("transfers:chi_tiet_lenh", id=id)
-
-        danh_sach.append({
-            "ton_kho_id": ton_kho.pk,
-            "kho_nhan_id": lenh.kho_nhap_id,
-            "so_luong": item.so_luong,
-        })
-
-    # Đưa danh sách xe vào session
     request.session["ds_xe_luu_chuyen"] = danh_sach
-
-    # Ghi nhớ bản nháp đang chỉnh sửa
     request.session["lenh_nhap_dang_sua_id"] = lenh.pk
-
-    messages.success(
-        request,
-        "Đã tải danh sách xe của bản nháp. "
-        "Bạn có thể tiếp tục chỉnh sửa."
-    )
-
-    # Quay về tab Danh sách đã chọn
-    return redirect(
-        reverse("transfers:index") + "?tab=da-chon"
-    )
-
-@login_required
-@require_POST
-def luu_ban_nhap_lenh(request):
-    danh_sach = request.session.get("ds_xe_luu_chuyen", [])
-
-    if not danh_sach:
-        messages.error(request, "Chưa có xe nào được chọn.")
-        return redirect("transfers:index")
-
-    chi_tiet = []
-
-    for item in danh_sach:
-        ton_kho = get_object_or_404(
-            TonKho.objects.select_related("xe", "kho"),
-            pk=item["ton_kho_id"]
-        )
-
-        kho_nhan = get_object_or_404(
-            Kho,
-            pk=item["kho_nhan_id"]
-        )
-
-        try:
-            so_luong = int(item["so_luong"])
-        except (ValueError, TypeError, KeyError):
-            messages.error(request, "Số lượng xe không hợp lệ.")
-            return redirect("transfers:tao_lenh")
-
-        if so_luong <= 0 or so_luong > ton_kho.so_luong_ton:
-            messages.error(request, "Số lượng xe vượt quá tồn kho.")
-            return redirect("transfers:tao_lenh")
-
-        if ton_kho.kho_id == kho_nhan.pk:
-            messages.error(request, "Kho xuất và kho nhập phải khác nhau.")
-            return redirect("transfers:tao_lenh")
-
-        chi_tiet.append({
-            "ton_kho": ton_kho,
-            "kho_nhan": kho_nhan,
-            "so_luong": so_luong,
-        })
-
-    kho_xuat = chi_tiet[0]["ton_kho"].kho
-    kho_nhap = chi_tiet[0]["kho_nhan"]
-
-    for item in chi_tiet:
-        if (
-            item["ton_kho"].kho_id != kho_xuat.pk
-            or item["kho_nhan"].pk != kho_nhap.pk
-        ):
-            messages.error(
-                request,
-                "Các xe phải có cùng kho xuất và kho nhập."
-            )
-            return redirect("transfers:tao_lenh")
-
-    # Lưu bản nháp và các xe trong cùng một giao dịch database
-    with transaction.atomic():
-        lenh_id = request.session.get("lenh_nhap_dang_sua_id")
-
-        if lenh_id:
-            lenh = get_object_or_404(
-                LenhLuuChuyen.objects.select_for_update(),
-                pk=lenh_id,
-                trang_thai="NHAP"
-            )
-
-            # Chỉ cho phép người lập chỉnh sửa bản nháp của mình
-            if lenh.nguoi_lap_id != request.user.pk:
-                messages.error(request, "Bạn không có quyền sửa lệnh này.")
-                return redirect("transfers:danh_sach_lenh")
-
-            lenh.kho_xuat = kho_xuat
-            lenh.kho_nhap = kho_nhap
-            lenh.save(update_fields=["kho_xuat", "kho_nhap"])
-
-            lenh.chi_tiet.all().delete()
-
-        else:
-            lenh = LenhLuuChuyen.objects.create(
-                kho_xuat=kho_xuat,
-                kho_nhap=kho_nhap,
-                nguoi_lap=request.user,
-                trang_thai="NHAP"
-            )
-
-            lenh.ma_lenh = f"LC{lenh.pk:05d}"
-            lenh.save(update_fields=["ma_lenh"])
-
-        for item in chi_tiet:
-            ChiTietLenhLuuChuyen.objects.create(
-                lenh=lenh,
-                xe=item["ton_kho"].xe,
-                so_luong=item["so_luong"]
-            )
-
-    request.session["lenh_nhap_dang_sua_id"] = lenh.pk
-
-    messages.success(
-        request,
-        f"Đã lưu bản nháp {lenh.ma_lenh} thành công."
-    )
-
-    return redirect("transfers:chi_tiet_lenh", id=lenh.pk)
-
-
-
-@login_required
-@require_POST
-def gui_lenh_luu_chuyen(request, id):
-    lenh = get_object_or_404(
-        LenhLuuChuyen.objects.select_related(
-            "kho_xuat", "kho_nhap", "nguoi_lap"
-        ).prefetch_related("chi_tiet__xe"),
-        pk=id
-    )
-
-    if lenh.nguoi_lap_id != request.user.pk and not (request.user.is_superuser or request.user.is_staff or getattr(request.user, 'vai_tro', '') in ['ADMIN', 'SALE_ADMIN']):
-        messages.error(request, "Bạn không có quyền gửi lệnh này.")
-        return redirect("transfers:danh_sach_lenh")
-
-    if lenh.trang_thai != "NHAP":
-        messages.warning(request, "Lệnh này không còn là bản nháp.")
-        return redirect("transfers:chi_tiet_lenh", id=id)
-
-    chi_tiet = list(lenh.chi_tiet.all())
-
-    if not chi_tiet:
-        messages.error(request, "Lệnh chưa có xe.")
-        return redirect("transfers:chi_tiet_lenh", id=id)
-
-    try:
-        html = render_to_string(
-            "transfers/lenh_luu_chuyen_pdf.html",
-            {
-                "lenh": lenh,
-                "chi_tiet": chi_tiet,
-                "kho_xuat": lenh.kho_xuat,
-                "kho_nhap": lenh.kho_nhap,
-                "nguoi_lap": lenh.nguoi_lap.username,
-                "ngay_lap": timezone.localtime(lenh.ngay_lap).date(),
-                "tong_so_luong": sum(
-                    item.so_luong for item in chi_tiet
-                ),
-            },
-            request=request
-        )
-
-        pdf_buffer = BytesIO()
-
-        ket_qua = pisa.CreatePDF(
-            src=html,
-            dest=pdf_buffer,
-            encoding="utf-8",
-            link_callback=link_callback
-        )
-
-        if ket_qua.err:
-            raise ValueError("Không thể tạo file PDF.")
-
-        danh_sach_email = getattr(settings, "TRANSFER_RECEIVER_EMAILS", [])
-
-
-        if isinstance(danh_sach_email, str):
-
-
-            danh_sach_email = [dia_chi.strip() for dia_chi in danh_sach_email.split(",") if dia_chi.strip()]
-
-
-        if danh_sach_email and getattr(settings, "DEFAULT_FROM_EMAIL", None):
-
-
-            try:
-
-
-                email = EmailMessage(
-
-
-                    subject=f"Lệnh lưu chuyển {lenh.ma_lenh}",
-
-
-                    body=f"Đính kèm lệnh lưu chuyển {lenh.ma_lenh}.",
-
-
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-
-
-                    to=danh_sach_email
-
-
-                )
-
-
-                email.attach(
-
-
-                    f"Lenh_luu_chuyen_{lenh.ma_lenh}.pdf",
-
-
-                    pdf_buffer.getvalue(),
-
-
-                    "application/pdf"
-
-
-                )
-
-
-                email.send(fail_silently=True)
-
-
-            except Exception as mail_err:
-
-
-                logging.warning(f"Không thể gửi email thông báo: {mail_err}")
-
-    except Exception as e:
-        messages.error(request, f"Lỗi gửi lệnh: {e}")
-        return redirect("transfers:chi_tiet_lenh", id=id)
-
-    with transaction.atomic():
-        lenh.trang_thai = "DA_GUI"
-        lenh.ngay_gui = timezone.now()
-        lenh.save(update_fields=["trang_thai", "ngay_gui"])
-
-        # Cập nhật trạng thái các xe đang lưu chuyển
-        for item in lenh.chi_tiet.all():
-            Xe.objects.filter(pk=item.xe_id).update(trang_thai=TrangThaiXe.DANG_LUU_CHUYEN)
-
-    if request.session.get("lenh_nhap_dang_sua_id") == lenh.pk:
-        request.session.pop("lenh_nhap_dang_sua_id", None)
-        request.session.pop("ds_xe_luu_chuyen", None)
-
-    try:
-        from dashboard.models import ThongBaoHoatDong
-        ten_nguoi_gui = request.user.get_full_name() or request.user.username
-        chuc_vu = "Sale Chi Nhánh" if ("giang" in request.user.username.lower() or "tu" in request.user.username.lower()) else "Nhân viên"
-        ThongBaoHoatDong.objects.create(
-            user=request.user,
-            ten_nhan_vien=ten_nguoi_gui,
-            chuc_vu=chuc_vu,
-            hanh_dong=f"Đã gửi Lệnh lưu chuyển xe {lenh.ma_lenh} — Chờ Quốc Hiếu duyệt",
-            chi_tiet=f"{ten_nguoi_gui} ({chuc_vu}) đã lập lệnh điều chuyển xe từ {lenh.kho_xuat.ma_kho} sang {lenh.kho_nhap.ma_kho}. Hệ thống đã gửi thông báo đến Sale Admin (Quốc Hiếu) để kiểm tra, phê duyệt tiếp nhận.",
-            module="transfers",
-            loai="tu_dong",
-            is_active=True,
-        )
-    except Exception as e:
-        logging.warning(f"Lỗi tạo thông báo: {e}")
-
-    messages.success(
-        request,
-        f"Đã gửi lệnh {lenh.ma_lenh} thành công! Hệ thống đã phát thông báo toàn hệ thống và gửi đến Sale Admin (Quốc Hiếu) để phê duyệt tiếp nhận."
-    )
-
-    return redirect("transfers:chi_tiet_lenh", id=lenh.pk)
+    messages.success(request, "Đã nạp bản nháp vào phiên làm việc. Bạn có thể tiếp tục chỉnh sửa.")
+    return redirect(reverse("transfers:index") + "?tab=da-chon")
