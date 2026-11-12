@@ -3,6 +3,27 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'incidents/incidents.css' %}">{% endblock %}
 {% block content %}
 {% include "incidents/_messages.html" %}
+
+{% if xe_obj or pdi_obj %}
+<div class="card" style="background: #eff6ff; border: 1px solid #bfdbfe; margin-bottom: 20px; padding: 16px 20px;">
+  <div style="font-weight: 700; color: #1e40af; font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+    <i class="bi bi-shield-exclamation" style="font-size: 20px; color: #dc2626;"></i>
+    Hệ thống đã tự động trích xuất thông tin xe & dữ liệu kiểm tra PDI không đạt
+  </div>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; font-size: 13px; color: #1e293b;">
+    {% if xe_obj %}
+      <div><strong>Số khung (VIN):</strong> <span style="font-family: monospace; color: #0067c5; font-weight: 700; font-size: 14px;">{{ xe_obj.vin }}</span></div>
+      <div><strong>Dòng xe:</strong> <strong>{{ xe_obj.ten_xe }}</strong> {% if xe_obj.phien_ban %}<small>({{ xe_obj.phien_ban }})</small>{% endif %}</div>
+      <div><strong>Màu sắc:</strong> {{ xe_obj.mau_sac|default:"—" }}</div>
+    {% endif %}
+    {% if pdi_obj %}
+      <div><strong>Biên bản PDI nguồn:</strong> <span class="badge badge--KHONG_DAT">PDI-{{ pdi_obj.id|stringformat:"03d" }}</span></div>
+      <div style="grid-column: 1 / -1;"><strong>Tình trạng ghi nhận:</strong> <span style="color: #dc2626; font-weight: 600;">{{ pdi_obj.tinh_trang }}</span></div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
 <form method="post" enctype="multipart/form-data" class="card form">
   {% csrf_token %}
   {% if form.non_field_errors %}<div class="msg msg--error">{{ form.non_field_errors|join:" " }}</div>{% endif %}
@@ -24,27 +45,45 @@
 {% endblock %}
 {% block extra_js %}
 <script>
-  // Chỉ cho chọn xe thuộc lô hàng nhập đã chọn
+  // Chỉ cho chọn xe thuộc lô hàng nhập đã chọn & Tự động chọn đúng VIN khi trích xuất từ PDI
   const map = JSON.parse(document.getElementById('xe-theo-hdn').textContent);
   const hdn = document.getElementById('id_hoa_don_nhap'), xe = document.getElementById('id_xe');
+  const targetVin = "{{ ban_dau_xe|default:'' }}" || new URLSearchParams(window.location.search).get('xe') || new URLSearchParams(window.location.search).get('vin');
+
   function loc() {
     const ok = map[hdn.value];
     let first = null;
+    let foundTarget = false;
     for (const o of xe.options) {
       if (!o.value) continue;
       const show = !hdn.value || (ok && ok.includes(o.value));
       o.hidden = o.disabled = !show;
       if (show && !first) first = o;
+      if (show && targetVin && o.value === targetVin) {
+        foundTarget = true;
+      }
     }
-    if (xe.selectedOptions[0] && xe.selectedOptions[0].disabled) xe.value = first ? first.value : '';
+    if (targetVin && foundTarget) {
+      xe.value = targetVin;
+    } else if (xe.selectedOptions[0] && (xe.selectedOptions[0].disabled || !xe.value)) {
+      xe.value = first ? first.value : '';
+    }
   }
-  hdn.addEventListener('change', loc); loc();
+  hdn.addEventListener('change', loc);
+  loc();
+
   // Xem trước ảnh ngay trên biểu mẫu
-  document.getElementById('id_anh').addEventListener('change', e => {
-    const box = document.getElementById('preview'); box.innerHTML = '';
-    for (const f of e.target.files) {
-      const img = document.createElement('img'); img.src = URL.createObjectURL(f); box.appendChild(img);
-    }
-  });
+  const inputAnh = document.getElementById('id_anh');
+  if (inputAnh) {
+    inputAnh.addEventListener('change', e => {
+      const box = document.getElementById('preview');
+      box.innerHTML = '';
+      for (const f of e.target.files) {
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(f);
+        box.appendChild(img);
+      }
+    });
+  }
 </script>
 {% endblock %}

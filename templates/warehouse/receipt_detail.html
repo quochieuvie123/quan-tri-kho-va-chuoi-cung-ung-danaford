@@ -29,8 +29,17 @@
   <div class="grid">
     <!-- Card thông tin phiếu -->
     {% if phieu_nhap.pdi_moi_nhat.ket_qua == 'KHONG_DAT' %}
-  <div class="card"><p>PDI không đạt: lập hồ sơ sự cố, hoàn tất xử lý rồi kiểm tra lại.</p>
-  <a class="btn btn--warning" href="{% url 'incidents:ghi_nhan' %}?xe={{ phieu_nhap.vin|urlencode }}{% if phieu_nhap.ma_hdn %}&amp;hoa_don_nhap={{ phieu_nhap.ma_hdn|urlencode }}{% endif %}">Ghi nhận sự cố vận chuyển</a></div>
+  <div class="card" style="border-left: 4px solid #f59e0b; background: #fffbeb;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <strong style="color: #b45309; font-size: 14px;"><i class="bi bi-exclamation-triangle-fill"></i> PDI không đạt:</strong>
+        <p style="margin: 4px 0 0; color: #78350f; font-size: 13px;">Xe gặp sự cố kỹ thuật trong quá trình kiểm định. Hãy lập biên bản sự cố vận chuyển để chuyển tiếp xử lý bồi thường.</p>
+      </div>
+      <a class="btn btn--warning" style="font-weight: 700; white-space: nowrap;" href="{% url 'incidents:ghi_nhan' %}?xe={{ phieu_nhap.vin|urlencode }}{% if phieu_nhap.ma_hdn %}&amp;hoa_don_nhap={{ phieu_nhap.ma_hdn|urlencode }}{% endif %}&amp;pdi_id={{ phieu_nhap.pdi_moi_nhat.id }}">
+        <i class="bi bi-file-earmark-plus"></i> Ghi nhận sự cố vận chuyển (Tự động đưa dữ liệu PDI)
+      </a>
+    </div>
+  </div>
   {% endif %}
   <div class="card">
       <h2 class="section-title">Thông tin phiếu nhập kho</h2>

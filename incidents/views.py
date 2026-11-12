@@ -133,9 +133,80 @@ def xuat_bao_cao(request):
 # ---------- UC-10.1.1: ghi nhận ----------
 @login_required
 def ghi_nhan(request):
-    ban_dau = {k: request.GET[k] for k in ("hoa_don_nhap", "xe") if request.GET.get(k)}
-    if "hdn" in request.GET:
-        ban_dau["hoa_don_nhap"] = request.GET["hdn"]
+    xe_vin = request.GET.get("xe") or request.GET.get("vin")
+    hdn_param = request.GET.get("hoa_don_nhap") or request.GET.get("hdn")
+    pdi_id = request.GET.get("pdi_id")
+
+    ban_dau = {}
+    if hdn_param:
+        ban_dau["hoa_don_nhap"] = hdn_param
+    if xe_vin:
+        ban_dau["xe"] = xe_vin
+
+    # Tự động tìm kiếm PDI không đạt gần nhất để nạp dữ liệu
+    pdi_obj = None
+    try:
+        from warehouse.models import KetQuaPDI
+        if pdi_id:
+            pdi_obj = KetQuaPDI.objects.select_related("phieu_nhap__xe", "phieu_nhap__chi_tiet_nhap__hoa_don_nhap").filter(pk=pdi_id).first()
+        elif xe_vin:
+            pdi_obj = KetQuaPDI.objects.select_related("phieu_nhap__xe", "phieu_nhap__chi_tiet_nhap__hoa_don_nhap").filter(phieu_nhap__xe_id=xe_vin).order_by("-thoi_gian_kiem_tra").first()
+    except Exception:
+        pdi_obj = None
+
+    if pdi_obj:
+        if not ban_dau.get("xe"):
+            ban_dau["xe"] = pdi_obj.phieu_nhap.xe_id
+        if not ban_dau.get("hoa_don_nhap") and pdi_obj.phieu_nhap.chi_tiet_nhap:
+            ban_dau["hoa_don_nhap"] = pdi_obj.phieu_nhap.chi_tiet_nhap.hoa_don_nhap_id
+
+        # Tự động suy luận Loại sự cố từ kết quả PDI
+        all_text = f"{pdi_obj.tinh_trang or ''} {pdi_obj.ghi_chu or ''} "
+        for hm in (pdi_obj.hang_muc or []):
+            all_text += f"{hm.get('hang_muc', '')} {hm.get('tinh_trang', '')} {hm.get('ghi_chu', '')} "
+        all_text_lower = all_text.lower()
+
+        if any(w in all_text_lower for w in ["móp", "méo", "bẹp", "va quẹt", "tông", "thân vỏ", "cản"]):
+            ban_dau["loai_su_co"] = "Móp méo thân vỏ"
+        elif any(w in all_text_lower for w in ["xước", "trầy", "sơn", "kính"]):
+            ban_dau["loai_su_co"] = "Trầy xước sơn"
+        elif any(w in all_text_lower for w in ["hỏng", "hư", "lỗi", "không chạy", "điện", "máy"]):
+            ban_dau["loai_su_co"] = "Hư hỏng linh kiện"
+        elif any(w in all_text_lower for w in ["vin", "sai xe", "sai màu"]):
+            ban_dau["loai_su_co"] = "Giao sai VIN"
+        else:
+            ban_dau["loai_su_co"] = "Móp méo thân vỏ"
+
+        # Tự động trích xuất Mô tả chi tiết lỗi từ PDI
+        mo_ta_lines = []
+        if pdi_obj.tinh_trang:
+            mo_ta_lines.append(f"Tình trạng PDI ghi nhận: {pdi_obj.tinh_trang}")
+
+        failed_items = []
+        for it in (pdi_obj.hang_muc or []):
+            if it.get("ket_qua") == "KHONG_DAT":
+                ten_hm = it.get("hang_muc", "Hạng mục")
+                tt_hm = it.get("tinh_trang", "Không đạt")
+                gc_hm = it.get("ghi_chu", "")
+                row_str = f"- {ten_hm}: {tt_hm}"
+                if gc_hm:
+                    row_str += f" (Ghi chú: {gc_hm})"
+                failed_items.append(row_str)
+
+        if failed_items:
+            mo_ta_lines.append("Các hạng mục kiểm tra PDI không đạt:\n" + "\n".join(failed_items))
+
+        if pdi_obj.ghi_chu:
+            mo_ta_lines.append(f"Ghi chú kiểm định: {pdi_obj.ghi_chu}")
+
+        mo_ta_lines.append(f"(Tự động trích xuất từ Biên bản kiểm tra PDI #{pdi_obj.pk} của xe {pdi_obj.phieu_nhap.xe_id})")
+        ban_dau["mo_ta_chi_tiet"] = "\n\n".join(mo_ta_lines)
+
+    target_vin = ban_dau.get("xe") or xe_vin
+    xe_obj = None
+    if target_vin:
+        xe_obj = Xe.objects.filter(vin=target_vin).first()
+
     form = GhiNhanForm(request.POST or None, request.FILES or None, initial=ban_dau, user=request.user)
     if request.method == "POST" and form.is_valid():
         d = form.cleaned_data
@@ -145,20 +216,28 @@ def ghi_nhan(request):
                 ma_pdi=sinh_ma_pdi(), hoa_don_nhap=d["hoa_don_nhap"], xe=d["xe"], nhan_vien=nv,
                 ngay_ghi_nhan=timezone.now(), loai_su_co=d["loai_su_co"],
                 mo_ta_chi_tiet=d["mo_ta_chi_tiet"].strip(), trang_thai_claim=CHUA_XU_LY)
-            anh = [AnhSuCo.objects.create(bien_ban=bb, tep=f) for f in d["anh"]]
-            bb.hinh_anh_url = request.build_absolute_uri(reverse("incidents:tep_anh", args=[anh[0].pk]))
-            bb.save(update_fields=["hinh_anh_url"])
+            anh = [AnhSuCo.objects.create(bien_ban=bb, tep=f) for f in d.get("anh", [])]
+            if anh:
+                bb.hinh_anh_url = request.build_absolute_uri(reverse("incidents:tep_anh", args=[anh[0].pk]))
+                bb.save(update_fields=["hinh_anh_url"])
             _ho_so(bb)
             khoa_xe_vi_su_co(d["xe"])
             _ghi_lich_su(request, bb, "Ghi nhận sự cố", f"{bb.loai_su_co}: {bb.mo_ta_chi_tiet}")
         messages.success(request, f"Ghi nhận sự cố thành công (mã hồ sơ {bb.ma_pdi}). "
                                   "Xe đang xử lý sự cố - khóa nhập kho.")
         return redirect("incidents:chi_tiet", ma_pdi=bb.ma_pdi)
+
     xe_theo_hdn = {}
     for hdn, vin in ChiTietNhap.objects.values_list("hoa_don_nhap_id", "xe_id"):
         xe_theo_hdn.setdefault(hdn, []).append(vin)
     return render(request, "incidents/ghi_nhan.html", {
-        "page_title": "Ghi nhận sự cố vận chuyển", "form": form, "xe_theo_hdn": json.dumps(xe_theo_hdn)})
+        "page_title": "Ghi nhận sự cố vận chuyển",
+        "form": form,
+        "xe_theo_hdn": json.dumps(xe_theo_hdn),
+        "ban_dau_xe": target_vin,
+        "xe_obj": xe_obj,
+        "pdi_obj": pdi_obj,
+    })
 
 
 # ---------- UC-10.1.2: chi tiết ----------

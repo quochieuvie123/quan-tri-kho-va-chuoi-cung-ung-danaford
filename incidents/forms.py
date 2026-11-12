@@ -50,12 +50,11 @@ class GhiNhanForm(forms.Form):
 
     def clean(self):
         d = super().clean()
-        # E1: bỏ trống mô tả hoặc không có ảnh
         if self.errors:
             return d
         anh = d.get("anh") or []
-        if not (d.get("mo_ta_chi_tiet") or "").strip() or not anh:
-            raise forms.ValidationError("Vui lòng nhập đầy đủ chi tiết lỗi và đính kèm hình ảnh PDI")
+        if not (d.get("mo_ta_chi_tiet") or "").strip():
+            raise forms.ValidationError("Vui lòng nhập đầy đủ mô tả chi tiết lỗi sự cố.")
         kiem_tra = FileExtensionValidator(PHAM_VI_LOI_ANH)
         for f in anh:
             kiem_tra(f)
