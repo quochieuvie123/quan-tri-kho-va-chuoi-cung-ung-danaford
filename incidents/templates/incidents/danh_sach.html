@@ -4,6 +4,14 @@
 {% block content %}
 {% include "incidents/_messages.html" %}
 
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+  <div>
+    <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #0b2a4a;">Quản lý sự cố vận chuyển</h1>
+    <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Ghi nhận, xử lý claim bồi thường và theo dõi khắc phục sự cố phát sinh từ kiểm định PDI</p>
+  </div>
+  <a class="btn btn--primary" href="{% url 'incidents:ghi_nhan' %}"><i class="bi bi-plus-lg"></i> Ghi nhận sự cố</a>
+</div>
+
 <form method="get" class="card filter">
   <div class="filter__grid">
     <label class="filter__wide">{{ form.q.label }}{{ form.q }}</label>
@@ -25,20 +33,19 @@
 <div class="card">
   <p class="muted">{% if co_loc %}Tìm thấy {{ tong }} sự cố phù hợp.{% else %}Tổng cộng {{ tong }} sự cố.{% endif %}</p>
   <table class="tbl">
-    <thead><tr><th>Mã sự cố</th><th>Mã VIN xe</th><th>Loại lỗi</th><th>Tên ĐVVC</th><th>Ngày ghi nhận</th><th>Trạng thái</th><th></th></tr></thead>
+    <thead><tr><th>Mã sự cố</th><th>Mã VIN xe</th><th>Loại lỗi</th><th>Tên ĐVVC</th><th>Ngày ghi nhận</th><th>Trạng thái</th></tr></thead>
     <tbody>
     {% for bb in trang %}
       <tr>
-        <td><a href="{% url 'incidents:chi_tiet' bb.ma_pdi %}"><strong>{{ bb.ma_pdi }}</strong></a></td>
-        <td>{{ bb.xe_id }}</td>
+        <td><a href="{% url 'incidents:chi_tiet' bb.ma_pdi %}" style="text-decoration: none; font-weight: 700; color: #0067c5;">{{ bb.ma_pdi }}</a></td>
+        <td><a href="{% url 'incidents:chi_tiet' bb.ma_pdi %}" style="text-decoration: none; color: inherit; font-weight: 600;">{{ bb.xe_id }}</a></td>
         <td>{{ bb.loai_su_co }}</td>
-        <td>{{ bb.hoa_don_nhap.don_vi_van_chuyen.ten_dvvc }}</td>
+        <td>{{ bb.don_vi_van_chuyen|default:bb.hoa_don_nhap.don_vi_van_chuyen.ten_dvvc }}</td>
         <td>{{ bb.ngay_ghi_nhan|date:"d/m/Y H:i" }}</td>
         <td><span class="badge {% if bb.nhan_tt == 'Đã đóng' %}badge--done{% else %}badge--open{% endif %}">{{ bb.nhan_tt }}</span></td>
-        <td><a href="{% url 'incidents:chi_tiet' bb.ma_pdi %}">Xem chi tiết</a></td>
       </tr>
     {% empty %}
-      <tr><td colspan="7" class="none">
+      <tr><td colspan="6" class="none">
         {% if co_loc %}Không tìm thấy kết quả phù hợp với điều kiện tìm kiếm{% else %}Hiện chưa có sự cố vận chuyển nào trong hệ thống{% endif %}
       </td></tr>
     {% endfor %}

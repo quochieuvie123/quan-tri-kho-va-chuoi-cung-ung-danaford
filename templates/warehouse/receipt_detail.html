@@ -28,15 +28,48 @@
   <!-- Thông tin phiếu nhập & Thao tác nghiệp vụ -->
   <div class="grid">
     <!-- Card thông tin phiếu -->
-    {% if phieu_nhap.pdi_moi_nhat.ket_qua == 'KHONG_DAT' %}
-  <div class="card"><p>PDI không đạt: lập hồ sơ sự cố, hoàn tất xử lý rồi kiểm tra lại.</p>
-  <a class="btn btn--warning" href="{% url 'incidents:ghi_nhan' %}?xe={{ phieu_nhap.vin|urlencode }}{% if phieu_nhap.ma_hdn %}&amp;hoa_don_nhap={{ phieu_nhap.ma_hdn|urlencode }}{% endif %}">Ghi nhận sự cố vận chuyển</a></div>
+    {% if phieu_nhap.incident_info and phieu_nhap.incident_info.is_open %}
+  <div class="card" style="border-left: 4px solid #0284c7; background: #f0f9ff;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <strong style="color: #0369a1; font-size: 14px;"><i class="bi bi-info-circle-fill"></i> Đang xử lý sự cố vận chuyển:</strong>
+        <p style="margin: 4px 0 0; color: #0c4a6e; font-size: 13px;">Hồ sơ sự cố <strong>{{ phieu_nhap.incident_info.ma_pdi }}</strong> đang được theo dõi và giải quyết tại module Quản lý sự cố vận chuyển.</p>
+      </div>
+      <a class="btn btn--primary" style="font-weight: 700; white-space: nowrap;" href="{% url 'incidents:chi_tiet' phieu_nhap.incident_info.ma_pdi %}">
+        <i class="bi bi-box-arrow-up-right"></i> Xem chi tiết sự cố {{ phieu_nhap.incident_info.ma_pdi }}
+      </a>
+    </div>
+  </div>
+  {% elif phieu_nhap.incident_info and phieu_nhap.incident_info.is_closed %}
+  <div class="card" style="border-left: 4px solid #16a34a; background: #f0fdf4;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <strong style="color: #15803d; font-size: 14px;"><i class="bi bi-check-circle-fill"></i> Sự cố vận chuyển đã được xử lý:</strong>
+        <p style="margin: 4px 0 0; color: #166534; font-size: 13px;">Sự cố <strong>{{ phieu_nhap.incident_info.ma_pdi }}</strong> đã hoàn tất bồi thường/khắc phục. Xe đã được cập nhật đủ điều kiện nhập kho.</p>
+      </div>
+      <a class="btn btn--light" style="font-weight: 600; white-space: nowrap;" href="{% url 'incidents:chi_tiet' phieu_nhap.incident_info.ma_pdi %}">
+        <i class="bi bi-journal-text"></i> Xem hồ sơ sự cố {{ phieu_nhap.incident_info.ma_pdi }}
+      </a>
+    </div>
+  </div>
+  {% elif phieu_nhap.pdi_moi_nhat.ket_qua == 'KHONG_DAT' %}
+  <div class="card" style="border-left: 4px solid #f59e0b; background: #fffbeb;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <strong style="color: #b45309; font-size: 14px;"><i class="bi bi-exclamation-triangle-fill"></i> PDI không đạt:</strong>
+        <p style="margin: 4px 0 0; color: #78350f; font-size: 13px;">Xe gặp sự cố kỹ thuật trong quá trình kiểm định. Hãy lập biên bản sự cố vận chuyển để chuyển tiếp xử lý bồi thường.</p>
+      </div>
+      <a class="btn btn--warning" style="font-weight: 700; white-space: nowrap;" href="{% url 'incidents:ghi_nhan' %}?xe={{ phieu_nhap.vin|urlencode }}{% if phieu_nhap.ma_hdn %}&amp;hoa_don_nhap={{ phieu_nhap.ma_hdn|urlencode }}{% endif %}{% if phieu_nhap.lenh_luu_chuyen_id %}&amp;lenh_luu_chuyen={{ phieu_nhap.lenh_luu_chuyen_id }}{% endif %}&amp;pdi_id={{ phieu_nhap.pdi_moi_nhat.id }}">
+        <i class="bi bi-file-earmark-plus"></i> Ghi nhận sự cố vận chuyển (Tự động đưa dữ liệu PDI)
+      </a>
+    </div>
+  </div>
   {% endif %}
   <div class="card">
       <h2 class="section-title">Thông tin phiếu nhập kho</h2>
       <dl class="detail-list">
         <dt>Mã phiếu nhập</dt>
-        <dd><span style="font-size: 15px; font-weight: 700; color: #0b66c3;">{{ phieu_nhap.ma_phieu }}</span></dd>
+        <dd><span style="font-size: 15px; font-weight: 700; color: #0067c5;">{{ phieu_nhap.ma_phieu }}</span></dd>
 
         <dt>Số khung (VIN)</dt>
         <dd><strong>{{ phieu_nhap.vin }}</strong></dd>
@@ -59,7 +92,16 @@
 
         <dt>Trạng thái phiếu</dt>
         <dd>
-          <span class="badge badge--{{ phieu_nhap.trang_thai }}">{{ phieu_nhap.trang_thai_hien_thi }}</span>
+          <span class="badge {{ phieu_nhap.badge_class|default:'badge--NHAP' }}">{{ phieu_nhap.trang_thai_hien_thi }}</span>
+          {% if phieu_nhap.incident_info %}
+            <small class="muted" style="margin-left: 6px;">
+              {% if phieu_nhap.incident_info.is_open %}
+                (Đang đợi xử lý sự cố <a href="{% url 'incidents:chi_tiet' phieu_nhap.incident_info.ma_pdi %}"><strong>{{ phieu_nhap.incident_info.ma_pdi }}</strong></a>)
+              {% else %}
+                (Đã xử lý xong sự cố <a href="{% url 'incidents:chi_tiet' phieu_nhap.incident_info.ma_pdi %}"><strong>{{ phieu_nhap.incident_info.ma_pdi }}</strong></a>)
+              {% endif %}
+            </small>
+          {% endif %}
         </dd>
       </dl>
     </div>
@@ -117,18 +159,35 @@
     </div>
   </div>
 
-  <!-- Thông tin chứng từ / Hóa đơn nhập -->
+  <!-- Thông tin chứng từ / Hóa đơn nhập hoặc Lệnh lưu chuyển -->
   <div class="card">
-    <h2 class="section-title">Chứng từ hóa đơn nhập liên kết</h2>
+    <h2 class="section-title">
+      {% if phieu_nhap.loai_nguon == 'LUU_CHUYEN' or phieu_nhap.ma_lenh %}
+        Chứng từ Lệnh lưu chuyển nội bộ liên kết
+      {% else %}
+        Chứng từ hóa đơn nhập liên kết
+      {% endif %}
+    </h2>
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; font-size: 13px;">
-      <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
-        <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Mã hóa đơn nhập</span>
-        <strong style="color: #0b66c3;">{{ phieu_nhap.ma_hdn }}</strong>
-      </div>
-      <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
-        <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Số hóa đơn</span>
-        <strong>{{ phieu_nhap.so_hoa_don|default:'Chưa cập nhật' }}</strong>
-      </div>
+      {% if phieu_nhap.loai_nguon == 'LUU_CHUYEN' or phieu_nhap.ma_lenh %}
+        <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Mã lệnh lưu chuyển</span>
+          <strong style="color: #0067c5;">{{ phieu_nhap.ma_lenh }}</strong>
+        </div>
+        <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Kho xuất chuyển</span>
+          <strong>{{ phieu_nhap.kho_xuat_ten|default:'Chưa cập nhật' }}</strong>
+        </div>
+      {% else %}
+        <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Mã hóa đơn nhập</span>
+          <strong style="color: #0067c5;">{{ phieu_nhap.ma_hdn }}</strong>
+        </div>
+        <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Số hóa đơn</span>
+          <strong>{{ phieu_nhap.so_hoa_don|default:'Chưa cập nhật' }}</strong>
+        </div>
+      {% endif %}
       <div style="background: #f8fafc; padding: 12px 16px; border-radius: 8px; border: 1px solid #e2e8f0;">
         <span style="color: #64748b; display: block; font-size: 12px; margin-bottom: 2px;">Đơn vị vận chuyển</span>
         <strong>{{ phieu_nhap.don_vi_van_chuyen|default:'Chưa cập nhật' }}</strong>
@@ -156,7 +215,7 @@
         <!-- Ngoại thất -->
         <div style="background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #cbd5e1;">
           <div style="font-weight: 700; color: #0b2a4a; margin-bottom: 10px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
-            <i class="bi bi-car-front-fill" style="color: #0b66c3;"></i> 1. Kiểm tra Ngoại thất
+            <i class="bi bi-car-front-fill" style="color: #0067c5;"></i> 1. Kiểm tra Ngoại thất
           </div>
           <div class="field" style="margin-bottom: 10px;">
             <label>Tình trạng thực tế</label>
@@ -178,7 +237,7 @@
         <!-- Nội thất -->
         <div style="background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #cbd5e1;">
           <div style="font-weight: 700; color: #0b2a4a; margin-bottom: 10px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
-            <i class="bi bi-speedometer2" style="color: #0b66c3;"></i> 2. Kiểm tra Nội thất & Khoang lái
+            <i class="bi bi-speedometer2" style="color: #0067c5;"></i> 2. Kiểm tra Nội thất & Khoang lái
           </div>
           <div class="field" style="margin-bottom: 10px;">
             <label>Tình trạng thực tế</label>
@@ -200,7 +259,7 @@
         <!-- Vận hành -->
         <div style="background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #cbd5e1; grid-column: 1 / -1;">
           <div style="font-weight: 700; color: #0b2a4a; margin-bottom: 10px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
-            <i class="bi bi-gear-wide-connected" style="color: #0b66c3;"></i> 3. Động cơ & Khả năng vận hành cơ bản
+            <i class="bi bi-gear-wide-connected" style="color: #0067c5;"></i> 3. Động cơ & Khả năng vận hành cơ bản
           </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <div class="field">
@@ -255,7 +314,7 @@
             {% for item in pdi %}
             <tr>
               <td>
-                <strong style="color: #0b66c3;">{{ item.ma_pdi_hien_thi }}</strong>
+                <strong style="color: #0067c5;">{{ item.ma_pdi_hien_thi }}</strong>
               </td>
               <td style="text-align: center;">
                 <span class="badge badge--{{ item.ket_qua }}">{{ item.ket_qua_hien_thi }}</span>
@@ -300,7 +359,7 @@ document.querySelectorAll('table tbody tr').forEach(row => {
     const a = document.createElement('a');
     a.textContent = cell.textContent.trim();
     a.href = '/kho/pdi/' + Number(cell.textContent.trim().replace('PDI-', '')) + '/';
-    a.style.color = '#0b66c3';
+    a.style.color = '#0067c5';
     a.style.textDecoration = 'none';
     a.style.fontWeight = '700';
     cell.replaceChildren(a);

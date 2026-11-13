@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/transfers.css' %}">
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
+<style>
+.badge--CHO_DUYET { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.badge--DA_DUYET { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+.badge--DANG_VAN_CHUYEN { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+.badge--DA_GIAO_DEN_DA_NANG { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.badge--HOAN_TAT { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+.badge--TU_CHOI { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+.badge--HUY { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+    <div class="page-header">
+        <div>
+            <h1 class="page-header__title">Danh sách lệnh lưu chuyển</h1>
+            <p class="page-header__subtitle">Theo dõi tiến trình luân chuyển xe giữa các chi nhánh Dana Ford</p>
+        </div>
+        <a href="{% url 'transfers:index' %}" class="btn btn--primary">
+            <i class="bi bi-plus-lg"></i> Lập lệnh lưu chuyển mới
+        </a>
+    </div>
+        <div class="card" style="margin-bottom: 16px;">
+        <form method="GET" action="{% url 'transfers:danh_sach_lenh' %}" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin: 0;">
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <label for="trang-thai-select" style="font-weight: 600; font-size: 13px; color: #102a43; margin: 0; white-space: nowrap;">
+                    <i class="bi bi-funnel"></i> Trạng thái lệnh:
+                </label>
+                <select
+                    id="trang-thai-select"
+                    name="trang_thai"
+                    class="select"
+                    onchange="this.form.submit()"
+                    style="min-width: 220px; padding: 8px 14px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; color: #102a43; cursor: pointer;"
+                >
+                    <option value="" {% if not trang_thai %}selected{% endif %}>📋 Tất cả trạng thái</option>
+                    <option value="NHAP" {% if trang_thai == 'NHAP' %}selected{% endif %}>Bản nháp</option>
+                    <option value="CHO_DUYET" {% if trang_thai == 'CHO_DUYET' or trang_thai == 'DA_GUI' %}selected{% endif %}>Chờ duyệt</option>
+                    <option value="DA_DUYET" {% if trang_thai == 'DA_DUYET' %}selected{% endif %}>Đã duyệt</option>
+                    <option value="DANG_VAN_CHUYEN" {% if trang_thai == 'DANG_VAN_CHUYEN' %}selected{% endif %}>Đang vận chuyển</option>
+                    <option value="DA_GIAO_DEN_DA_NANG" {% if trang_thai == 'DA_GIAO_DEN_DA_NANG' %}selected{% endif %}>Chờ nhập kho (Đã đến ĐN)</option>
+                    <option value="HOAN_TAT" {% if trang_thai == 'HOAN_TAT' or trang_thai == 'DA_XAC_NHAN' %}selected{% endif %}>Hoàn tất</option>
+                    <option value="TU_CHOI" {% if trang_thai == 'TU_CHOI' %}selected{% endif %}>Từ chối</option>
+                    <option value="HUY" {% if trang_thai == 'HUY' %}selected{% endif %}>Đã hủy</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ tu_khoa }}"
+                    placeholder="Tìm mã lệnh, kho, người lập, biển số..."
+                    class="input"
+                    style="min-width: 280px; padding: 8px 12px; font-size: 13px; border-radius: 8px; border: 1px solid #cbd5e1;"
+                >
+                <button type="submit" class="btn btn--primary" style="padding: 8px 16px; font-size: 13px;">
+                    <i class="bi bi-search"></i> Tìm kiếm
+                </button>
+                {% if tu_khoa or trang_thai %}
+                <a href="{% url 'transfers:danh_sach_lenh' %}" class="btn btn--light" style="padding: 8px 14px; font-size: 13px;" title="Xóa bộ lọc">
+                    <i class="bi bi-arrow-counterclockwise"></i> Đặt lại
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="table-wrap table-wrap--scroll">
+            <table class="data-table" style="min-width: 1050px;">
+                <thead>
+                    <tr>
+                        <th style="width: 45px; text-align: center;">STT</th>
+                        <th>Mã lệnh</th>
+                        <th>Ngày lập</th>
+                        <th>Kho xuất</th>
+                        <th>Kho nhập</th>
+                        <th>Người lập</th>
+                        <th>Vận chuyển</th>
+                        <th style="text-align: center;">Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lenh in ds_lenh %}
+                    <tr>
+                        <td style="text-align: center;">{{ forloop.counter }}</td>
+                        <td>
+                            <a href="{% url 'transfers:chi_tiet_lenh' lenh.id %}" style="text-decoration: none; font-weight: 700; color: #0b66c3; font-family: monospace;">
+                                {{ lenh.ma_lenh }}
+                            </a>
+                        </td>
+                        <td>{{ lenh.ngay_lap|date:"d/m/Y H:i" }}</td>
+                        <td><span class="badge">{{ lenh.kho_xuat.ma_kho }}</span> {{ lenh.kho_xuat.chi_nhanh }}</td>
+                        <td><span class="badge">{{ lenh.kho_nhap.ma_kho }}</span> {{ lenh.kho_nhap.chi_nhanh }}</td>
+                        <td>{{ lenh.ten_nguoi_lap|default:"—" }}</td>
+                        <td>
+                            {% if lenh.don_vi_van_chuyen %}
+                                <small style="font-weight: 600; color: #334155;">{{ lenh.don_vi_van_chuyen.ten_dvvc }}</small><br>
+                                <small style="color: #64748b; font-family: monospace;">{{ lenh.bien_so_xe }}</small>
+                            {% else %}
+                                <span style="color: #94a3b8; font-size: 12px;">--</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: center;">
+                            {% if lenh.trang_thai == "NHAP" %}
+                                <span class="badge badge--NHAP"><i class="bi bi-pencil"></i> Bản nháp</span>
+                            {% elif lenh.trang_thai == "CHO_DUYET" or lenh.trang_thai == "DA_GUI" %}
+                                <span class="badge badge--CHO_DUYET"><i class="bi bi-hourglass-split"></i> Chờ duyệt</span>
+                            {% elif lenh.trang_thai == "DA_DUYET" %}
+                                <span class="badge badge--DA_DUYET"><i class="bi bi-check-circle"></i> Đã duyệt</span>
+                            {% elif lenh.trang_thai == "DANG_VAN_CHUYEN" %}
+                                <span class="badge badge--DANG_VAN_CHUYEN"><i class="bi bi-truck"></i> Đang vận chuyển</span>
+                            {% elif lenh.trang_thai == "DA_GIAO_DEN_DA_NANG" %}
+                                <span class="badge badge--DA_GIAO_DEN_DA_NANG"><i class="bi bi-geo-alt-fill"></i> Chờ nhập kho</span>
+                            {% elif lenh.trang_thai == "HOAN_TAT" or lenh.trang_thai == "DA_XAC_NHAN" %}
+                                <span class="badge badge--HOAN_TAT"><i class="bi bi-check-all"></i> Hoàn tất</span>
+                            {% elif lenh.trang_thai == "TU_CHOI" %}
+                                <span class="badge badge--TU_CHOI"><i class="bi bi-x-circle"></i> Từ chối</span>
+                            {% elif lenh.trang_thai == "HUY" %}
+                                <span class="badge badge--HUY"><i class="bi bi-slash-circle"></i> Đã hủy</span>
+                            {% else %}
+                                <span class="badge">{{ lenh.trang_thai }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="empty">
+                            <i class="bi bi-card-checklist" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
+                            <p style="margin: 0; color: #64748b;">Không có lệnh lưu chuyển nào phù hợp.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <a href="{% url 'transfers:index' %}" class="btn btn--light">
+                <i class="bi bi-arrow-left"></i> Quay lại quản lý lưu chuyển
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

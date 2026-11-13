@@ -28,8 +28,11 @@ class GhiNhanForm(forms.Form):
     """UC-10.1.1 Ghi nhận sự cố vận chuyển."""
     hoa_don_nhap = forms.ModelChoiceField(
         HoaDonNhap.objects.order_by("-ngay_nhap"), label="Lô hàng nhập (hóa đơn nhập)",
-        widget=forms.Select(attrs=CSS))
-    xe = forms.ModelChoiceField(Xe.objects.order_by("vin"), label="Xe (số khung VIN)",
+        required=False, widget=forms.Select(attrs=CSS))
+    lenh_luu_chuyen = forms.ModelChoiceField(
+        None, label="Lệnh lưu chuyển nội bộ",
+        required=False, widget=forms.Select(attrs=CSS))
+    xe = forms.ModelChoiceField(Xe.objects.order_by("vin"), label="Xe",
                                 widget=forms.Select(attrs=CSS))
     nhan_vien = forms.ModelChoiceField(NhanVien.objects.order_by("ma_nv"), label="Nhân viên ghi nhận",
                                        required=False, widget=forms.Select(attrs=CSS))
@@ -41,6 +44,8 @@ class GhiNhanForm(forms.Form):
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        from transfers.models import LenhLuuChuyen
+        self.fields["lenh_luu_chuyen"].queryset = LenhLuuChuyen.objects.order_by("-ngay_lap")
         self.nv_tai_khoan = getattr(user, "nhan_vien", None)
         if self.nv_tai_khoan:
             del self.fields["nhan_vien"]
@@ -50,18 +55,25 @@ class GhiNhanForm(forms.Form):
 
     def clean(self):
         d = super().clean()
-        # E1: bỏ trống mô tả hoặc không có ảnh
         if self.errors:
             return d
         anh = d.get("anh") or []
-        if not (d.get("mo_ta_chi_tiet") or "").strip() or not anh:
-            raise forms.ValidationError("Vui lòng nhập đầy đủ chi tiết lỗi và đính kèm hình ảnh PDI")
+        if not (d.get("mo_ta_chi_tiet") or "").strip():
+            raise forms.ValidationError("Vui lòng nhập đầy đủ mô tả chi tiết lỗi sự cố.")
         kiem_tra = FileExtensionValidator(PHAM_VI_LOI_ANH)
         for f in anh:
             kiem_tra(f)
-        hdn, xe = d.get("hoa_don_nhap"), d.get("xe")
+        hdn = d.get("hoa_don_nhap")
+        lenh = d.get("lenh_luu_chuyen")
+        xe = d.get("xe")
+        if not hdn and not lenh:
+            raise forms.ValidationError("Vui lòng chọn chứng từ vận chuyển: Hóa đơn nhập HOẶC Lệnh lưu chuyển.")
+        if hdn and lenh:
+            raise forms.ValidationError("Chỉ được chọn một nguồn chứng từ: Hóa đơn nhập HOẶC Lệnh lưu chuyển.")
         if hdn and xe and not ChiTietNhap.objects.filter(hoa_don_nhap=hdn, xe=xe).exists():
             raise forms.ValidationError("Xe này không thuộc lô hàng nhập đã chọn.")
+        if lenh and xe and not lenh.chi_tiet.filter(xe=xe).exists():
+            raise forms.ValidationError("Xe này không thuộc lệnh lưu chuyển đã chọn.")
         return d
 
 

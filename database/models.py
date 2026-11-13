@@ -315,7 +315,11 @@ class ChiTietBan(models.Model):
 
 class BienBanPDI(models.Model):
     ma_pdi = models.CharField(max_length=50, primary_key=True)
-    hoa_don_nhap = models.ForeignKey(HoaDonNhap, on_delete=models.PROTECT, db_column="MaHDN")
+    hoa_don_nhap = models.ForeignKey(HoaDonNhap, on_delete=models.PROTECT, db_column="MaHDN", null=True, blank=True)
+    lenh_luu_chuyen = models.ForeignKey(
+        'transfers.LenhLuuChuyen', on_delete=models.PROTECT, null=True, blank=True,
+        related_name="bien_ban_pdi", db_column="MaLenhLuuChuyen"
+    )
     xe = models.ForeignKey(Xe, on_delete=models.PROTECT, db_column="MaSP")
     nhan_vien = models.ForeignKey(NhanVien, on_delete=models.PROTECT, db_column="MaNV")
     ngay_ghi_nhan = models.DateTimeField()
@@ -329,6 +333,38 @@ class BienBanPDI(models.Model):
 
     def __str__(self):
         return self.ma_pdi
+
+    @property
+    def don_vi_van_chuyen(self):
+        if self.hoa_don_nhap and self.hoa_don_nhap.don_vi_van_chuyen:
+            return self.hoa_don_nhap.don_vi_van_chuyen.ten_dvvc
+        if self.lenh_luu_chuyen and self.lenh_luu_chuyen.don_vi_van_chuyen:
+            return self.lenh_luu_chuyen.don_vi_van_chuyen.ten_dvvc
+        return ""
+
+    @property
+    def don_vi_van_chuyen_obj(self):
+        if self.hoa_don_nhap and self.hoa_don_nhap.don_vi_van_chuyen:
+            return self.hoa_don_nhap.don_vi_van_chuyen
+        if self.lenh_luu_chuyen and self.lenh_luu_chuyen.don_vi_van_chuyen:
+            return self.lenh_luu_chuyen.don_vi_van_chuyen
+        return None
+
+    @property
+    def bien_so_xe(self):
+        if self.hoa_don_nhap:
+            return self.hoa_don_nhap.bien_so_xe
+        if self.lenh_luu_chuyen:
+            return self.lenh_luu_chuyen.bien_so_xe
+        return ""
+
+    @property
+    def chi_nhanh(self):
+        if self.hoa_don_nhap and self.hoa_don_nhap.chi_nhanh:
+            return self.hoa_don_nhap.chi_nhanh
+        if self.lenh_luu_chuyen and self.lenh_luu_chuyen.kho_nhap:
+            return self.lenh_luu_chuyen.kho_nhap.chi_nhanh
+        return None
 
 
 class HopDong(models.Model):

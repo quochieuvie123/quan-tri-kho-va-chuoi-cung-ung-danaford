@@ -21,6 +21,8 @@ from django.template.loader import render_to_string
 from xhtml2pdf import pisa
 
 from .models import Allocation, VehicleRequest, VehicleRequestItem
+from database.models import ChiNhanh
+from core.roles import get_user_role_info
 
 import os
 from django.contrib.staticfiles import finders
@@ -68,23 +70,29 @@ def chuyen_thang(value, default_date=None):
     if isinstance(value, str):
         val_str = value.strip()
 
-        # Tiếng Việt: "Tháng 10 năm 2026"
-        m_vn = re.search(r"Tháng\s+(\d{1,2})\s+năm\s+(\d{4})", val_str, flags=re.IGNORECASE)
+        # Tiếng Việt: "Tháng 10 năm 2026", "Tháng 10/2026"
+        m_vn = re.search(r"Tháng\s+(\d{1,2})(?:\s+năm|\s*[/.-])\s*(\d{2,4})", val_str, flags=re.IGNORECASE)
         if m_vn:
-            return date(int(m_vn.group(2)), int(m_vn.group(1)), 1)
+            nam = int(m_vn.group(2))
+            if nam < 100:
+                nam += 2000
+            return date(nam, int(m_vn.group(1)), 1)
 
-        # Dạng MM/YYYY hoặc MM-YYYY
-        m_slash = re.search(r"(\d{1,2})[/.-](\d{4})", val_str)
+        # Dạng MM/YYYY hoặc MM-YYYY hoặc MM/YY
+        m_slash = re.search(r"(?:^|[^\d])(\d{1,2})[/.-](\d{2,4})(?:$|[^\d])", val_str)
         if m_slash:
-            return date(int(m_slash.group(2)), int(m_slash.group(1)), 1)
+            nam = int(m_slash.group(2))
+            if nam < 100:
+                nam += 2000
+            return date(nam, int(m_slash.group(1)), 1)
 
         # Dạng YYYY-MM
-        m_dash = re.search(r"(\d{4})[/.-](\d{1,2})", val_str)
+        m_dash = re.search(r"(?:^|[^\d])(\d{4})[/.-](\d{1,2})(?:$|[^\d])", val_str)
         if m_dash:
             return date(int(m_dash.group(1)), int(m_dash.group(2)), 1)
 
         # Tiếng Anh: "Oct 2026 Allocation", "OCT 26 DEFER FROM SEP", "Sep 2026"
-        m_en = re.search(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\s_-]+(?:20)?(\d{2,4})", val_str, flags=re.IGNORECASE)
+        m_en = re.search(r"(?:\b|_)(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[\s_-]+(?:20)?(\d{2,4})(?:\b|_)", val_str, flags=re.IGNORECASE)
         if m_en:
             thang = MONTH_EN_MAP.get(m_en.group(1).lower()[:3], 1)
             nam = int(m_en.group(2))
@@ -120,6 +128,73 @@ def chuyen_so_luong(value, default=1):
         return so_luong if so_luong > 0 else default
     except (ValueError, TypeError, OverflowError):
         return default
+
+@login_required
+def order_index(request):
+    """Điều hướng Quản lý đặt xe: Admin vào Phân bổ, Sale vào Đặt xe"""
+    from core.roles import get_user_role_info
+    role_info = get_user_role_info(request.user)
+    if request.user.is_superuser or (role_info and role_info.get('code') == 'ADMIN'):
+        return redirect('orders:allocation_list')
+    return redirect('orders:vehicle_orders')
+
+
+def lay_danh_sach_thang_phan_bo(current_cn="ALL"):
+    qs = Allocation.objects.filter(allocation_month__isnull=False)
+    if current_cn and current_cn != "ALL":
+        qs = qs.filter(chi_nhanh__ma_cn=current_cn)
+    
+    months = qs.values_list("allocation_month", flat=True).distinct().order_by("-allocation_month")
+    res = []
+    seen = set()
+    for m in months:
+        val = m.strftime("%Y-%m")
+        if val not in seen:
+            seen.add(val)
+            cnt = qs.filter(allocation_month__year=m.year, allocation_month__month=m.month).count()
+            res.append({
+                "value": val,
+                "label": f"Tháng {m.month:02d}/{m.year} ({cnt} xe)",
+                "year": m.year,
+                "month": m.month
+            })
+    return res
+
+def xu_ly_loc_phan_bo(request):
+    current_cn = request.session.get("current_cn", "ALL")
+    allocations = Allocation.objects.all().select_related("chi_nhanh").order_by("-allocation_month", "id")
+
+    # Lọc theo chi nhánh từ Header
+    if current_cn and current_cn != "ALL":
+        allocations = allocations.filter(chi_nhanh__ma_cn=current_cn)
+
+    month_options = lay_danh_sach_thang_phan_bo(current_cn)
+    selected_month = request.GET.get("month", "").strip()
+
+    if selected_month == "ALL":
+        # Xem tất cả các tháng
+        pass
+    elif selected_month and "-" in selected_month:
+        try:
+            y, m = map(int, selected_month.split("-"))
+            allocations = allocations.filter(allocation_month__year=y, allocation_month__month=m)
+        except ValueError:
+            pass
+    else:
+        # Nếu chưa chọn tháng: ưu tiên tháng hiện tại nếu có xe, nếu không thì lấy tháng gần nhất
+        today = timezone.localdate()
+        cur_key = f"{today.year}-{today.month:02d}"
+        has_cur = any(opt["value"] == cur_key for opt in month_options)
+        if has_cur:
+            selected_month = cur_key
+            allocations = allocations.filter(allocation_month__year=today.year, allocation_month__month=today.month)
+        elif month_options:
+            selected_month = month_options[0]["value"]
+            allocations = allocations.filter(allocation_month__year=month_options[0]["year"], allocation_month__month=month_options[0]["month"])
+        else:
+            selected_month = "ALL"
+
+    return allocations, selected_month, month_options, current_cn
 
 @login_required
 def allocation_list(request):
@@ -173,7 +248,7 @@ def allocation_list(request):
 
                             if c_name in ("VIN", "SỐ KHUNG", "CHASSIS NUMBER", "CHASSIS_NO") and "vin" not in col_map:
                                 col_map["vin"] = c_idx
-                            elif c_name in ("ORDER_NO", "ORDER NO", "ORDER NUMBER", "ORDER_NUMBER", "SỐ ĐƠN ĐẶT HÀNG", "SỐ ĐƠN HÀNG", "SO DON HANG", "ORDER") and "order_number" not in col_map:
+                            elif c_name in ("ORDER_NO", "ORDER NO", "ORDER NUMBER", "ORDER_NUMBER", "SỐ ĐƠN ĐẶT HÀNG", "SỐ ĐƠN HÀNG", "SO DON HANG", "ORDER", "PO", "PO NO", "PO_NO", "PO NUMBER", "PO_NUMBER", "P/O", "MÃ ĐƠN", "MA DON", "MÃ ĐƠN HÀNG", "MA DON HANG", "MÃ ĐẶT HÀNG", "MA DAT HANG") and "order_number" not in col_map:
                                 col_map["order_number"] = c_idx
                             elif c_name in ("MODEL CODE", "MODEL_CODE", "MÃ DÒNG XE", "MÃ XE", "MA DONG XE", "VEHICLE CODE", "VEHICLE_CODE") and "vehicle_code" not in col_map:
                                 col_map["vehicle_code"] = c_idx
@@ -181,8 +256,10 @@ def allocation_list(request):
                                 col_map["description"] = c_idx
                             elif c_name in ("COLOR CODE", "COLOR_CODE", "COLOUR CODE", "COLOUR_CODE", "MÃ MÀU", "MA MAU") and "color_code" not in col_map:
                                 col_map["color_code"] = c_idx
-                            elif c_name in ("EXTERIOR COLOUR", "EXTERIOR COLOR", "MÀU NGOẠI THẤT", "MAU NGOAI THAT", "MÀU SẮC", "MAU SAC", "COLOUR (FN)") and "exterior_color" not in col_map:
+                            elif c_name in ("EXTERIOR COLOUR", "EXTERIOR COLOR", "MÀU NGOẠI THẤT", "MAU NGOAI THAT", "COLOUR (FN)") and "exterior_color" not in col_map:
                                 col_map["exterior_color"] = c_idx
+                            elif c_name in ("MÀU SẮC", "MAU SAC", "MÀU", "MAU", "COLOR", "COLOUR") and "mau_sac" not in col_map:
+                                col_map["mau_sac"] = c_idx
                             elif c_name in ("ENGINE_NUMBER", "ENGINE NUMBER", "ENGINE NO", "SỐ MÁY", "SO MAY") and "engine_number" not in col_map:
                                 col_map["engine_number"] = c_idx
                             elif c_name in ("QUANTITY", "SỐ LƯỢNG", "SO LUONG", "QTY") and "quantity" not in col_map:
@@ -193,6 +270,12 @@ def allocation_list(request):
                                 col_map["contractual_delivery_date"] = c_idx
                             elif c_name in ("ALLOCATION MONTH", "ALLOCATION_MONTH", "THÁNG PHÂN BỔ", "THANG PHAN BO", "ALLOCATION") and "allocation_month" not in col_map:
                                 col_map["allocation_month"] = c_idx
+                            elif c_name in ("DEALER NAME", "DEALER_NAME", "DEALER", "TÊN ĐẠI LÝ", "TEN DAI LY", "ĐẠI LÝ", "DAI LY", "CHI NHÁNH", "CHI NHANH") and "dealer_name" not in col_map:
+                                col_map["dealer_name"] = c_idx
+                            elif c_name in ("DEALER CODE", "DEALER_CODE", "MÃ ĐẠI LÝ", "MA DAI LY", "MÃ ĐL", "MA DL") and "dealer_code" not in col_map:
+                                col_map["dealer_code"] = c_idx
+                            elif c_name in ("SHIP TO", "SHIP_TO", "NƠI GIAO", "NOI GIAO", "ĐIỂM GIAO", "DIEM GIAO") and "ship_to" not in col_map:
+                                col_map["ship_to"] = c_idx
 
                         start_data_idx = header_row_idx + 1
                     else:
@@ -235,6 +318,23 @@ def allocation_list(request):
 
                         alloc_month = chuyen_thang(get_col("allocation_month"), default_date=default_month)
 
+                        d_name_val = chuyen_chuoi(get_col("dealer_name"))
+                        d_code_val = chuyen_chuoi(get_col("dealer_code"))
+                        shipto_val = chuyen_chuoi(get_col("ship_to"))
+
+                        combined_br = f"{d_name_val} {d_code_val} {shipto_val}".upper()
+                        if any(k in combined_br for k in ("GIA LAI", "GL")):
+                            target_ma_cn = "CN03"
+                            d_lbl = "Dana Ford Gia Lai"
+                        elif any(k in combined_br for k in ("BINH DINH", "BÌNH ĐỊNH", "V20011")):
+                            target_ma_cn = "CN02"
+                            d_lbl = "Dana Ford Bình Định"
+                        else:
+                            target_ma_cn = "CN01"
+                            d_lbl = "Dana Ford Đà Nẵng"
+
+                        cn_obj = ChiNhanh.objects.filter(ma_cn=target_ma_cn).first()
+
                         data.append({
                             "vin": vin,
                             "order_number": chuyen_chuoi(get_col("order_number")),
@@ -242,11 +342,15 @@ def allocation_list(request):
                             "description": chuyen_chuoi(get_col("description")),
                             "color_code": chuyen_chuoi(get_col("color_code")),
                             "exterior_color": chuyen_chuoi(get_col("exterior_color")),
+                            "mau_sac": chuyen_chuoi(get_col("mau_sac")) or chuyen_chuoi(get_col("exterior_color")),
                             "engine_number": chuyen_chuoi(get_col("engine_number")),
                             "quantity": chuyen_so_luong(get_col("quantity"), default=1),
                             "expected_ship_date": chuyen_ngay(get_col("expected_ship_date")),
                             "contractual_delivery_date": chuyen_ngay(get_col("contractual_delivery_date")),
                             "allocation_month": alloc_month,
+                            "dealer_name": d_name_val or d_lbl,
+                            "dealer_code": d_code_val or ("V20011" if target_ma_cn == "CN02" else ("V20012" if target_ma_cn == "CN03" else "VD2001")),
+                            "chi_nhanh": cn_obj,
                         })
 
                     if not data:
@@ -259,6 +363,27 @@ def allocation_list(request):
                                 vin=vin_val,
                                 defaults=item
                             )
+
+                    # TỰ ĐỘNG ĐỒNG BỘ CHỈ TIÊU PHÂN BỔ SANG MODULE DỰ BÁO NHU CẦU (ANALYTICS)
+                    try:
+                        from analytics.models import ChiTieuPhanBo
+                        summary_pbs = (
+                            Allocation.objects
+                            .filter(allocation_month__isnull=False)
+                            .values("allocation_month__year", "allocation_month__month", "description")
+                            .annotate(tong_pb=Sum("quantity"))
+                        )
+                        for pb in summary_pbs:
+                            desc = pb["description"]
+                            if desc:
+                                ChiTieuPhanBo.objects.update_or_create(
+                                    nam=pb["allocation_month__year"],
+                                    thang=pb["allocation_month__month"],
+                                    ten_xe=desc,
+                                    defaults={"so_luong": pb["tong_pb"]}
+                                )
+                    except Exception:
+                        pass
 
                     messages.success(
                         request,
@@ -279,31 +404,23 @@ def allocation_list(request):
     else:
         form = AllocationUploadForm()
 
-    # Hiển thị danh sách phân bổ: Ưu tiên tháng hiện tại, nếu chưa có thì lấy tháng phân bổ gần nhất
-    selected_month = request.GET.get('thang', '')
-    try:
-        from datetime import date
-        month_date = date.fromisoformat(selected_month + '-01') if selected_month else today
-    except ValueError:
-        month_date = today
-        selected_month = ''
-    allocations = Allocation.objects.filter(
-        allocation_month__year=month_date.year,
-        allocation_month__month=month_date.month
-    ).order_by("id")
+    allocations, selected_month, month_options, current_cn = xu_ly_loc_phan_bo(request)
 
-    if not allocations.exists() and not selected_month:
-        latest_allocation = Allocation.objects.order_by("-allocation_month").first()
-        if latest_allocation and latest_allocation.allocation_month:
-            allocations = Allocation.objects.filter(
-                allocation_month__year=latest_allocation.allocation_month.year,
-                allocation_month__month=latest_allocation.allocation_month.month
-            ).order_by("id")
+    cn_name = "Tất cả các chi nhánh"
+    if current_cn and current_cn != "ALL":
+        cn_obj = ChiNhanh.objects.filter(ma_cn=current_cn).first()
+        if cn_obj:
+            cn_name = cn_obj.ten_cn
 
+    tong_so_xe = allocations.aggregate(total=Sum("quantity"))["total"] or 0
     return render(request, "danh_sach_pb.html", {
         "form": form,
         "allocations": allocations,
+        "tong_so_xe": tong_so_xe,
         "selected_month": selected_month,
+        "month_options": month_options,
+        "current_cn": current_cn,
+        "current_cn_name": cn_name,
     })
 
 # Đặt xe
@@ -315,24 +432,30 @@ def dat_xe(request):
         # Lấy ngày hiện tại theo múi giờ Django
         today = timezone.localdate()
 
-        # Chỉ lấy xe thuộc tháng và năm hiện tại
-        allocations = Allocation.objects.filter(
-            allocation_month__year=today.year,
-            allocation_month__month=today.month
-        )
+        allocations, selected_month, month_options, current_cn = xu_ly_loc_phan_bo(request)
 
-        # Tìm kiếm theo VIN hoặc mô tả
+        # Tìm kiếm theo VIN, mô tả, mã xe, màu sắc
         if keyword:
             allocations = allocations.filter(
-                Q(vin__iexact=keyword) |
-                Q(description__icontains=keyword)
+                Q(vin__icontains=keyword) |
+                Q(description__icontains=keyword) |
+                Q(vehicle_code__icontains=keyword) |
+                Q(exterior_color__icontains=keyword)
             )
-        else:
-            allocations = allocations.none()
+
+        cn_name = "Tất cả các chi nhánh"
+        if current_cn and current_cn != "ALL":
+            cn_obj = ChiNhanh.objects.filter(ma_cn=current_cn).first()
+            if cn_obj:
+                cn_name = cn_obj.ten_cn
 
         context = {
             "keyword": keyword,
-            "allocations": allocations
+            "allocations": allocations,
+            "selected_month": selected_month,
+            "month_options": month_options,
+            "current_cn": current_cn,
+            "current_cn_name": cn_name,
         }
         # Lấy danh sách xe đã chọn trong Session
         danh_sach = request.session.get("selected_vehicles", {})
@@ -360,12 +483,10 @@ def dat_xe(request):
 def chi_tiet_xe(request, id):
     today = timezone.localdate()
 
-    # Chỉ cho phép chọn xe thuộc tháng hiện tại
+    # Lấy thông tin xe phân bổ theo id
     xe = get_object_or_404(
         Allocation,
-        id=id,
-        allocation_month__year=today.year,
-        allocation_month__month=today.month
+        id=id
     )
 
     if request.method == "POST":
@@ -455,15 +576,13 @@ def lap_phieu_yeu_cau(request):
     for ma_xe, so_luong in danh_sach.items():
 
         xe = Allocation.objects.filter(
-            pk=ma_xe,
-            allocation_month__year=today.year,
-            allocation_month__month=today.month
+            pk=ma_xe
         ).first()
 
         if xe is None:
             messages.error(
                 request,
-                "Xe không thuộc danh sách phân bổ tháng hiện tại."
+                "Không tìm thấy thông tin xe trong danh sách phân bổ."
             )
             return redirect("orders:vehicle_orders")
 
@@ -510,12 +629,20 @@ def lap_phieu_yeu_cau(request):
 
 @login_required
 def phieu_yeu_cau(request, id):
+    role_info = get_user_role_info(request.user)
+    is_admin = request.user.is_superuser or (role_info and role_info.get("code") == "ADMIN")
 
-    phieu = get_object_or_404(
-        VehicleRequest.objects.prefetch_related("items__allocation"),
-        id=id,
-        created_by=request.user
-    )
+    if is_admin:
+        phieu = get_object_or_404(
+            VehicleRequest.objects.prefetch_related("items__allocation", "created_by"),
+            id=id
+        )
+    else:
+        phieu = get_object_or_404(
+            VehicleRequest.objects.prefetch_related("items__allocation", "created_by"),
+            id=id,
+            created_by=request.user
+        )
 
     tong_so_luong = (
         phieu.items.aggregate(total=Sum("quantity"))["total"] or 0
@@ -523,7 +650,8 @@ def phieu_yeu_cau(request, id):
 
     context = {
         "phieu": phieu,
-        "tong_so_luong": tong_so_luong
+        "tong_so_luong": tong_so_luong,
+        "is_sale_admin": is_admin,
     }
 
     return render(request, "phieu_yc.html", context)
@@ -539,17 +667,25 @@ def link_callback(uri, rel):
     return uri
 @login_required
 def gui_phieu_yeu_cau(request, id):
-    print("===== ĐÃ VÀO HÀM GỬI PHIẾU =====", flush=True)
     # 1. Chỉ cho phép gửi phiếu bằng phương thức POST
     if request.method != "POST":
         return HttpResponse(status=405)
 
-    # 2. Lấy phiếu yêu cầu đặt xe
-    phieu = get_object_or_404(
-        VehicleRequest.objects.prefetch_related("items__allocation"),
-        id=id,
-        created_by=request.user,
-    )
+    role_info = get_user_role_info(request.user)
+    is_admin = request.user.is_superuser or (role_info and role_info.get("code") == "ADMIN")
+
+    # 2. Lấy phiếu yêu cầu đặt xe (Người tạo hoặc Sale Admin)
+    if is_admin:
+        phieu = get_object_or_404(
+            VehicleRequest.objects.prefetch_related("items__allocation"),
+            id=id
+        )
+    else:
+        phieu = get_object_or_404(
+            VehicleRequest.objects.prefetch_related("items__allocation"),
+            id=id,
+            created_by=request.user,
+        )
 
     # 3. Chỉ cho phép gửi phiếu ở trạng thái DRAFT
     if phieu.status != VehicleRequest.Status.DRAFT:
@@ -578,127 +714,111 @@ def gui_phieu_yeu_cau(request, id):
             id=phieu.id
         )
 
-    # 6. Tạo nội dung HTML cho PDF
-    html = render_to_string(
-        "phieu_yc_pdf.html",
-        {
-            "phieu": phieu,
-            "tong_so_luong": tong_so_luong,
-        },
-    )
-
-    # 7. Chuyển HTML thành PDF
-    pdf_buffer = BytesIO()
-
-    result = pisa.CreatePDF(
-        html,
-        dest=pdf_buffer,
-        link_callback=link_callback
-    )
-
-    if result.err:
-        messages.error(
-            request,
-            "Không thể tạo file PDF."
-        )
-        return redirect(
-            "orders:phieu_yeu_cau",
-            id=phieu.id
-        )
-    # 8. Tạo email gửi đến Ford Việt Nam
-    email = EmailMessage(
-        subject=f"Phiếu yêu cầu đặt xe {phieu.request_number}",
-
-        body=(
-            "Kính gửi Công ty TNHH FORD Việt Nam,\n\n"
-            "DanaFord gửi phiếu yêu cầu đặt xe đính kèm.\n\n"
-            "Trân trọng."
-        ),
-
-        from_email=settings.DEFAULT_FROM_EMAIL,
-
-        to=["fordvn04@gmail.com"],
-    )
-
-
-    # 9. Đính kèm file PDF
-    email.attach(
-        f"Phieu_yeu_cau_{phieu.request_number}.pdf",
-        pdf_buffer.getvalue(),
-        "application/pdf",
-    )
-
-    # 10. Thực hiện gửi email
+    # 6. Tạo file PDF đính kèm (nếu môi trường hỗ trợ pisa)
+    pdf_data = None
     try:
-        print("===== BẮT ĐẦU GỬI EMAIL =====", flush=True)
-        print("Email gửi:", settings.DEFAULT_FROM_EMAIL)
-
-        print(
-            "SMTP username:",
-            settings.MAILERS["default"]["OPTIONS"]["username"]
+        html = render_to_string(
+            "phieu_yc_pdf.html",
+            {
+                "phieu": phieu,
+                "tong_so_luong": tong_so_luong,
+            },
         )
-
-        print(
-            "Có mật khẩu:",
-            bool(settings.MAILERS["default"]["OPTIONS"]["password"])
+        pdf_buffer = BytesIO()
+        result = pisa.CreatePDF(
+            html,
+            dest=pdf_buffer,
+            link_callback=link_callback
         )
-        so_email = email.send(fail_silently=False)
-
-        print("Số email gửi thành công:", so_email)
-
-        if so_email != 1:
-            raise RuntimeError(
-                "Máy chủ email chưa xác nhận gửi."
-            )
-
+        if not result.err:
+            pdf_data = pdf_buffer.getvalue()
     except Exception as e:
-        print("LỖI GỬI EMAIL:", repr(e))
+        print("Lưu ý: Không tạo được PDF phiếu yêu cầu:", repr(e))
 
-        messages.error(
-            request,
-            "Gửi email thất bại."
+    # 7. Thử gửi email nhưng không chặn workflow nếu chưa cấu hình SMTP
+    try:
+        email = EmailMessage(
+            subject=f"Phiếu yêu cầu đặt xe {phieu.request_number}",
+            body=(
+                "Kính gửi Công ty TNHH FORD Việt Nam,\n\n"
+                f"DanaFord gửi phiếu yêu cầu đặt xe {phieu.request_number} đính kèm.\n\n"
+                "Trân trọng."
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=getattr(settings, "ORDER_RECEIVER_EMAILS", []) or ["fordvn04@gmail.com"],
         )
+        if pdf_data:
+            email.attach(
+                f"Phieu_yeu_cau_{phieu.request_number}.pdf",
+                pdf_data,
+                "application/pdf",
+            )
+        email.send(fail_silently=True)
+    except Exception as e:
+        print("Lưu ý: Không thể gửi email (tiếp tục quy trình nội bộ):", repr(e))
 
-        return redirect(
-            "orders:phieu_yeu_cau",
-            id=phieu.id
-        )
-
-
-    # 11. Cập nhật trạng thái sau khi gửi thành công
+    # 8. Cập nhật trạng thái sang PENDING (Chờ Quốc Hiếu / Sale Admin duyệt)
     phieu.status = VehicleRequest.Status.PENDING
     phieu.sent_at = timezone.now()
-
     phieu.save(
         update_fields=["status", "sent_at"]
     )
 
-    # 12. Làm trống danh sách xe đang chọn trong Session
+    # 9. Làm trống danh sách xe đang chọn trong Session
     request.session.pop("selected_vehicles", None)
 
-    # 13. Thông báo gửi thành công
+    # 10. Tạo thông báo toàn hệ thống & gửi tới Quốc Hiếu (Sale Admin)
+    try:
+        from dashboard.models import ThongBaoHoatDong
+        ten_sender = request.user.get_full_name() or request.user.username
+        chuc_vu_sender = "Sale Chi Nhánh"
+        ThongBaoHoatDong.objects.create(
+            user=request.user,
+            ten_nhan_vien=ten_sender,
+            chuc_vu=chuc_vu_sender,
+            hanh_dong=f"Đã gửi Phiếu yêu cầu đặt xe {phieu.request_number} — Chờ Quốc Hiếu duyệt",
+            chi_tiet=f"{ten_sender} đã tạo và gửi phiếu đặt {tong_so_luong} xe lên hệ thống. Đang chờ Sale Admin (Quốc Hiếu Phan) kiểm tra, xác nhận và phê duyệt sang quy trình kho.",
+            module="orders",
+            loai="tu_dong",
+            is_active=True,
+        )
+    except Exception as e:
+        print("Lỗi tạo thông báo hoạt động:", repr(e))
+
+    # 11. Thông báo gửi thành công trên giao diện
     messages.success(
         request,
-        "Đã gửi phiếu yêu cầu đặt xe thành công! "
-        "Bạn có thể chọn xe để lập phiếu mới."
+        f"Đã gửi phiếu yêu cầu {phieu.request_number} thành công! Hệ thống đã phát thông báo và gửi đến Sale Admin (Quốc Hiếu) để kiểm tra, xác nhận tiếp nhận."
     )
 
-    # 14. Quay về giao diện tìm kiếm xe
-    return redirect("orders:vehicle_orders")
+    # 12. Xem chi tiết phiếu
+    return redirect("orders:phieu_yeu_cau", id=phieu.id)
 
 @login_required
 def danh_sach_yeu_cau(request):
-    phieu_yeu_cau = (
-        VehicleRequest.objects
-        .filter(created_by=request.user)
-        .order_by("-created_at")
-    )
+    role_info = get_user_role_info(request.user)
+    is_admin = request.user.is_superuser or (role_info and role_info.get("code") == "ADMIN")
+
+    if is_admin:
+        phieu_yeu_cau = (
+            VehicleRequest.objects
+            .select_related("created_by")
+            .order_by("-created_at")
+        )
+    else:
+        phieu_yeu_cau = (
+            VehicleRequest.objects
+            .filter(created_by=request.user)
+            .select_related("created_by")
+            .order_by("-created_at")
+        )
 
     return render(
         request,
         "danh_sach_yc.html",
         {
-            "phieu_yeu_cau": phieu_yeu_cau
+            "phieu_yeu_cau": phieu_yeu_cau,
+            "is_sale_admin": is_admin,
         }
     )
 
@@ -706,24 +826,31 @@ def danh_sach_yeu_cau(request):
 @login_required
 @require_POST
 def xac_nhan_phieu(request, id):
+    role_info = get_user_role_info(request.user)
+    is_admin = (
+        request.user.is_superuser
+        or (role_info and role_info.get("code") == "ADMIN")
+        or request.user.groups.filter(name__in=["Sale Admin", "Quản lý"]).exists()
+    )
 
-    # Chỉ người thuộc nhóm Sale Admin được xác nhận
-    if not request.user.groups.filter(
-        name="Sale Admin"
-    ).exists() and not request.user.is_superuser:
-        return HttpResponse(status=403)
+    # Chỉ người thuộc nhóm Sale Admin (Quốc Hiếu) được xác nhận
+    if not is_admin:
+        messages.error(
+            request,
+            "Chỉ Quản trị viên (Sale Admin - Quốc Hiếu) mới có quyền xác nhận phê duyệt phiếu yêu cầu đặt xe."
+        )
+        return redirect("orders:phieu_yeu_cau", id=id)
 
     phieu = get_object_or_404(
-        VehicleRequest,
-        id=id,
-        created_by=request.user
+        VehicleRequest.objects.prefetch_related("items__allocation"),
+        id=id
     )
 
     # Chỉ cho phép xác nhận phiếu đã gửi
     if phieu.status != VehicleRequest.Status.PENDING:
         messages.error(
             request,
-            "Chỉ có thể xác nhận phiếu đã gửi."
+            "Chỉ có thể xác nhận phiếu đang ở trạng thái chờ duyệt."
         )
         return redirect(
             "orders:phieu_yeu_cau",
@@ -736,9 +863,34 @@ def xac_nhan_phieu(request, id):
         phieu.save(update_fields=["status"])
         sync_request(phieu.pk)
 
+    # Đồng bộ sang Kho và tạo chứng từ nhập kho cho từng VIN
+    try:
+        from warehouse.order_intake import sync_request
+        sync_request(phieu.pk)
+    except Exception as e:
+        print("Lỗi sync_request sang kho:", repr(e))
+
+    # Phát thông báo toàn hệ thống đã phê duyệt
+    try:
+        from dashboard.models import ThongBaoHoatDong
+        ten_admin = request.user.get_full_name() or request.user.username
+        creator_name = phieu.created_by.get_full_name() or phieu.created_by.username if phieu.created_by else "Chi nhánh"
+        ThongBaoHoatDong.objects.create(
+            user=request.user,
+            ten_nhan_vien=ten_admin,
+            chuc_vu="Quản trị viên (Sale Admin)",
+            hanh_dong=f"Đã xác nhận & phê duyệt Phiếu yêu cầu {phieu.request_number}",
+            chi_tiet=f"Sale Admin {ten_admin} đã phê duyệt phiếu đặt xe của {creator_name}. Toàn bộ xe đã được chuyển sang Quản lý nhập kho và kiểm định PDI.",
+            module="orders",
+            loai="tu_dong",
+            is_active=True,
+        )
+    except Exception as e:
+        print("Lỗi tạo thông báo hoạt động khi duyệt:", repr(e))
+
     messages.success(
         request,
-        "Phiếu yêu cầu đã được xác nhận tiếp nhận."
+        f"Đã xác nhận & phê duyệt thành công phiếu yêu cầu {phieu.request_number}! Toàn bộ xe đã được chuyển sang Quản lý nhập kho."
     )
 
     return redirect(
@@ -752,146 +904,191 @@ from collections import defaultdict
 from database.models import ChiTietBan, TonKho
 
 
+from analytics.models import PhienDuBao, DongDuBao, HOAN_TAT
+
 @login_required
 def danh_sach_de_xuat(request):
+    allocations, selected_month, month_options, current_cn = xu_ly_loc_phan_bo(request)
+
+    cn_name = "Tất cả các chi nhánh"
+    if current_cn and current_cn != "ALL":
+        cn_obj = ChiNhanh.objects.filter(ma_cn=current_cn).first()
+        if cn_obj:
+            cn_name = cn_obj.ten_cn
+
     today = timezone.localdate()
 
-    # 1. Lấy danh sách phân bổ tháng hiện tại
-    allocations = Allocation.objects.filter(
-        allocation_month__year=today.year,
-        allocation_month__month=today.month
-    )
+    # 1. Tìm phiên dự báo hoàn tất tương ứng với kỳ được chọn
+    phien_qs = PhienDuBao.objects.filter(trang_thai=HOAN_TAT)
+    if selected_month and selected_month != "ALL" and "-" in selected_month:
+        try:
+            y, m = map(int, selected_month.split("-"))
+            phien_qs = phien_qs.filter(nam=y, thang=m)
+        except ValueError:
+            pass
+    else:
+        phien_qs = phien_qs.filter(nam=today.year, thang=today.month)
 
-    # 2. Tính tổng số xe bán theo dòng xe
-    doanh_so = (
-        ChiTietBan.objects
-        .filter(
-            hoa_don_ban__ngay_ban__year=today.year,
-            hoa_don_ban__ngay_ban__month=today.month
-        )
-        .values("xe__ten_xe")
-        .annotate(tong_ban=Sum("so_luong_ban"))
-    )
-
-    doanh_so_map = {
-        item["xe__ten_xe"]: item["tong_ban"]
-        for item in doanh_so
-    }
-
-    # 3. Tính tổng số xe tồn kho theo dòng xe
-    ton_kho = (
-        TonKho.objects
-        .values("xe__ten_xe")
-        .annotate(tong_ton=Sum("so_luong_ton"))
-    )
-
-    ton_kho_map = {
-        item["xe__ten_xe"]: item["tong_ton"]
-        for item in ton_kho
-    }
-
-    # 4. Gom phân bổ theo dòng xe, bỏ mã màu
-    phan_bo_map = defaultdict(lambda: {
-        "so_phan_bo": 0,
-        "allocation_id": None
-    })
-
-    for xe in allocations:
-        ten_xe = xe.description
-
-        phan_bo_map[ten_xe]["so_phan_bo"] += xe.quantity
-        phan_bo_map[ten_xe]["allocation_id"] = xe.id
-
-    # 5. Tính số lượng đề xuất nhập
+    phien = phien_qs.order_by("-tao_luc", "-id").first()
     danh_sach = []
 
-    for ten_xe, thong_tin in phan_bo_map.items():
-        so_ban = doanh_so_map.get(ten_xe, 0)
-        so_ton = ton_kho_map.get(ten_xe, 0)
-        so_phan_bo = thong_tin["so_phan_bo"]
+    # Ưu tiên lấy theo kết quả phân tích POQ của Module Dự báo nhu cầu nếu có
+    if phien and phien.san_sang and phien.dong.exists():
+        for dong in phien.dong.all().order_by("ten_xe"):
+            xe_phu_hop = allocations.filter(
+                Q(description__icontains=dong.ten_xe) |
+                Q(vehicle_code__iexact=getattr(dong, "ma_dong_xe", ""))
+            )
+            so_phan_bo_thuc_te = xe_phu_hop.aggregate(total=Sum("quantity"))["total"] or 0
+            first_xe = xe_phu_hop.first()
 
-        nhu_cau = max(0, so_ban - so_ton)
-        de_xuat_nhap = min(nhu_cau, so_phan_bo)
+            danh_sach.append({
+                "dong_id": dong.id,
+                "allocation_id": first_xe.id if first_xe else None,
+                "ten_xe": dong.ten_xe,
+                "ma_dong_xe": getattr(dong, "ma_dong_xe", ""),
+                "hop_dong_cho_giao": dong.hop_dong_cho_giao,
+                "so_ton": dong.ton_kho,
+                "chi_tieu": dong.chi_tieu,
+                "so_phan_bo": so_phan_bo_thuc_te,
+                "de_xuat_poq": dong.de_xuat_poq,
+                "de_xuat_nhap": dong.so_luong_nhap,
+            })
+    else:
+        # Dự phòng: Tự động tính toán theo Doanh số bán, Tồn kho và Phân bổ thực tế
+        doanh_so_qs = ChiTietBan.objects.all()
+        if selected_month and selected_month != "ALL" and "-" in selected_month:
+            try:
+                y, m = map(int, selected_month.split("-"))
+                doanh_so_qs = doanh_so_qs.filter(hoa_don_ban__ngay_ban__year=y, hoa_don_ban__ngay_ban__month=m)
+            except ValueError:
+                pass
+        if current_cn and current_cn != "ALL":
+            doanh_so_qs = doanh_so_qs.filter(hoa_don_ban__chi_nhanh__ma_cn=current_cn)
 
-        danh_sach.append({
-            "allocation_id": thong_tin["allocation_id"],
-            "ten_xe": ten_xe,
-            "so_ban": so_ban,
-            "so_ton": so_ton,
-            "so_phan_bo": so_phan_bo,
-            "de_xuat_nhap": de_xuat_nhap
-        })
+        doanh_so = (
+            doanh_so_qs
+            .values("xe__ten_xe")
+            .annotate(tong_ban=Sum("so_luong_ban"))
+        )
+        doanh_so_map = {item["xe__ten_xe"]: item["tong_ban"] for item in doanh_so}
+
+        ton_kho_qs = TonKho.objects.all()
+        if current_cn and current_cn != "ALL":
+            ton_kho_qs = ton_kho_qs.filter(kho__chi_nhanh__ma_cn=current_cn)
+
+        ton_kho = (
+            ton_kho_qs
+            .values("xe__ten_xe")
+            .annotate(tong_ton=Sum("so_luong_ton"))
+        )
+        ton_kho_map = {item["xe__ten_xe"]: item["tong_ton"] for item in ton_kho}
+
+        phan_bo_map = defaultdict(lambda: {"so_phan_bo": 0, "allocation_id": None})
+        for xe in allocations:
+            ten_xe = xe.description
+            phan_bo_map[ten_xe]["so_phan_bo"] += xe.quantity
+            phan_bo_map[ten_xe]["allocation_id"] = xe.id
+
+        for ten_xe, thong_tin in phan_bo_map.items():
+            so_ban = doanh_so_map.get(ten_xe, 0)
+            so_ton = ton_kho_map.get(ten_xe, 0)
+            so_phan_bo = thong_tin["so_phan_bo"]
+            nhu_cau = max(0, so_ban - so_ton)
+            de_xuat_nhap = min(nhu_cau, so_phan_bo)
+
+            danh_sach.append({
+                "dong_id": None,
+                "allocation_id": thong_tin["allocation_id"],
+                "ten_xe": ten_xe,
+                "so_ban": so_ban,
+                "so_ton": so_ton,
+                "so_phan_bo": so_phan_bo,
+                "de_xuat_nhap": de_xuat_nhap
+            })
 
     return render(
         request,
         "ds_de_xuat.html",
-        {"danh_sach": danh_sach}
+        {
+            "danh_sach": danh_sach,
+            "phien": phien,
+            "selected_month": selected_month,
+            "month_options": month_options,
+            "current_cn": current_cn,
+            "current_cn_name": cn_name,
+        }
     )
 
 
 
 @login_required
 def chi_tiet_de_xuat(request, id):
-
-    # 1. Lấy ngày hiện tại
     today = timezone.localdate()
+    current_cn = request.session.get("current_cn", "ALL")
 
-    # 2. Lấy xe từ danh sách phân bổ tháng hiện tại
-    allocation = get_object_or_404(
-        Allocation,
-        id=id,
-        allocation_month__year=today.year,
-        allocation_month__month=today.month
-    )
+    # 1. Thử tìm kiếm theo DongDuBao (từ module dự báo POQ)
+    dong = DongDuBao.objects.select_related("phien").filter(id=id).first()
+    if dong:
+        phien = dong.phien
+        if not phien.san_sang:
+            messages.warning(request, "Phiên dự báo này đã hết hạn hoặc đã bị hủy.")
+            return redirect("orders:proposal_list")
 
-    # 3. Xác định dòng xe
+        allocations = Allocation.objects.filter(
+            allocation_month__year=phien.nam,
+            allocation_month__month=phien.thang
+        )
+        if current_cn and current_cn != "ALL":
+            allocations = allocations.filter(chi_nhanh__ma_cn=current_cn)
+
+        xe_phu_hop = allocations.filter(
+            Q(description__icontains=dong.ten_xe) |
+            Q(vehicle_code__iexact=getattr(dong, "ma_dong_xe", ""))
+        )
+        so_phan_bo_thuc_te = xe_phu_hop.aggregate(total=Sum("quantity"))["total"] or 0
+
+        context = {
+            "dong": dong,
+            "phien": phien,
+            "ten_xe": dong.ten_xe,
+            "hop_dong_cho_giao": dong.hop_dong_cho_giao,
+            "so_ton": dong.ton_kho,
+            "chi_tieu": dong.chi_tieu,
+            "so_phan_bo": so_phan_bo_thuc_te,
+            "nhu_cau": dong.de_xuat_poq,
+            "de_xuat_nhap": dong.so_luong_nhap,
+            "xe_phu_hop": xe_phu_hop,
+        }
+        return render(request, "chi_tiet_de_xuat.html", context)
+
+    # 2. Hoặc tìm theo Allocation ID (trực tiếp từ danh sách phân bổ)
+    allocation = get_object_or_404(Allocation, id=id)
     ten_xe = allocation.description
 
-    # 4. Tính tổng số xe đã bán trong tháng
-    so_ban = (
-        ChiTietBan.objects
-        .filter(
-            xe__ten_xe=ten_xe,
-            hoa_don_ban__ngay_ban__year=today.year,
-            hoa_don_ban__ngay_ban__month=today.month
+    doanh_so_qs = ChiTietBan.objects.filter(xe__ten_xe=ten_xe)
+    if allocation.allocation_month:
+        doanh_so_qs = doanh_so_qs.filter(
+            hoa_don_ban__ngay_ban__year=allocation.allocation_month.year,
+            hoa_don_ban__ngay_ban__month=allocation.allocation_month.month
         )
-        .aggregate(
-            total=Sum("so_luong_ban")
-        )["total"] or 0
-    )
+    if current_cn and current_cn != "ALL":
+        doanh_so_qs = doanh_so_qs.filter(hoa_don_ban__chi_nhanh__ma_cn=current_cn)
+    so_ban = doanh_so_qs.aggregate(total=Sum("so_luong_ban"))["total"] or 0
 
-    # 5. Tính tổng số lượng tồn kho
-    so_ton = (
-        TonKho.objects
-        .filter(
-            xe__ten_xe=ten_xe
-        )
-        .aggregate(
-            total=Sum("so_luong_ton")
-        )["total"] or 0
-    )
+    ton_kho_qs = TonKho.objects.filter(xe__ten_xe=ten_xe)
+    if current_cn and current_cn != "ALL":
+        ton_kho_qs = ton_kho_qs.filter(kho__chi_nhanh__ma_cn=current_cn)
+    so_ton = ton_kho_qs.aggregate(total=Sum("so_luong_ton"))["total"] or 0
 
-    # 6. Tính tổng số lượng phân bổ theo dòng xe
-    # Không phân biệt mã màu
-    so_phan_bo = (
-        Allocation.objects
-        .filter(
-            description=ten_xe,
-            allocation_month__year=today.year,
-            allocation_month__month=today.month
-        )
-        .aggregate(
-            total=Sum("quantity")
-        )["total"] or 0
-    )
+    alloc_qs = Allocation.objects.filter(description=ten_xe, allocation_month=allocation.allocation_month)
+    if current_cn and current_cn != "ALL":
+        alloc_qs = alloc_qs.filter(chi_nhanh__ma_cn=current_cn)
+    so_phan_bo = alloc_qs.aggregate(total=Sum("quantity"))["total"] or 0
 
-    # 7. Tính nhu cầu nhập xe
     nhu_cau = max(0, so_ban - so_ton)
-
-    # 8. Số lượng đề xuất không vượt quá phân bổ
     de_xuat_nhap = min(nhu_cau, so_phan_bo)
 
-    # 9. Truyền dữ liệu sang HTML
     context = {
         "allocation": allocation,
         "ten_xe": ten_xe,
@@ -901,10 +1098,4 @@ def chi_tiet_de_xuat(request, id):
         "nhu_cau": nhu_cau,
         "de_xuat_nhap": de_xuat_nhap,
     }
-
-    # 10. Hiển thị trang chi tiết
-    return render(
-        request,
-        "chi_tiet_de_xuat.html",
-        context
-    )
+    return render(request, "chi_tiet_de_xuat.html", context)

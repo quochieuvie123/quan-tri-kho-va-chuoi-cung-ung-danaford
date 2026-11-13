@@ -13,9 +13,16 @@ class PhieuNhapKho(models.Model):
         CHO_DUYET = 'CHO_DUYET', 'Chờ duyệt'
         DA_DUYET = 'DA_DUYET', 'Đã duyệt'
 
+    class LoaiNguon(models.TextChoices):
+        HOA_DON = 'HOA_DON', 'Hóa đơn nhập'
+        LUU_CHUYEN = 'LUU_CHUYEN', 'Lệnh lưu chuyển'
+
     ma_phieu = models.CharField(max_length=50, unique=True)
-    # Nguồn nhập duy nhất theo tài liệu CSDL: ChiTietNhap (MaHDN, MaSP).
-    chi_tiet_nhap = models.ForeignKey('database.ChiTietNhap', on_delete=models.PROTECT)
+    loai_nguon = models.CharField(max_length=20, choices=LoaiNguon.choices, default=LoaiNguon.HOA_DON)
+    # Nguồn 1: ChiTietNhap (MaHDN, MaSP) từ nhà máy/hóa đơn nhập
+    chi_tiet_nhap = models.ForeignKey('database.ChiTietNhap', on_delete=models.PROTECT, null=True, blank=True)
+    # Nguồn 2: LenhLuuChuyen đã giao đến Đà Nẵng
+    lenh_luu_chuyen = models.ForeignKey('transfers.LenhLuuChuyen', on_delete=models.PROTECT, null=True, blank=True, related_name='phieu_nhap_kho')
     xe = models.ForeignKey('database.Xe', on_delete=models.PROTECT)
     kho = models.ForeignKey('database.Kho', on_delete=models.PROTECT)
     ngay_nhap = models.DateField()
@@ -32,15 +39,46 @@ class PhieuNhapKho(models.Model):
             models.UniqueConstraint(fields=['xe'], condition=models.Q(trang_thai__in=['NHAP', 'CHO_DUYET']), name='warehouse_active_receipt_vin'),
             models.CheckConstraint(condition=models.Q(trang_thai__in=['NHAP', 'CHO_DUYET', 'DA_DUYET']), name='warehouse_receipt_state'),
             models.CheckConstraint(condition=(models.Q(trang_thai='DA_DUYET', nguoi_duyet__isnull=False, thoi_gian_duyet__isnull=False) | models.Q(trang_thai__in=['NHAP', 'CHO_DUYET'], nguoi_duyet__isnull=True, thoi_gian_duyet__isnull=True)), name='warehouse_approval_audit'),
+            models.CheckConstraint(
+                condition=(
+                    (models.Q(loai_nguon='HOA_DON') & models.Q(chi_tiet_nhap__isnull=False) & models.Q(lenh_luu_chuyen__isnull=True)) |
+                    (models.Q(loai_nguon='LUU_CHUYEN') & models.Q(chi_tiet_nhap__isnull=True) & models.Q(lenh_luu_chuyen__isnull=False))
+                ),
+                name='warehouse_receipt_single_source'
+            ),
         ]
 
     def clean(self):
         super().clean()
         if not isinstance(self.ma_phieu, str) or not self.ma_phieu.strip():
             raise ValidationError('Mã phiếu không được rỗng.')
-        line = self.chi_tiet_nhap
-        if line.xe_id != self.xe_id or line.so_luong_nhap != 1:
-            raise ValidationError('Chi tiết nhập phải đúng một chiếc và đúng VIN.')
+        if self.loai_nguon == self.LoaiNguon.HOA_DON:
+            if not self.chi_tiet_nhap or self.lenh_luu_chuyen:
+                raise ValidationError('Phiếu nhập từ hóa đơn phải có chi tiết nhập và không có lệnh lưu chuyển.')
+            line = self.chi_tiet_nhap
+            if line.xe_id != self.xe_id or line.so_luong_nhap != 1:
+                raise ValidationError('Chi tiết nhập phải đúng một chiếc và đúng VIN.')
+        elif self.loai_nguon == self.LoaiNguon.LUU_CHUYEN:
+            if not self.lenh_luu_chuyen or self.chi_tiet_nhap:
+                raise ValidationError('Phiếu nhập từ lưu chuyển phải có lệnh lưu chuyển và không có chi tiết nhập.')
+            if self.lenh_luu_chuyen_id and not self.lenh_luu_chuyen.chi_tiet.filter(xe_id=self.xe_id).exists():
+                raise ValidationError('Xe không thuộc lệnh lưu chuyển này.')
+        else:
+            raise ValidationError('Nguồn nhập không hợp lệ.')
+
+    @property
+    def hoa_don_nhap(self):
+        if self.chi_tiet_nhap:
+            return self.chi_tiet_nhap.hoa_don_nhap
+        return None
+
+    @property
+    def ten_nguon_giao(self):
+        if self.chi_tiet_nhap:
+            return f"Hóa đơn {self.chi_tiet_nhap.hoa_don_nhap_id}"
+        if self.lenh_luu_chuyen:
+            return f"Lệnh lưu chuyển {self.lenh_luu_chuyen.ma_lenh}"
+        return ""
 
     def __str__(self):
         return self.ma_phieu

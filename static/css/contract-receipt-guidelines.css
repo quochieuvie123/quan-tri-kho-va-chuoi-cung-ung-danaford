@@ -12,8 +12,8 @@
   font-family: Montserrat, sans-serif;
 }
 .df-workflow .page-header { margin-bottom: 0; gap: 20px; align-items: flex-start; }
-.df-workflow .page-header__title { color: var(--df-title); font-size: 28px; font-weight: 600; line-height: 1.45; letter-spacing: 0; }
-.df-workflow .page-header__subtitle { margin-top: 6px; color: var(--df-secondary); font-size: 13px; line-height: 1.45; }
+.df-workflow .page-header__title { color: #0b2a4a; font-size: 24px; font-weight: 700; line-height: 1.35; letter-spacing: -0.2px; }
+.df-workflow .page-header__subtitle { margin-top: 4px; color: #64748b; font-size: 13px; line-height: 1.45; }
 .df-workflow .card { background: var(--df-surface); border: 1px solid var(--df-border); border-radius: 14px; padding: 24px; box-shadow: none; }
 .df-workflow .filters { background: var(--df-tint); border: 1px solid var(--df-border); border-radius: 8px; gap: 16px; padding: 12px; margin-bottom: 20px; }
 .df-workflow .field { gap: 7px; min-width: 180px; }

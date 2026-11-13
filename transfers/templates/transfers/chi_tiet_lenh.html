@@ -1,0 +1,431 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/transfers.css' %}">
+<link rel="stylesheet" href="{% static 'css/operations.css' %}">
+<style>
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+.modal-overlay.active {
+    display: flex;
+}
+.modal-box {
+    background: #ffffff;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 540px;
+    padding: 24px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+}
+.form-group {
+    margin-bottom: 16px;
+}
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 6px;
+}
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    border-color: #0067c5;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 103, 197, 0.15);
+}
+.badge--CHO_DUYET { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+.badge--DA_DUYET { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+.badge--DANG_VAN_CHUYEN { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+.badge--DA_GIAO_DEN_DA_NANG { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.badge--HOAN_TAT { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+.badge--TU_CHOI { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+.badge--HUY { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="stack">
+    <!-- Thanh điều hướng và in ấn -->
+    <div class="toolbar no-print">
+        <a href="{% url 'transfers:danh_sach_lenh' %}" class="btn btn--light">
+            <i class="bi bi-arrow-left"></i> Quay lại danh sách lệnh
+        </a>
+        <button type="button" class="btn btn--light" onclick="window.print()">
+            <i class="bi bi-printer"></i> In văn bản lệnh
+        </button>
+    </div>
+
+    <!-- Tờ lệnh lưu chuyển định dạng tài liệu công vụ Dana Ford -->
+    <div class="transfer-paper card">
+        <div class="transfer-paper-header">
+            <div>
+                <div class="transfer-company-title">CÔNG TY CỔ PHẦN DANA (DANA FORD)</div>
+                <div class="transfer-company-sub">
+                    56 Điện Biên Phủ, P. Chính Gián, Q. Thanh Khê, TP. Đà Nẵng<br>
+                    Hotline: 0799 646 555 · MST: 0400259800
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 13px; font-weight: 600; color: #475569;">
+                    Số lệnh: <span style="color: #0b66c3; font-family: monospace; font-size: 16px; font-weight: 700;">{{ lenh.ma_lenh|default:"Chưa có mã lệnh" }}</span>
+                </div>
+                <div style="margin-top: 6px;">
+                    {% if lenh.trang_thai == "NHAP" %}
+                        <span class="badge badge--NHAP"><i class="bi bi-pencil"></i> Bản nháp</span>
+                    {% elif lenh.trang_thai == "CHO_DUYET" or lenh.trang_thai == "DA_GUI" %}
+                        <span class="badge badge--CHO_DUYET"><i class="bi bi-hourglass-split"></i> Chờ Sale Admin duyệt</span>
+                    {% elif lenh.trang_thai == "DA_DUYET" %}
+                        <span class="badge badge--DA_DUYET"><i class="bi bi-check-circle"></i> Đã duyệt - Chờ xuất kho</span>
+                    {% elif lenh.trang_thai == "DANG_VAN_CHUYEN" %}
+                        <span class="badge badge--DANG_VAN_CHUYEN"><i class="bi bi-truck"></i> Đang vận chuyển</span>
+                    {% elif lenh.trang_thai == "DA_GIAO_DEN_DA_NANG" %}
+                        <span class="badge badge--DA_GIAO_DEN_DA_NANG"><i class="bi bi-geo-alt-fill"></i> Đã giao đến Đà Nẵng - chờ nhập kho</span>
+                    {% elif lenh.trang_thai == "HOAN_TAT" or lenh.trang_thai == "DA_XAC_NHAN" %}
+                        <span class="badge badge--HOAN_TAT"><i class="bi bi-check-all"></i> Hoàn tất</span>
+                    {% elif lenh.trang_thai == "TU_CHOI" %}
+                        <span class="badge badge--TU_CHOI"><i class="bi bi-x-circle"></i> Từ chối</span>
+                    {% elif lenh.trang_thai == "HUY" %}
+                        <span class="badge badge--HUY"><i class="bi bi-slash-circle"></i> Đã hủy</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <h1 class="transfer-paper-title">LỆNH LƯU CHUYỂN XE NỘI BỘ</h1>
+        <div class="transfer-paper-date">
+            Ngày {{ lenh.ngay_lap|date:"d" }} tháng {{ lenh.ngay_lap|date:"m" }} năm {{ lenh.ngay_lap|date:"Y" }}
+        </div>
+
+        <div class="transfer-info-grid">
+            <div class="transfer-info-item">
+                <strong>Người lập lệnh:</strong>
+                <span>{{ lenh.ten_nguoi_lap }}</span>
+            </div>
+            <div class="transfer-info-item">
+                <strong>Kho xuất xe:</strong>
+                <span><span class="badge">{{ lenh.kho_xuat.ma_kho }}</span> {{ lenh.kho_xuat.chi_nhanh }}</span>
+            </div>
+            <div class="transfer-info-item">
+                <strong>Kho tiếp nhận:</strong>
+                <span><span class="badge">{{ lenh.kho_nhap.ma_kho }}</span> {{ lenh.kho_nhap.chi_nhanh }}</span>
+            </div>
+            <div class="transfer-info-item">
+                <strong>Ngày tạo lệnh:</strong>
+                <span>{{ lenh.ngay_lap|date:"d/m/Y H:i" }}</span>
+            </div>
+
+            {% if lenh.ngay_gui %}
+            <div class="transfer-info-item">
+                <strong>Thời gian gửi duyệt:</strong>
+                <span>{{ lenh.ngay_gui|date:"d/m/Y H:i" }}</span>
+            </div>
+            {% endif %}
+
+            {% if lenh.nguoi_duyet %}
+            <div class="transfer-info-item">
+                <strong>Người phê duyệt:</strong>
+                <span>{{ lenh.ten_nguoi_duyet }} ({{ lenh.ngay_duyet|date:"d/m/Y H:i" }})</span>
+            </div>
+            {% endif %}
+
+            {% if lenh.don_vi_van_chuyen %}
+            <div class="transfer-info-item" style="grid-column: 1 / -1; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px dashed #cbd5e1;">
+                <div style="font-weight: 700; color: #0f172a; margin-bottom: 6px;">
+                    <i class="bi bi-truck"></i> Thông tin đơn vị vận chuyển & giao nhận:
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 13px;">
+                    <div><strong>ĐVVC:</strong> {{ lenh.don_vi_van_chuyen.ten_dvvc }}</div>
+                    <div><strong>Biển số xe lồng:</strong> <span style="font-family: monospace; font-weight: 700;">{{ lenh.bien_so_xe }}</span></div>
+                    <div><strong>Tài xế:</strong> {{ lenh.tai_xe }} {% if lenh.sdt_tai_xe %}(SĐT: {{ lenh.sdt_tai_xe }}){% endif %}</div>
+                    <div><strong>Dự kiến đến ĐN:</strong> <span style="color: #0b66c3; font-weight: 700;">{{ lenh.ngay_du_kien_den|date:"d/m/Y" }}</span></div>
+                    <div><strong>Xuất kho nguồn:</strong> {{ lenh.ten_nguoi_xuat }} ({{ lenh.ngay_xuat|date:"d/m/Y H:i" }})</div>
+                    {% if lenh.nguoi_giao %}
+                    <div><strong>Tiếp nhận tại ĐN:</strong> {{ lenh.ten_nguoi_giao }} ({{ lenh.ngay_giao|date:"d/m/Y H:i" }})</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if lenh.ly_do_tu_choi %}
+            <div class="transfer-info-item" style="grid-column: 1 / -1; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 10px 14px; border-radius: 6px;">
+                <strong>Lý do từ chối:</strong> {{ lenh.ly_do_tu_choi }}
+            </div>
+            {% endif %}
+
+            {% if lenh.ghi_chu_huy %}
+            <div class="transfer-info-item" style="grid-column: 1 / -1; background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; padding: 10px 14px; border-radius: 6px;">
+                <strong>Lý do hủy lệnh:</strong> {{ lenh.ghi_chu_huy }}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Bảng danh sách xe lưu chuyển -->
+        <div class="table-wrap" style="margin-bottom: 24px;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px; text-align: center;">STT</th>
+                        <th>Số khung (VIN)</th>
+                        <th>Số máy</th>
+                        <th>Tên xe</th>
+                        <th>Loại xe</th>
+                        <th>Màu sắc</th>
+                        <th style="text-align: center;">Trạng thái xe</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in chi_tiet %}
+                    <tr>
+                        <td style="text-align: center;">{{ forloop.counter }}</td>
+                        <td><strong style="color: #0b66c3; font-family: monospace;">{{ item.xe.vin }}</strong></td>
+                        <td>{{ item.xe.so_may }}</td>
+                        <td>{{ item.xe.ten_xe }}</td>
+                        <td>{{ item.xe.loai_xe }}</td>
+                        <td>{{ item.xe.mau_sac|default:"Tiêu chuẩn" }}</td>
+                        <td style="text-align: center;">
+                            <span class="badge">{{ item.xe.get_trang_thai_display }}</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="empty">
+                            <p>Chưa có xe trong lệnh lưu chuyển.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr style="background: #f8fafc; font-weight: 700;">
+                        <td colspan="6" style="text-align: right; text-transform: uppercase; font-size: 12px; color: #475569;">
+                            Tổng số lượng xe:
+                        </td>
+                        <td style="text-align: center; font-size: 15px; color: #0b2a4a;">
+                            {{ tong_so_luong }} xe
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Chữ ký công vụ -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; text-align: center; margin-top: 40px; font-size: 13px;">
+            <div>
+                <strong>Người lập lệnh</strong><br>
+                <small style="color: #64748b;">(Ký, ghi rõ họ tên)</small>
+                <div style="height: 50px;"></div>
+                <div style="font-weight: 600;">{{ lenh.ten_nguoi_lap }}</div>
+            </div>
+            <div>
+                <strong>Thủ kho xuất</strong><br>
+                <small style="color: #64748b;">(Ký, ghi rõ họ tên)</small>
+                <div style="height: 50px;"></div>
+                <div style="font-weight: 600;">{{ lenh.ten_nguoi_xuat|default:"........................" }}</div>
+            </div>
+            <div>
+                <strong>Thủ kho nhận (Đà Nẵng)</strong><br>
+                <small style="color: #64748b;">(Ký, ghi rõ họ tên)</small>
+                <div style="height: 50px;"></div>
+                <div style="font-weight: 600;">{{ lenh.ten_nguoi_giao|default:"........................" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thanh thao tác nghiệp vụ theo từng bước -->
+    <div class="toolbar no-print" style="justify-content: center; gap: 14px; margin-top: 15px; flex-wrap: wrap;">
+        {% if lenh.trang_thai == "NHAP" %}
+            <a href="{% url 'transfers:chinh_sua_lenh' lenh.pk %}" class="btn btn--light">
+                <i class="bi bi-pencil-square"></i> Quay lại và chỉnh sửa
+            </a>
+            <form method="POST" action="{% url 'transfers:gui_lenh' lenh.pk %}" onsubmit="return confirm('Bạn có chắc muốn gửi lệnh lưu chuyển này chờ Sale Admin duyệt?');" style="margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn--primary">
+                    <i class="bi bi-send-check"></i> Gửi lệnh lưu chuyển
+                </button>
+            </form>
+            <button type="button" class="btn btn--danger" onclick="openModal('huyModal')">
+                <i class="bi bi-trash"></i> Hủy lệnh
+            </button>
+
+        {% elif lenh.trang_thai == "CHO_DUYET" or lenh.trang_thai == "DA_GUI" %}
+            {% if is_sale_admin %}
+                <form method="POST" action="{% url 'transfers:phe_duyet_lenh' lenh.pk %}" onsubmit="return confirm('Xác nhận phê duyệt lệnh lưu chuyển này?');" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn--success" style="background: #15803d; border-color: #15803d; color: #fff;">
+                        <i class="bi bi-check-lg"></i> Phê duyệt lệnh (Sale Admin)
+                    </button>
+                </form>
+                <button type="button" class="btn btn--danger" onclick="openModal('tuChoiModal')">
+                    <i class="bi bi-x-circle"></i> Từ chối lệnh
+                </button>
+            {% else %}
+                <div style="background: #fef3c7; border: 1px solid #fde68a; color: #92400e; padding: 8px 16px; border-radius: 6px; font-size: 13px;">
+                    <i class="bi bi-hourglass-split"></i> Đang chờ Sale Admin (Quốc Hiếu) phê duyệt lệnh.
+                </div>
+            {% endif %}
+            {% if can_cancel %}
+                <button type="button" class="btn btn--light" onclick="openModal('huyModal')">
+                    <i class="bi bi-slash-circle"></i> Hủy lệnh
+                </button>
+            {% endif %}
+
+        {% elif lenh.trang_thai == "DA_DUYET" %}
+            {% if is_kho_xuat %}
+                <button type="button" class="btn btn--primary" onclick="openModal('xuatKhoModal')" style="padding: 10px 20px; font-weight: 600;">
+                    <i class="bi bi-truck"></i> Xác nhận xuất xe & Bàn giao ĐVVC
+                </button>
+            {% else %}
+                <div style="background: #e0f2fe; border: 1px solid #bae6fd; color: #0369a1; padding: 8px 16px; border-radius: 6px; font-size: 13px;">
+                    <i class="bi bi-info-circle"></i> Lệnh đã duyệt. Xe đã sẵn sàng tiếp nhận tại kho Đà Nẵng.
+                </div>
+            {% endif %}
+            <a href="{% url 'warehouse:nhap' %}" class="btn btn--success" style="background: #15803d; border-color: #15803d; color: #fff; padding: 10px 18px; font-weight: 600; text-decoration: none;">
+                <i class="bi bi-box-arrow-in-down"></i> Sang Quản lý nhập kho tiếp nhận xe
+            </a>
+            {% if can_cancel %}
+                <button type="button" class="btn btn--light" onclick="openModal('huyModal')">
+                    <i class="bi bi-slash-circle"></i> Hủy lệnh
+                </button>
+            {% endif %}
+
+        {% elif lenh.trang_thai == "DANG_VAN_CHUYEN" %}
+            {% if is_kho_nhap %}
+                <form method="POST" action="{% url 'transfers:xac_nhan_den_da_nang' lenh.pk %}" onsubmit="return confirm('Xác nhận xe đã vận chuyển đến bãi Đà Nẵng an toàn? (Lưu ý: Bước này không cộng tồn kho Đà Nẵng)');" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn--success" style="background: #0284c7; border-color: #0284c7; color: #fff; padding: 10px 20px; font-weight: 600;">
+                        <i class="bi bi-geo-alt-fill"></i> Xác nhận xe đã đến Đà Nẵng (Chờ nhập kho)
+                    </button>
+                </form>
+            {% else %}
+                <div style="background: #f3e8ff; border: 1px solid #e9d5ff; color: #6b21a8; padding: 8px 16px; border-radius: 6px; font-size: 13px;">
+                    <i class="bi bi-truck"></i> Xe đang được vận chuyển về Đà Nẵng. Chờ kho Đà Nẵng tiếp nhận khi xe tới bãi.
+                </div>
+            {% endif %}
+
+        {% elif lenh.trang_thai == "DA_GIAO_DEN_DA_NANG" %}
+            <div style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; padding: 12px 20px; border-radius: 8px; font-size: 14px; display: flex; align-items: center; gap: 12px;">
+                <i class="bi bi-check-circle-fill" style="font-size: 20px;"></i>
+                <div>
+                    <strong>Xe đã đến bãi Đà Nẵng!</strong><br>
+                    Vui lòng chuyển sang module Quản lý nhập kho (app warehouse) để lập phiếu nhập và kiểm tra PDI.
+                </div>
+                <a href="/kho/nhap/" class="btn btn--primary" style="margin-left: auto;">
+                    <i class="bi bi-box-arrow-in-down"></i> Sang Quản lý nhập kho
+                </a>
+            </div>
+
+        {% elif lenh.trang_thai == "HOAN_TAT" or lenh.trang_thai == "DA_XAC_NHAN" %}
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 10px 18px; border-radius: 6px; font-size: 14px;">
+                <i class="bi bi-check-all" style="font-size: 18px;"></i> Lệnh lưu chuyển đã hoàn tất trọn vẹn qua quy trình nhập kho & PDI.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Xuất kho nguồn -->
+<div id="xuatKhoModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3 style="margin-top: 0; color: #0f172a; font-size: 17px; margin-bottom: 16px;">
+            <i class="bi bi-truck"></i> Xác nhận xuất kho & Bàn giao xe cho ĐVVC
+        </h3>
+        <form method="POST" action="{% url 'transfers:xuat_kho_nguon' lenh.pk %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Đơn vị vận chuyển <span style="color: red;">*</span></label>
+                <select name="don_vi_van_chuyen_id" required>
+                    <option value="">-- Chọn đơn vị vận chuyển --</option>
+                    {% for dvvc in ds_dvvc %}
+                    <option value="{{ dvvc.pk }}">{{ dvvc.ten_dvvc }} ({{ dvvc.ma_dvvc }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Biển số xe chuyên chở (xe lồng / cứu hộ) <span style="color: red;">*</span></label>
+                <input type="text" name="bien_so_xe" placeholder="Ví dụ: 43C-123.45" required>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label>Họ tên tài xế <span style="color: red;">*</span></label>
+                    <input type="text" name="tai_xe" placeholder="Ví dụ: Nguyễn Văn A" required>
+                </div>
+                <div class="form-group">
+                    <label>Số điện thoại tài xế</label>
+                    <input type="text" name="sdt_tai_xe" placeholder="Ví dụ: 0905123456">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Ngày dự kiến đến Đà Nẵng <span style="color: red;">*</span></label>
+                <input type="date" name="ngay_du_kien_den" required>
+            </div>
+            <p style="font-size: 12px; color: #64748b; margin-bottom: 16px;">
+                <i class="bi bi-info-circle"></i> Khi bấm xuất xe, hệ thống sẽ <strong>trừ tồn kho tại kho xuất ({{ lenh.kho_xuat.ma_kho }})</strong> và chuyển trạng thái xe sang <strong>Đang lưu chuyển</strong>.
+            </p>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn btn--light" onclick="closeModal('xuatKhoModal')">Đóng</button>
+                <button type="submit" class="btn btn--primary"><i class="bi bi-check2"></i> Xác nhận xuất xe</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Từ chối lệnh -->
+<div id="tuChoiModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3 style="margin-top: 0; color: #b91c1c; font-size: 17px; margin-bottom: 16px;">
+            <i class="bi bi-x-circle"></i> Từ chối lệnh lưu chuyển
+        </h3>
+        <form method="POST" action="{% url 'transfers:tu_choi_lenh' lenh.pk %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Lý do từ chối phê duyệt:</label>
+                <textarea name="ly_do_tu_choi" rows="3" placeholder="Nhập lý do từ chối để thông báo cho chi nhánh..."></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn btn--light" onclick="closeModal('tuChoiModal')">Hủy</button>
+                <button type="submit" class="btn btn--danger"><i class="bi bi-x-lg"></i> Xác nhận từ chối</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Hủy lệnh -->
+<div id="huyModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3 style="margin-top: 0; color: #475569; font-size: 17px; margin-bottom: 16px;">
+            <i class="bi bi-slash-circle"></i> Hủy lệnh lưu chuyển
+        </h3>
+        <form method="POST" action="{% url 'transfers:huy_lenh' lenh.pk %}">
+            {% csrf_token %}
+            <div class="form-group">
+                <label>Lý do hủy lệnh:</label>
+                <textarea name="ghi_chu_huy" rows="3" placeholder="Nhập lý do hủy lệnh..."></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn btn--light" onclick="closeModal('huyModal')">Đóng</button>
+                <button type="submit" class="btn btn--danger"><i class="bi bi-trash"></i> Xác nhận hủy lệnh</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openModal(id) {
+    document.getElementById(id).classList.add('active');
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+</script>
+{% endblock %}

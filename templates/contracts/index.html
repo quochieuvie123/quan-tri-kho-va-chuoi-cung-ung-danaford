@@ -68,6 +68,7 @@
               <th>Mã HĐ</th>
               <th>Khách hàng</th>
               <th>Xe yêu cầu</th>
+              <th>Nguồn xe</th>
               <th>Ngày ký</th>
               <th>Ngày giao dự kiến</th>
               <th style="text-align: center;">Trạng thái</th>
@@ -78,7 +79,7 @@
             {% for hd in hop_dong %}
             <tr>
               <td>
-                {% if hd.thao_tac.xem_chi_tiet %}<a href="{% url 'contracts:detail' hd.ma_hd %}" style="text-decoration: none; font-weight: 700; color: #0b66c3;">
+                {% if hd.thao_tac.xem_chi_tiet %}<a href="{% url 'contracts:detail' hd.ma_hd %}" style="text-decoration: none; font-weight: 700; color: #0067c5;">
                   {{ hd.ma_hd }}
                 </a>{% else %}<strong>{{ hd.ma_hd }}</strong>{% endif %}
               </td>
@@ -91,31 +92,23 @@
                 {% empty %}Chưa có yêu cầu xe{% endfor %}
                 {% if hd.canh_bao %}<small>{{ hd.canh_bao }}</small>{% endif %}
               </td>
+              <td>{{ hd.nguon_xe }}</td>
               <td>{{ hd.ngay_ky|date:"d/m/Y" }}</td>
               <td>{{ hd.ngay_du_kien_giao|date:"d/m/Y"|default:"—" }}</td>
               <td style="text-align: center;">
-                <span class="badge {% if hd.trang_thai == 'HOAN_TAT' %}badge--DA_DUYET{% elif hd.trang_thai == 'DANG_XUAT_KHO' or hd.trang_thai == 'DU_DIEU_KIEN_XUAT' %}badge--CHO_DUYET{% elif hd.trang_thai == 'Hủy' %}badge--KHONG_DAT{% else %}badge--NHAP{% endif %}">
+                <span class="badge {% if hd.trang_thai == 'HOAN_TAT' or hd.trang_thai_hien_thi == 'Hoàn tất' %}badge--DA_DUYET{% elif hd.trang_thai == 'DANG_XUAT_KHO' or hd.trang_thai == 'DU_DIEU_KIEN_XUAT' %}badge--CHO_DUYET{% elif hd.trang_thai == 'Hủy' %}badge--KHONG_DAT{% else %}badge--NHAP{% endif %}">
                   {{ hd.trang_thai_hien_thi }}
                 </span>
               </td>
-              <td style="text-align: right;">
-                <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
-                  {% if hd.thao_tac.xem_chi_tiet %}
-                    <a class="btn btn--light" href="{% url 'contracts:detail' hd.ma_hd %}">
-                      <i class="bi bi-eye"></i> Chi tiết
-                    </a>
-                  {% endif %}
-                  {% if hd.thao_tac.de_xuat_xe %}
-                    <a class="btn btn--primary" style="min-width: 138px; color: #fff; white-space: nowrap;" aria-label="Đề xuất xe" href="{% url 'contracts:xe_phu_hop' hd.ma_hd %}">
-                      <i class="bi bi-lightbulb"></i> Đề xuất xe
-                    </a>
-                  {% endif %}
-                </div>
+              <td style="text-align:right">
+                {% if hd.thao_tac.de_xuat_xe %}
+                <a class="btn btn--primary" href="{% url 'contracts:xe_phu_hop' hd.ma_hd %}"><i class="bi bi-lightbulb"></i> Đề xuất xe</a>
+                {% endif %}
               </td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="7" class="empty">
+              <td colspan="8" class="empty">
                 <i class="bi bi-inbox" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
                 <p style="margin: 0; color: #64748b;">Không tìm thấy hợp đồng bán xe nào phù hợp.</p>
               </td>

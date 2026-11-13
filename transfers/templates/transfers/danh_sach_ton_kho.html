@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/transfers.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="transfer-page-container">
+
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h1 class="page-header__title">Quản lý lưu chuyển xe</h1>
+            <p class="page-header__subtitle">Theo dõi xe tồn kho khả dụng, chọn xe và tạo lệnh điều chuyển giữa các kho chi nhánh</p>
+        </div>
+        <a href="{% url 'transfers:danh_sach_lenh' %}" class="transfer-btn transfer-btn--light">
+            <i class="bi bi-list-ul"></i> Xem danh sách lệnh đã lập
+        </a>
+    </div>
+
+    <!-- Thanh tab điều hướng -->
+    <div class="transfer-tabs">
+        <button
+            type="button"
+            class="transfer-tab active"
+            data-tab="ton-kho"
+            onclick="showTransferTab('ton-kho')">
+            <i class="bi bi-box-seam"></i> Danh sách tồn kho khả dụng
+        </button>
+
+        <button
+            type="button"
+            class="transfer-tab"
+            data-tab="da-chon"
+            onclick="showTransferTab('da-chon')">
+            <i class="bi bi-check2-circle"></i> Danh sách xe đã chọn
+            <span class="tab-count">{{ danh_sach_da_chon|length }}</span>
+        </button>
+
+        <a href="{% url 'transfers:danh_sach_lenh' %}" class="transfer-tab">
+            <i class="bi bi-card-checklist"></i> Danh sách lệnh lưu chuyển
+        </a>
+    </div>
+
+    <!-- TAB 1: DANH SÁCH TỒN KHO -->
+    <div id="ton-kho" class="transfer-content active card">
+        <div style="margin-bottom: 18px;">
+            <h3 style="margin: 0 0 14px; font-size: 16px; font-weight: 600; color: #0b2a4a;">Tìm kiếm xe tồn kho</h3>
+            <form method="GET" action="{% url 'transfers:index' %}" class="transfer-search-form">
+                <input
+                    class="transfer-search-input"
+                    type="text"
+                    name="q"
+                    value="{{ tu_khoa }}"
+                    placeholder="Nhập tên xe, loại xe hoặc mã kho..."
+                >
+                <button class="transfer-btn transfer-btn--primary" type="submit">
+                    <i class="bi bi-search"></i> Tìm kiếm
+                </button>
+                {% if tu_khoa %}
+                <a href="{% url 'transfers:index' %}" class="transfer-btn transfer-btn--light">
+                    <i class="bi bi-x-circle"></i> Xóa lọc
+                </a>
+                {% endif %}
+            </form>
+        </div>
+
+        <div class="transfer-table-wrap">
+            <table class="transfer-table">
+                <thead>
+                    <tr>
+                        <th>Tên xe</th>
+                        <th>Loại xe</th>
+                        <th>Màu sắc</th>
+                        <th>Mã kho</th>
+                        <th>Tên kho chi nhánh</th>
+                        <th style="text-align: center;">Số lượng tồn</th>
+                        <th style="text-align: right;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in ds_ton_kho %}
+                    <tr>
+                        <td><strong>{{ item.xe.ten_xe }}</strong></td>
+                        <td>{{ item.xe.loai_xe }}</td>
+                        <td>{{ item.xe.mau_sac|default:"Chưa cập nhật" }}</td>
+                        <td><span class="badge">{{ item.kho.ma_kho }}</span></td>
+                        <td>{{ item.kho.chi_nhanh }}</td>
+                        <td style="text-align: center; font-weight: 600; color: #0b66c3;">{{ item.so_luong_ton }}</td>
+                        <td style="text-align: right;">
+                            <a class="transfer-btn transfer-btn--primary" href="{% url 'transfers:chi_tiet_xe' item.pk %}">
+                                <i class="bi bi-plus-lg"></i> Chọn xe
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="empty">
+                            <i class="bi bi-inbox" style="font-size: 28px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
+                            <p style="margin: 0; color: #64748b;">Không tìm thấy xe tồn kho phù hợp với điều kiện tìm kiếm.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- TAB 2: DANH SÁCH XE ĐÃ CHỌN -->
+    <div id="da-chon" class="transfer-content card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 16px; font-weight: 600; color: #0b2a4a;">
+                Danh sách xe đã chọn để điều chuyển ({{ danh_sach_da_chon|length }})
+            </h3>
+            {% if danh_sach_da_chon %}
+            <a href="{% url 'transfers:tao_lenh' %}" class="transfer-btn transfer-btn--primary">
+                <i class="bi bi-send-check"></i> Tiến hành tạo lệnh lưu chuyển
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="transfer-table-wrap">
+            <table class="transfer-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50px; text-align: center;">STT</th>
+                        <th>VIN</th>
+                        <th>Số máy</th>
+                        <th>Tên xe</th>
+                        <th>Loại xe</th>
+                        <th>Màu sắc</th>
+                        <th>Kho xuất</th>
+                        <th>Kho nhập</th>
+                        <th style="text-align: center;">Số lượng</th>
+                        <th style="text-align: right;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in danh_sach_da_chon %}
+                    <tr>
+                        <td style="text-align: center;">{{ forloop.counter }}</td>
+                        <td><strong>{{ item.ton_kho.xe.vin }}</strong></td>
+                        <td>{{ item.ton_kho.xe.so_may }}</td>
+                        <td>{{ item.ton_kho.xe.ten_xe }}</td>
+                        <td>{{ item.ton_kho.xe.loai_xe }}</td>
+                        <td>{{ item.ton_kho.xe.mau_sac|default:"Chưa cập nhật" }}</td>
+                        <td>{{ item.ton_kho.kho.ma_kho }} - {{ item.ton_kho.kho.chi_nhanh }}</td>
+                        <td>{{ item.kho_nhan.ma_kho }} - {{ item.kho_nhan.chi_nhanh }}</td>
+                        <td style="text-align: center; font-weight: 700; color: #0b66c3;">{{ item.so_luong }}</td>
+                        <td style="text-align: right;">
+                            <form
+                                method="POST"
+                                action="{% url 'transfers:xoa_xe_da_chon' item.index %}"
+                                onsubmit="return confirm('Bạn có chắc muốn xóa xe này khỏi danh sách?');"
+                                style="margin: 0; display: inline;"
+                            >
+                                {% csrf_token %}
+                                <button type="submit" class="transfer-btn transfer-btn--danger">
+                                    <i class="bi bi-trash"></i> Xóa
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="empty">
+                            <i class="bi bi-cart-x" style="font-size: 28px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
+                            <p style="margin: 0; color: #64748b;">Chưa có xe nào được chọn. Vui lòng quay lại tab "Danh sách tồn kho khả dụng" để chọn xe.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="transfer-actions-bar">
+            <button type="button" class="transfer-btn transfer-btn--light" onclick="showTransferTab('ton-kho')">
+                <i class="bi bi-arrow-left"></i> Tiếp tục chọn xe
+            </button>
+            {% if danh_sach_da_chon %}
+            <a href="{% url 'transfers:tao_lenh' %}" class="transfer-btn transfer-btn--primary">
+                <i class="bi bi-file-earmark-plus"></i> Tạo lệnh lưu chuyển
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function showTransferTab(tabName) {
+        // Bỏ active khỏi tất cả tab
+        document.querySelectorAll(".transfer-tab").forEach(tab => {
+            tab.classList.remove("active");
+        });
+
+        // Đặt active cho tab được chọn
+        const selectedTab = document.querySelector(`.transfer-tab[data-tab="${tabName}"]`);
+        if (selectedTab) {
+            selectedTab.classList.add("active");
+        }
+
+        // Ẩn tất cả vùng nội dung
+        document.querySelectorAll(".transfer-content").forEach(content => {
+            content.style.display = "none";
+        });
+
+        // Hiện nội dung được chọn
+        const selectedContent = document.getElementById(tabName);
+        if (selectedContent) {
+            selectedContent.style.display = "block";
+        }
+    }
+
+    // Tự động chọn tab dựa vào URL parameter
+    document.addEventListener("DOMContentLoaded", function () {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get("tab");
+        if (tab === "da-chon") {
+            showTransferTab("da-chon");
+        } else {
+            showTransferTab("ton-kho");
+        }
+    });
+</script>
+{% endblock %}

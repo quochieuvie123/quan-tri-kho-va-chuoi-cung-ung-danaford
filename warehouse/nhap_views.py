@@ -25,6 +25,10 @@ def nhap(request):
     keyword = request.GET.get('q', '').strip()
     if keyword:
         rows = rows.filter(Q(ma_hdn__icontains=keyword) | Q(chitietnhap__xe__vin__icontains=keyword)).distinct()
+    sess = getattr(request, 'session', {})
+    current_cn = sess.get('current_cn') if hasattr(sess, 'get') else None
+    if current_cn and current_cn != 'ALL':
+        rows = rows.filter(chi_nhanh_id=current_cn)
     return JsonResponse({'hoa_don_nhap': list(rows.values('ma_hdn', 'nha_cung_cap_id', 'chi_nhanh_id', 'ngay_nhap', 'so_hoa_don')),
                          'luu_y': 'Đây là hóa đơn nhập theo model hiện có, chưa có trạng thái duyệt phiếu nhập.'})
 
@@ -97,6 +101,7 @@ def receipt_rows():
     branch_ids = list(getattr(settings, 'III_IV_DA_NANG_BRANCH_IDS', ['CN01'])) + list(getattr(settings, 'III_IV_TRANSFER_BRANCH_IDS', ['CN02', 'CN03']))
     return PhieuNhapKho.objects.filter(kho__chi_nhanh_id__in=branch_ids).select_related(
         'xe', 'kho__chi_nhanh', 'chi_tiet_nhap__hoa_don_nhap__nha_cung_cap',
+        'lenh_luu_chuyen__kho_xuat__chi_nhanh', 'lenh_luu_chuyen__don_vi_van_chuyen',
         'nguoi_lap__nhan_vien', 'nguoi_duyet__nhan_vien',
     ).prefetch_related(Prefetch('cac_lan_pdi', queryset=KetQuaPDI.objects.select_related(
         'phieu_nhap', 'nguoi_kiem_tra__nhan_vien', 'nguoi_duyet__nhan_vien',
@@ -114,12 +119,8 @@ def receipt_list(request):
     keyword = request.GET.get('q', '').strip()
     if keyword:
         rows = rows.filter(Q(ma_phieu__icontains=keyword) | Q(xe__vin__icontains=keyword))
-    for key in ('trang_thai', 'kho_id'):
-        if request.GET.get(key):
-            value = request.GET[key].strip()
-            if key == 'trang_thai' and value not in PhieuNhapKho.TrangThai.values:
-                return JsonResponse({'error': 'Trạng thái phiếu không hợp lệ.'}, status=400)
-            rows = rows.filter(**{key: value})
+    if request.GET.get('kho_id'):
+        rows = rows.filter(kho_id=request.GET['kho_id'].strip())
     if request.GET.get('ngay_lap'):
         try:
             day = date.fromisoformat(request.GET['ngay_lap'])
@@ -127,6 +128,14 @@ def receipt_list(request):
             return JsonResponse({'error': 'Ngày lập phải theo YYYY-MM-DD.'}, status=400)
         rows = rows.filter(ngay_lap__date=day)
     data = [receipt_data(row, request.user) for row in rows]
+    tt_filter = request.GET.get('trang_thai', '').strip()
+    if tt_filter:
+        if tt_filter in ('DA_XU_LY', 'DA_DUYET'):
+            data = [d for d in data if d.get('trang_thai_code') == 'DA_XU_LY']
+        elif tt_filter in ('DANG_XU_LY', 'CHO_DUYET'):
+            data = [d for d in data if d.get('trang_thai_code') == 'DANG_XU_LY']
+        elif tt_filter in ('CHUA_XU_LY', 'NHAP'):
+            data = [d for d in data if d.get('trang_thai_code') == 'CHUA_XU_LY']
     display_rows = list(data)
     if not any(request.GET.get(key) for key in ('trang_thai', 'kho_id', 'ngay_lap')):
         known_vins = {row['vin'] for row in display_rows}
@@ -138,13 +147,45 @@ def receipt_list(request):
                     'mau_sac': allocation.exterior_color, 'ma_phieu': 'Đang chọn đặt xe',
                     'trang_thai_hien_thi': '—', 'pending_order': True})
                 known_vins.add(allocation.vin)
+
+        from transfers.models import ChiTietLenhLuuChuyen, LenhLuuChuyen
+        arrived_transfers = ChiTietLenhLuuChuyen.objects.filter(
+            lenh__trang_thai__in=[
+                LenhLuuChuyen.TrangThai.DA_DUYET,
+                LenhLuuChuyen.TrangThai.DANG_VAN_CHUYEN,
+                LenhLuuChuyen.TrangThai.DA_GIAO_DEN_DA_NANG,
+            ],
+            lenh__kho_nhap__chi_nhanh_id='CN01'
+        ).exclude(
+            xe_id__in=known_vins
+        ).exclude(
+            xe__tonkho__so_luong_ton__gt=0
+        ).select_related('xe', 'lenh__kho_nhap__chi_nhanh', 'lenh__kho_xuat__chi_nhanh')
+        for ct in arrived_transfers:
+            if not keyword or keyword.lower() in ct.xe_id.lower() or keyword.lower() in ct.lenh.ma_lenh.lower():
+                display_rows.insert(0, {
+                    'vin': ct.xe_id,
+                    'dong_xe': ct.xe.ten_xe,
+                    'phien_ban': getattr(ct.xe, 'phien_ban', '') or '',
+                    'mau_sac': ct.xe.mau_sac,
+                    'ma_phieu': f'Lệnh {ct.lenh.ma_lenh}',
+                    'ten_kho': ct.lenh.kho_nhap.chi_nhanh.ten_cn if ct.lenh.kho_nhap and ct.lenh.kho_nhap.chi_nhanh else 'Đà Nẵng',
+                    'ngay_lap': ct.lenh.ngay_giao or ct.lenh.ngay_duyet or ct.lenh.ngay_lap,
+                    'nguoi_lap': (ct.lenh.nguoi_duyet.get_full_name() if ct.lenh.nguoi_duyet else None) or (ct.lenh.nguoi_giao.get_full_name() if ct.lenh.nguoi_giao else 'Sale Admin đã duyệt'),
+                    'trang_thai_hien_thi': 'Chờ lập phiếu nhập',
+                    'badge_class': 'badge--CHO_DUYET',
+                    'pending_order': True,
+                    'is_transfer_pending': True,
+                    'transfer_line_id': ct.pk,
+                })
+                known_vins.add(ct.xe_id)
     message = '' if data else ('Không có phiếu phù hợp.' if PhieuNhapKho.objects.exists() else 'Chưa có phiếu nhập kho.')
     payload = {'phieu_nhap': data, 'message': message,
                'thao_tac': {'lap_phieu': has_role(request.user, WAREHOUSE) and request.user.has_perm('warehouse.add_phieunhapkho')}}
     if wants_html(request):
         payload.update(page_title='Quản lý nhập kho', display_rows=display_rows,
                        kho=Kho.objects.select_related('chi_nhanh').order_by('ma_kho'),
-                       trang_thai=PhieuNhapKho.TrangThai.choices)
+                       trang_thai=[('CHUA_XU_LY', 'Chưa xử lý'), ('DANG_XU_LY', 'Đang xử lý'), ('DA_XU_LY', 'Đã xử lý')])
         return render(request, 'warehouse/receipt_list.html', payload)
     return JsonResponse(payload)
 
@@ -201,12 +242,15 @@ def receipt_action(request, action, pk=None):
             raise ValueError('Nội dung phải là JSON object.')
         if action == 'tao':
             source = {}
-            for key in ('chi_tiet_nhap_id',):
+            for key in ('chi_tiet_nhap_id', 'lenh_luu_chuyen_id', 'xe_id'):
                 value = data.get(key)
                 if value is not None:
-                    if isinstance(value, bool) or not str(value).isascii() or not str(value).isdigit() or int(value) < 1:
-                        raise ValueError('Mã chứng từ phải là số nguyên dương.')
-                    source[key] = int(value)
+                    if key == 'xe_id':
+                        source[key] = str(value).strip()
+                    else:
+                        if isinstance(value, bool) or not str(value).isascii() or not str(value).isdigit() or int(value) < 1:
+                            raise ValueError('Mã chứng từ phải là số nguyên dương.')
+                        source[key] = int(value)
             obj = services.create_receipt(request.user, ma_phieu=data.get('ma_phieu') or 'PN-' + uuid4().hex[:12].upper(),
                 kho_id=data['kho_id'], ngay_nhap=date.fromisoformat(data['ngay_nhap']) if data.get('ngay_nhap') else timezone.localdate(), **source)
         elif action == 'pdi':
@@ -238,13 +282,13 @@ def receipt_action(request, action, pk=None):
 @require_GET
 def eligible_vehicles(request):
     """Các dòng chứng từ có VIN chưa nằm trong kho; trả cảnh báo phiếu đang xử lý."""
+    from transfers.models import ChiTietLenhLuuChuyen, LenhLuuChuyen
     rows = ChiTietNhap.objects.exclude(xe__tonkho__so_luong_ton__gt=0).select_related('xe', 'hoa_don_nhap__nha_cung_cap').order_by('pk')
     for query_key, field in [('vin', 'xe__vin__icontains'), ('ten_xe', 'xe__ten_xe__icontains'), ('dong_xe', 'xe__ten_xe__icontains'),
                              ('phien_ban', 'xe__phien_ban__iexact'), ('loai_xe', 'xe__loai_xe__iexact'), ('mau_sac', 'xe__mau_sac__iexact'),
                              ('nguon_xe', 'hoa_don_nhap__nha_cung_cap_id')]:
         if request.GET.get(query_key):
             rows = rows.filter(**{field: request.GET[query_key].strip()})
-    # Dòng nhập đã hoàn tất không dùng lại cho một lần tiếp nhận khác.
     rows = rows.exclude(phieunhapkho__trang_thai='DA_DUYET')
     active = {row.xe_id: row for row in receipt_rows().filter(trang_thai__in=['NHAP', 'CHO_DUYET'])}
     state_filter = request.GET.get('trang_thai', '').strip()
@@ -270,6 +314,47 @@ def eligible_vehicles(request):
             phieu_hien_co_id=current.pk if current else None,
             pdi_moi_nhat=pdi_data(services.latest_pdi(current)) if current and current.chi_tiet_nhap_id == row.pk and request.user.has_perm('warehouse.view_ketquapdi') else None,
             canh_bao=warnings, co_the_tao=current is None and row.so_luong_nhap == 1 and request.user.has_perm('warehouse.add_phieunhapkho')))
+
+    # Bổ sung xe từ lệnh lưu chuyển đã giao đến Đà Nẵng
+    transfer_rows = ChiTietLenhLuuChuyen.objects.filter(
+        lenh__trang_thai__in=[
+            LenhLuuChuyen.TrangThai.DA_DUYET,
+            LenhLuuChuyen.TrangThai.DANG_VAN_CHUYEN,
+            LenhLuuChuyen.TrangThai.DA_GIAO_DEN_DA_NANG,
+        ],
+        lenh__kho_nhap__chi_nhanh_id='CN01'
+    ).exclude(
+        xe__tonkho__so_luong_ton__gt=0
+    ).exclude(
+        xe__phieunhapkho__trang_thai='DA_DUYET'
+    ).select_related('xe', 'lenh__kho_xuat__chi_nhanh')
+    for query_key, field in [('vin', 'xe__vin__icontains'), ('ten_xe', 'xe__ten_xe__icontains'), ('dong_xe', 'xe__ten_xe__icontains'),
+                             ('phien_ban', 'xe__phien_ban__iexact'), ('loai_xe', 'xe__loai_xe__iexact'), ('mau_sac', 'xe__mau_sac__iexact')]:
+        if request.GET.get(query_key):
+            transfer_rows = transfer_rows.filter(**{field: request.GET[query_key].strip()})
+    for t_row in transfer_rows:
+        current = active.get(t_row.xe_id)
+        state = 'DANG_CO_PHIEU' if current else 'CHUA_NHAP_KHO'
+        if state_filter and state_filter != state:
+            continue
+        warnings = []
+        if current:
+            warnings.append('VIN đang thuộc một phiếu nhập kho; mở phiếu hiện có để xử lý tiếp.')
+        data.append(dict(
+            id=t_row.pk, vin=t_row.xe_id, ten_xe=t_row.xe.ten_xe, dong_xe=t_row.xe.ten_xe,
+            loai_xe=t_row.xe.loai_xe, phien_ban=t_row.xe.phien_ban, mau_sac=t_row.xe.mau_sac,
+            so_may=t_row.xe.so_may, ma_hdn=None, ma_lenh=t_row.lenh.ma_lenh,
+            nguon_xe_id=f"TRANSFER_{t_row.lenh_id}",
+            nguon_xe=f"Lệnh {t_row.lenh.ma_lenh} ({t_row.lenh.kho_xuat.chi_nhanh.ten_cn if t_row.lenh.kho_xuat and t_row.lenh.kho_xuat.chi_nhanh else 'Lưu chuyển'})",
+            trang_thai=state, trang_thai_hien_thi='Đang có phiếu nhập' if current else 'Chưa nhập kho (Chờ tiếp nhận lưu chuyển)',
+            dang_co_phieu=current is not None,
+            phieu_hien_co_id=current.pk if current else None,
+            pdi_moi_nhat=pdi_data(services.latest_pdi(current)) if current and current.lenh_luu_chuyen_id == t_row.lenh_id and request.user.has_perm('warehouse.view_ketquapdi') else None,
+            canh_bao=warnings,
+            co_the_tao=current is None and request.user.has_perm('warehouse.add_phieunhapkho'),
+            loai_nguon='LUU_CHUYEN',
+        ))
+
     payload = {'xe': data, 'message': '' if data else 'Không tìm thấy xe phù hợp.',
                'luu_y': 'Danh sách lấy từ chi tiết chứng từ nhập hiện có; xe chưa có chứng từ cần được bổ sung hồ sơ trước.'}
     if wants_html(request):
@@ -282,37 +367,75 @@ def eligible_vehicles(request):
 @role_required(WAREHOUSE)
 @permission_required('warehouse.add_phieunhapkho', raise_exception=True)
 def receipt_create_page(request):
+    from transfers.models import ChiTietLenhLuuChuyen, LenhLuuChuyen
     lines = ChiTietNhap.objects.exclude(xe__tonkho__so_luong_ton__gt=0).filter(
         so_luong_nhap=1, phieunhapkho__isnull=True,
     ).select_related('xe', 'hoa_don_nhap__nha_cung_cap').order_by('pk')
+
+    xe_luu_chuyen = ChiTietLenhLuuChuyen.objects.filter(
+        lenh__trang_thai__in=[
+            LenhLuuChuyen.TrangThai.DA_DUYET,
+            LenhLuuChuyen.TrangThai.DANG_VAN_CHUYEN,
+            LenhLuuChuyen.TrangThai.DA_GIAO_DEN_DA_NANG,
+        ],
+        lenh__kho_nhap__chi_nhanh_id='CN01'
+    ).exclude(
+        xe__phieunhapkho__trang_thai__in=['NHAP', 'CHO_DUYET', 'DA_DUYET']
+    ).exclude(
+        xe__tonkho__so_luong_ton__gt=0
+    ).select_related('xe', 'lenh').order_by('pk')
+
     warehouses = [kho for kho in Kho.objects.select_related('chi_nhanh').order_by('ma_kho')
                   if can_write_warehouse(request.user, kho) and is_da_nang_branch(kho.chi_nhanh)]
     keyword = request.GET.get('q', '').strip()
     if keyword:
         lines = lines.filter(Q(xe__vin__icontains=keyword) | Q(xe__ten_xe__icontains=keyword) | Q(xe__phien_ban__icontains=keyword) | Q(xe__mau_sac__icontains=keyword))
+        xe_luu_chuyen = xe_luu_chuyen.filter(Q(xe__vin__icontains=keyword) | Q(xe__ten_xe__icontains=keyword) | Q(xe__phien_ban__icontains=keyword) | Q(xe__mau_sac__icontains=keyword) | Q(lenh__ma_lenh__icontains=keyword))
+
     if request.method == 'POST':
         try:
             source = request.POST['nguon_xe']
             kind, line_id = source.split(':', 1)
-            if kind != 'hang' or not line_id.isdigit():
+            ma_phieu = request.POST.get('ma_phieu', '').strip() or 'PN-' + uuid4().hex[:12].upper()
+            kho_id = request.POST['kho_id']
+            ngay_nhap = date.fromisoformat(request.POST['ngay_nhap']) if request.POST.get('ngay_nhap') else timezone.localdate()
+
+            if kind == 'hang':
+                if not line_id.isdigit():
+                    raise ValueError('Mã chi tiết nhập không hợp lệ.')
+                obj = services.create_receipt(
+                    request.user,
+                    ma_phieu=ma_phieu,
+                    chi_tiet_nhap_id=int(line_id),
+                    kho_id=kho_id,
+                    ngay_nhap=ngay_nhap,
+                )
+            elif kind == 'luu-chuyen':
+                if not line_id.isdigit():
+                    raise ValueError('Mã chi tiết lệnh lưu chuyển không hợp lệ.')
+                ct = ChiTietLenhLuuChuyen.objects.select_related('lenh').get(pk=int(line_id))
+                obj = services.create_receipt(
+                    request.user,
+                    ma_phieu=ma_phieu,
+                    lenh_luu_chuyen_id=ct.lenh_id,
+                    xe_id=ct.xe_id,
+                    kho_id=kho_id,
+                    ngay_nhap=ngay_nhap,
+                )
+            else:
                 raise ValueError('Nguồn xe không hợp lệ.')
-            obj = services.create_receipt(
-                request.user,
-                ma_phieu=request.POST.get('ma_phieu', '').strip() or 'PN-' + uuid4().hex[:12].upper(),
-                chi_tiet_nhap_id=int(line_id),
-                kho_id=request.POST['kho_id'],
-                ngay_nhap=date.fromisoformat(request.POST['ngay_nhap']) if request.POST.get('ngay_nhap') else timezone.localdate(),
-            )
+
             messages.success(request, 'Đã lưu phiếu nhập ở trạng thái Nháp.')
             return redirect('warehouse:receipt_detail', pk=obj.pk)
-        except (KeyError, ValueError, TypeError):
-            messages.error(request, 'Vui lòng nhập đầy đủ và đúng định dạng.')
-        except (ChiTietNhap.DoesNotExist, Kho.DoesNotExist):
+        except (KeyError, ValueError, TypeError) as err:
+            messages.error(request, f'Vui lòng nhập đầy đủ và đúng định dạng: {err}')
+        except (ChiTietNhap.DoesNotExist, ChiTietLenhLuuChuyen.DoesNotExist, Kho.DoesNotExist):
             messages.error(request, 'Chứng từ hoặc kho không còn tồn tại.')
         except ValidationError as exc:
             messages.error(request, ' '.join(exc.messages))
+
     return render(request, 'warehouse/receipt_form.html', {
-        'page_title': 'Lập phiếu nhập kho', 'xe_co_the_nhap': lines, 'kho': warehouses, 'xe_luu_chuyen': [],
+        'page_title': 'Lập phiếu nhập kho', 'xe_co_the_nhap': lines, 'kho': warehouses, 'xe_luu_chuyen': xe_luu_chuyen,
         'form_data': request.POST if request.method == 'POST' else {'nguon_xe': request.GET.get('nguon_xe', '')},
         'ngay_nhap_mac_dinh': request.POST.get('ngay_nhap', '') if request.method == 'POST' else timezone.localdate().isoformat(),
     })

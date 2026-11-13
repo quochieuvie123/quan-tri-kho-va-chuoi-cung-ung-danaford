@@ -1,5 +1,5 @@
 from django.urls import reverse
-from core.roles import get_user_role_info, user_can_access_url_name
+from core.roles import get_user_role_info, user_can_access_url_name, is_sale_admin
 
 MENU = [
     {
@@ -60,22 +60,65 @@ def layout(request):
     parts = name.split()
     initials = (parts[0][0] + parts[-1][0]) if len(parts) > 1 else name[:2]
 
+    role_code = role_info.get("code", "SALE") if role_info else "SALE"
     role_title = role_info.get("title", "Nhân viên") if role_info else "Chưa phân quyền"
     department = role_info.get("department", "Dana Ford") if role_info else "Dana Ford"
     badge_color = role_info.get("badge_color", "primary") if role_info else "secondary"
 
+    # Lấy thông tin kho và chi nhánh hiện tại từ Session (Phương án 1: Bộ lọc toàn cục)
+    current_kho = request.session.get("current_kho", "ALL")
+    current_cn = request.session.get("current_cn", "ALL")
+
+    ds_kho_header = [
+        {"ma_kho": "ALL", "ten": "Cả ba kho (DN - BD - GL)"},
+        {"ma_kho": "KHO01", "ten": "Kho Đà Nẵng (KHO01)"},
+        {"ma_kho": "KHO02", "ten": "Kho Bình Định (KHO02)"},
+        {"ma_kho": "KHO03", "ten": "Kho Gia Lai (KHO03)"},
+    ]
+
+    is_sale_admin_user = is_sale_admin(user)
+
+    # Số lượng phiếu yêu cầu đặt xe đang chờ Sale Admin (Quốc Hiếu) phê duyệt
+    try:
+        from orders.models import VehicleRequest
+        pending_orders_count = VehicleRequest.objects.filter(status=VehicleRequest.Status.PENDING).count()
+    except Exception:
+        pending_orders_count = 0
+
+    # Số lượng yêu cầu xuất kho đang chờ Sale Admin phê duyệt
+    try:
+        from database.models import PhieuXuatKho, TrangThaiPhieuXuat
+        pending_exports_count = PhieuXuatKho.objects.filter(trang_thai=TrangThaiPhieuXuat.CHO_DUYET).count()
+    except Exception:
+        pending_exports_count = 0
+
+    total_pending_admin = (pending_orders_count + pending_exports_count) if is_sale_admin_user else 0
+    if not is_sale_admin_user:
+        pending_orders_count = 0
+        pending_exports_count = 0
+
     return {
         "menu_items": items,
         "role_info": role_info,
+        "is_sale_admin": is_sale_admin_user,
+        "pending_orders_count": pending_orders_count,
+        "pending_exports_count": pending_exports_count,
+        "total_pending_admin": total_pending_admin,
+        "current_kho": current_kho,
+        "current_cn": current_cn,
+        "ds_kho_header": ds_kho_header,
         "user_display": {
             "name": name,
             "username": user.username,
             "initials": initials.upper(),
             "role": role_title,
+            "role_code": role_code,
             "department": department,
             "badge_color": badge_color,
             "can_manage_events": role_info.get("can_manage_events", False) if role_info else False,
             "can_monitor_subordinates": role_info.get("can_monitor_subordinates", False) if role_info else False,
+            "can_manage_allocations": role_info.get("can_manage_allocations", False) if role_info else False,
+            "can_manage_transfers": role_info.get("can_manage_transfers", False) if role_info else False,
             "is_read_only": role_info.get("is_read_only", False) if role_info else False,
         },
     }

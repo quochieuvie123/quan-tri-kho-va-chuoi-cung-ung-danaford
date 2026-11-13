@@ -3,9 +3,9 @@ from database.models import HopDong, TrangThaiHopDong, TrangThaiPhieuXuat
 
 
 def matches(car, requirement):
-    return all((actual or '').strip().casefold() == (expected or '').strip().casefold()
-               for actual, expected in ((car.ten_xe, requirement['dong_xe']),
-               (car.phien_ban, requirement['phien_ban']), (car.mau_sac, requirement['mau_sac'])))
+    from .matching import car_matches_criterion
+    match, _ = car_matches_criterion(car, requirement, strict_color=False)
+    return match
 
 
 def remaining_requirements(contract, include_reserved=False):

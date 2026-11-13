@@ -11,7 +11,8 @@ TIEU_DE = ["Mã sự cố", "VIN xe", "Dòng xe", "Tên ĐVVC", "Loại sự c�
 def _hang(bb):
     ho_so = getattr(bb, "ho_so", None)
     tien = ho_so.so_tien_boi_thuong if ho_so and ho_so.so_tien_boi_thuong is not None else None
-    return [bb.ma_pdi, bb.xe_id, bb.xe.ten_xe, bb.hoa_don_nhap.don_vi_van_chuyen.ten_dvvc, bb.loai_su_co,
+    ten_dvvc = bb.don_vi_van_chuyen or (bb.hoa_don_nhap.don_vi_van_chuyen.ten_dvvc if bb.hoa_don_nhap and bb.hoa_don_nhap.don_vi_van_chuyen else "")
+    return [bb.ma_pdi, bb.xe_id, bb.xe.ten_xe, ten_dvvc, bb.loai_su_co,
             nhan_trang_thai(bb.trang_thai_claim), tien, bb.ngay_ghi_nhan]
 
 

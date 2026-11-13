@@ -110,7 +110,9 @@ def import_rows(user, rows, employee_id=None):
                                   ket_qua=row['ket_qua'], ghi_chu=note, hang_muc=items)
         services.approve_pdi(user, receipt.pk, pdi_id=pdi.pk)
         if row['ket_qua'] == 'KHONG_DAT':
-            BienBanPDI.objects.create(ma_pdi=row['ma_pdi'], hoa_don_nhap_id=receipt.chi_tiet_nhap.hoa_don_nhap_id,
+            BienBanPDI.objects.create(ma_pdi=row['ma_pdi'],
+                hoa_don_nhap_id=receipt.chi_tiet_nhap.hoa_don_nhap_id if receipt.chi_tiet_nhap_id else None,
+                lenh_luu_chuyen_id=receipt.lenh_luu_chuyen_id,
                 xe_id=row['vin'], nhan_vien=employee, ngay_ghi_nhan=timezone.now(), loai_su_co=row['loai_su_co'],
                 mo_ta_chi_tiet=row['mo_ta_su_co'], trang_thai_claim='Chưa xử lý')
             continue
@@ -124,5 +126,7 @@ def import_rows(user, rows, employee_id=None):
         receipt.trang_thai = 'DA_DUYET'; receipt.nguoi_duyet = user; receipt.thoi_gian_duyet = now
         receipt.save(update_fields=['trang_thai', 'nguoi_duyet', 'thoi_gian_duyet'])
         Xe.objects.filter(pk=row['vin']).update(trang_thai=TrangThaiXe.SAN_SANG)
+        if receipt.lenh_luu_chuyen_id:
+            services.hoan_tat_lenh_tu_nhap_kho(receipt.lenh_luu_chuyen, user)
         from contracts.workflow import sync_contract_for_vin
         sync_contract_for_vin(row['vin'])

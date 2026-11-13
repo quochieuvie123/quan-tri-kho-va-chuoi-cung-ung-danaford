@@ -78,6 +78,12 @@
 
 {% block content %}
 <div class="canh-bao">
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div>
+            <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #0b2a4a;">Cảnh báo hệ thống</h1>
+            <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Theo dõi các cảnh báo tồn kho lâu ngày, chậm tiến độ giao xe, vượt chỉ tiêu hoặc sai lệch số liệu</p>
+        </div>
+    </div>
     <div class="card">
         <form method="get" class="bo-loc">
             {{ form.as_p }}
@@ -115,7 +121,7 @@
                         </a>
                     </td>
                     <td>{{ cb.get_loai_display }}</td>
-                    <td>{{ cb.kho }}</td>
+                    <td>{{ cb.kho_hien_thi }}</td>
 
                     <td>
                         {% if cb.xe %}

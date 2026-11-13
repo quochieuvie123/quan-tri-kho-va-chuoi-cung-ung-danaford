@@ -5,6 +5,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from database.models import (
+    ChiTietNhap,
     ChiNhanh, Kho, NhanVien, KhachHang, Xe, TonKho,
     HopDong, HoaDonBan, ChiTietBan, BienBanPDI,
     NhaCungCap, DonViVanChuyen, HoaDonNhap,
@@ -188,7 +189,7 @@ class InventoryConflictPreventionTests(TestCase):
         )
         self.ton = TonKho.objects.create(
             kho=self.kho, xe=self.xe,
-            ngay_vao_kho=timezone.now().date() - timedelta(days=45),
+            ngay_vao_kho=timezone.localdate() - timedelta(days=45),
             so_luong_ton=1, vi_tri="A01"
         )
     def test_05_tinh_tuoi_ton_chinh_xac(self):
@@ -238,3 +239,287 @@ class InventoryConflictPreventionTests(TestCase):
         # Kết quả: Xe phải được gắn nhãn DANG_XU_LY_NGHIEP_VU chứ không phải THIEU!
         ct_item = phieu_kk.chitietkiemke_set.get(xe=self.xe)
         self.assertEqual(ct_item.phan_loai, PhanLoaiKiemKe.DANG_XU_LY_NGHIEP_VU)
+
+
+class TransferToIntakeWorkflowTests(TestCase):
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        self.user = User.objects.create_superuser(username='test_workflow_admin', password='password123', email='admin@danaford.com.vn')
+        self.cn_dn = ChiNhanh.objects.create(ma_cn="CN01", ten_cn="Dana Ford Đà Nẵng", dia_chi_cn="Đà Nẵng")
+        self.cn_bd = ChiNhanh.objects.create(ma_cn="CN02", ten_cn="Dana Ford Bình Định", dia_chi_cn="Bình Định")
+
+        self.kho_dn = Kho.objects.create(ma_kho="KHO01", chi_nhanh=self.cn_dn)
+        self.kho_bd = Kho.objects.create(ma_kho="KHO02", chi_nhanh=self.cn_bd)
+
+        self.nv_dn = NhanVien.objects.create(ma_nv="NV_DN_01", ten_nv="Lê Kho ĐN", chi_nhanh=self.cn_dn, sdt_nv="0901111111")
+        self.user.nhan_vien = self.nv_dn
+        self.user.save()
+
+        self.dvvc = DonViVanChuyen.objects.create(ma_dvvc="DVVC_01", ten_dvvc="Vận Tải Miền Trung", sdt_dvvc="0905999999")
+        self.ncc = NhaCungCap.objects.create(ma_ncc="NCC_FORD", ten_ncc="Ford Hải Dương", mst="0123456789")
+
+        self.xe = Xe.objects.create(
+            vin="VIN-TRANSFER-001", ten_xe="Ford Ranger Wildtrak", phien_ban="Wildtrak 2.0L",
+            loai_xe="Ranger", so_may="SM-WF001", mau_sac="Cam Saber", trang_thai=TrangThaiXe.DANG_LUU_CHUYEN
+        )
+
+        from transfers.models import LenhLuuChuyen, ChiTietLenhLuuChuyen
+        self.lenh = LenhLuuChuyen.objects.create(
+            ma_lenh="LLC-TEST-001",
+            kho_xuat=self.kho_bd,
+            kho_nhap=self.kho_dn,
+            trang_thai=LenhLuuChuyen.TrangThai.DA_GIAO_DEN_DA_NANG,
+            don_vi_van_chuyen=self.dvvc,
+            bien_so_xe="43C-999.88",
+            tai_xe="Bác Tài",
+            nguoi_lap=self.user,
+        )
+        ChiTietLenhLuuChuyen.objects.create(lenh=self.lenh, xe=self.xe)
+
+    def test_01_nhap_tu_lenh_khi_xe_chua_den_da_nang(self):
+        """Không cho phép lập phiếu nhập kho khi lệnh lưu chuyển chưa được phê duyệt."""
+        from django.core.exceptions import ValidationError
+        from transfers.models import LenhLuuChuyen
+        from warehouse import nhap_services as services
+
+        # Thử với trạng thái NHAP (chưa duyệt)
+        self.lenh.trang_thai = LenhLuuChuyen.TrangThai.NHAP
+        self.lenh.save(update_fields=['trang_thai'])
+
+        with self.assertRaises(ValidationError) as ctx:
+            services.create_receipt(
+                self.user,
+                ma_phieu="PN-TEST-CHUA-DUYET",
+                kho_id=self.kho_dn.pk,
+                ngay_nhap=timezone.localdate(),
+                lenh_luu_chuyen_id=self.lenh.pk,
+                xe_id=self.xe.vin
+            )
+        self.assertIn("đã được phê duyệt", str(ctx.exception))
+
+        # Thử với trạng thái CHO_DUYET (chưa duyệt)
+        self.lenh.trang_thai = LenhLuuChuyen.TrangThai.CHO_DUYET
+        self.lenh.save(update_fields=['trang_thai'])
+
+        with self.assertRaises(ValidationError) as ctx:
+            services.create_receipt(
+                self.user,
+                ma_phieu="PN-TEST-CHUA-DUYET-2",
+                kho_id=self.kho_dn.pk,
+                ngay_nhap=timezone.localdate(),
+                lenh_luu_chuyen_id=self.lenh.pk,
+                xe_id=self.xe.vin
+            )
+        self.assertIn("đã được phê duyệt", str(ctx.exception))
+
+    def test_02_nhap_trung_vin_tu_lenh(self):
+        """Chống nhập trùng VIN: không cho lập 2 phiếu nhập cùng VIN hoặc khi VIN đã có tồn kho."""
+        from django.core.exceptions import ValidationError
+        from warehouse import nhap_services as services
+
+        # Tạo phiếu nhập đầu tiên thành công
+        receipt = services.create_receipt(
+            self.user,
+            ma_phieu="PN-TEST-VIN-01",
+            kho_id=self.kho_dn.pk,
+            ngay_nhap=timezone.localdate(),
+            lenh_luu_chuyen_id=self.lenh.pk,
+            xe_id=self.xe.vin
+        )
+        self.assertEqual(receipt.trang_thai, 'NHAP')
+
+        # Thử tạo phiếu thứ hai cho cùng VIN khi phiếu 1 đang mở -> ValidationError
+        with self.assertRaises(ValidationError) as ctx:
+            services.create_receipt(
+                self.user,
+                ma_phieu="PN-TEST-VIN-02",
+                kho_id=self.kho_dn.pk,
+                ngay_nhap=timezone.localdate(),
+                lenh_luu_chuyen_id=self.lenh.pk,
+                xe_id=self.xe.vin
+            )
+        self.assertTrue("chưa hoàn tất" in str(ctx.exception) or "đã có phiếu nhập" in str(ctx.exception))
+
+        # Giả sử xe đã có tồn kho sẵn trong hệ thống
+        receipt.delete()
+        TonKho.objects.create(kho=self.kho_dn, xe=self.xe, so_luong_ton=1, ngay_vao_kho=timezone.localdate())
+
+        with self.assertRaises(ValidationError) as ctx:
+            services.create_receipt(
+                self.user,
+                ma_phieu="PN-TEST-VIN-03",
+                kho_id=self.kho_dn.pk,
+                ngay_nhap=timezone.localdate(),
+                lenh_luu_chuyen_id=self.lenh.pk,
+                xe_id=self.xe.vin
+            )
+        self.assertIn("đã có tồn kho", str(ctx.exception))
+
+    def test_03_pdi_khong_dat_chuyen_trang_thai_su_co(self):
+        """Khi PDI không đạt: xe chuyển sang SU_CO_PDI và không cho duyệt nhập kho."""
+        from django.core.exceptions import ValidationError
+        from warehouse import nhap_services as services
+
+        receipt = services.create_receipt(
+            self.user,
+            ma_phieu="PN-TEST-PDI-FAIL",
+            kho_id=self.kho_dn.pk,
+            ngay_nhap=timezone.localdate(),
+            lenh_luu_chuyen_id=self.lenh.pk,
+            xe_id=self.xe.vin
+        )
+
+        pdi = services.record_pdi(
+            self.user,
+            receipt.pk,
+            tinh_trang="Trầy xước sơn cản trước và móp cánh cửa",
+            ket_qua="KHONG_DAT",
+            ghi_chu="Sự cố trong quá trình lưu chuyển đường dài",
+            hang_muc=[
+                {"hang_muc": "Ngoại thất", "tinh_trang": "Trầy xước cản trước", "ket_qua": "KHONG_DAT", "ghi_chu": "Trầy sơn"},
+                {"hang_muc": "Nội thất", "tinh_trang": "Bình thường", "ket_qua": "DAT", "ghi_chu": ""},
+                {"hang_muc": "Vận hành", "tinh_trang": "Bình thường", "ket_qua": "DAT", "ghi_chu": ""},
+            ]
+        )
+
+        # Duyệt PDI không đạt
+        services.approve_pdi(self.user, receipt.pk, pdi_id=pdi.pk)
+
+        # Kiểm tra trạng thái xe phải là SU_CO_PDI
+        self.xe.refresh_from_db()
+        self.assertEqual(self.xe.trang_thai, TrangThaiXe.SU_CO_PDI)
+
+        # Cố gửi duyệt phiếu nhập kho -> Bị chặn
+        with self.assertRaises(ValidationError):
+            services.submit_receipt(self.user, receipt.pk, pdi_id=pdi.pk)
+
+    def test_04_sau_su_co_hoan_tat_nhap_kho_va_lenh_hoan_tat(self):
+        """Sau khi xử lý và đóng sự cố: phiếu nhập hoàn tất DA_DUYET, tồn kho KHO01 +1, xe SAN_SANG, LenhLuuChuyen HOAN_TAT."""
+        from transfers.models import LenhLuuChuyen
+        from warehouse import nhap_services as services
+
+        receipt = services.create_receipt(
+            self.user,
+            ma_phieu="PN-TEST-RESOLVE",
+            kho_id=self.kho_dn.pk,
+            ngay_nhap=timezone.localdate(),
+            lenh_luu_chuyen_id=self.lenh.pk,
+            xe_id=self.xe.vin
+        )
+
+        pdi = services.record_pdi(
+            self.user,
+            receipt.pk,
+            tinh_trang="Trầy xước nhẹ",
+            ket_qua="KHONG_DAT",
+            ghi_chu="Đưa sang xử lý sự cố bồi thường",
+            hang_muc=[
+                {"hang_muc": "Ngoại thất", "tinh_trang": "Xước sơn", "ket_qua": "KHONG_DAT", "ghi_chu": ""},
+                {"hang_muc": "Nội thất", "tinh_trang": "Bình thường", "ket_qua": "DAT", "ghi_chu": ""},
+                {"hang_muc": "Vận hành", "tinh_trang": "Bình thường", "ket_qua": "DAT", "ghi_chu": ""},
+            ]
+        )
+        services.approve_pdi(self.user, receipt.pk, pdi_id=pdi.pk)
+
+        # Ghi nhận biên bản sự cố PDI liên kết lệnh lưu chuyển
+        bb = BienBanPDI.objects.create(
+            ma_pdi="PDI-CLAIM-001",
+            lenh_luu_chuyen=self.lenh,
+            xe=self.xe,
+            nhan_vien=self.nv_dn,
+            ngay_ghi_nhan=timezone.now(),
+            loai_su_co="Trầy xước sơn",
+            mo_ta_chi_tiet="ĐVVC đồng ý khắc phục sơn lại",
+            trang_thai_claim="Chưa xử lý"
+        )
+
+        # Giả lập đóng hồ sơ sự cố qua complete_after_incident_closed
+        bb.trang_thai_claim = "Đã xử lý"
+        bb.save(update_fields=['trang_thai_claim'])
+        services.complete_after_incident_closed(bb)
+
+        # Kiểm tra phiếu nhập kho
+        receipt.refresh_from_db()
+        self.assertEqual(receipt.trang_thai, 'DA_DUYET')
+
+        # Kiểm tra tồn kho tại Đà Nẵng (KHO01)
+        ton = TonKho.objects.get(kho=self.kho_dn, xe=self.xe)
+        self.assertEqual(ton.so_luong_ton, 1)
+
+        # Kiểm tra trạng thái xe
+        self.xe.refresh_from_db()
+        self.assertEqual(self.xe.trang_thai, TrangThaiXe.SAN_SANG)
+
+        # Kiểm tra Lệnh lưu chuyển chuyển sang HOAN_TAT
+        self.lenh.refresh_from_db()
+        self.assertEqual(self.lenh.trang_thai, LenhLuuChuyen.TrangThai.HOAN_TAT)
+
+    def test_05_luong_nhap_tu_hoa_don_van_chay_dung(self):
+        """Đảm bảo luồng nhập kho từ hóa đơn thông thường (HoaDonNhap) không bị ảnh hưởng (regression)."""
+        from warehouse import nhap_services as services
+        from warehouse.models import PhieuNhapKho
+
+        hdn = HoaDonNhap.objects.create(
+            ma_hdn="HDN-FACTORY-01", nha_cung_cap=self.ncc, chi_nhanh=self.cn_dn,
+            don_vi_van_chuyen=self.dvvc, ngay_nhap=timezone.now(),
+            so_hoa_don="HD001", bien_so_xe="43C-111.22", ten_tai_xe="Bác Tài Nhà Máy"
+        )
+        xe_hdn = Xe.objects.create(
+            vin="VIN-FACTORY-001", ten_xe="Ford Territory Titanium", phien_ban="Titanium X",
+            loai_xe="Territory", so_may="SM-TT001", mau_sac="Đỏ Ruby", trang_thai=TrangThaiXe.SAN_SANG
+        )
+        ctn = ChiTietNhap.objects.create(
+            hoa_don_nhap=hdn, xe=xe_hdn, so_luong_nhap=1, don_gia=Decimal("800000000"), thanh_tien=Decimal("800000000")
+        )
+
+        receipt = services.create_receipt(
+            self.user,
+            ma_phieu="PN-FACTORY-001",
+            kho_id=self.kho_dn.pk,
+            ngay_nhap=timezone.localdate(),
+            chi_tiet_nhap_id=ctn.pk
+        )
+        self.assertEqual(receipt.loai_nguon, PhieuNhapKho.LoaiNguon.HOA_DON)
+        self.assertEqual(receipt.chi_tiet_nhap_id, ctn.pk)
+        self.assertIsNone(receipt.lenh_luu_chuyen)
+
+        # Ghi PDI Đạt
+        pdi = services.record_pdi(
+            self.user, receipt.pk,
+            tinh_trang="Xe mới xuất xưởng nguyên bản",
+            ket_qua="DAT",
+            ghi_chu="Đạt 100% tiêu chuẩn nghiệm thu",
+            hang_muc=[
+                {"hang_muc": "Ngoại thất", "tinh_trang": "Tốt", "ket_qua": "DAT", "ghi_chu": ""},
+                {"hang_muc": "Nội thất", "tinh_trang": "Tốt", "ket_qua": "DAT", "ghi_chu": ""},
+                {"hang_muc": "Vận hành", "tinh_trang": "Tốt", "ket_qua": "DAT", "ghi_chu": ""},
+            ]
+        )
+        services.approve_pdi(self.user, receipt.pk, pdi_id=pdi.pk)
+        services.submit_receipt(self.user, receipt.pk, pdi_id=pdi.pk)
+        services.approve_receipt(self.user, receipt.pk, pdi_id=pdi.pk)
+
+        receipt.refresh_from_db()
+        self.assertEqual(receipt.trang_thai, 'DA_DUYET')
+
+        ton = TonKho.objects.get(kho=self.kho_dn, xe=xe_hdn)
+        self.assertEqual(ton.so_luong_ton, 1)
+
+        xe_hdn.refresh_from_db()
+        self.assertEqual(xe_hdn.trang_thai, TrangThaiXe.SAN_SANG)
+
+    def test_06_khong_the_tao_phieu_hai_nguon_hoac_khong_nguon(self):
+        """Bắt buộc phải có đúng 1 nguồn chứng từ (XOR)."""
+        from django.core.exceptions import ValidationError
+        from warehouse import nhap_services as services
+
+        # Không nguồn nào
+        with self.assertRaises(ValidationError) as ctx:
+            services.create_receipt(
+                self.user,
+                ma_phieu="PN-TEST-NO-SOURCE",
+                kho_id=self.kho_dn.pk,
+                ngay_nhap=timezone.localdate()
+            )
+        self.assertIn("chính xác một nguồn", str(ctx.exception))

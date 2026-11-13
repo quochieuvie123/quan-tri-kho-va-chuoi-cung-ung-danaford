@@ -15,6 +15,12 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv(BASE_DIR / ".env")
+except ImportError:
+    pass
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
@@ -26,6 +32,16 @@ SECRET_KEY = 'django-insecure-cxr94=05cjc5srb-fmx&i%97k9cn80^hym(z$@zzod8sl+!^*p
 DEBUG = True
 
 ALLOWED_HOSTS = ["*", "localhost", "127.0.0.1", "testserver"]
+
+# Cho phép gửi form (POST/Login/CSRF) an toàn qua các đường hầm tunnel test (Cloudflare, Ngrok, Pinggy...)
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.trycloudflare.com",
+    "https://*.ngrok-free.app",
+    "https://*.pinggy.link",
+    "https://*.loca.lt",
+    "http://127.0.0.1",
+    "http://localhost",
+]
 
 
 # Application definition
@@ -73,8 +89,17 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [BASE_DIR / 'templates'],
-        'APP_DIRS': True,
+        'APP_DIRS': False,
         'OPTIONS': {
+            'loaders': [
+                'django.template.loaders.filesystem.Loader',
+                'django.template.loaders.app_directories.Loader',
+            ] if DEBUG else [
+                ('django.template.loaders.cached.Loader', [
+                    'django.template.loaders.filesystem.Loader',
+                    'django.template.loaders.app_directories.Loader',
+                ]),
+            ],
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
@@ -162,10 +187,17 @@ TRANSFER_RECEIVER_EMAILS = [
     if e.strip()
 ]
 
+ORDER_RECEIVER_EMAILS = [
+    e.strip()
+    for e in os.environ.get("ORDER_RECEIVER_EMAILS", "").split(",")
+    if e.strip()
+]
+
 AUTH_USER_MODEL = "accounts.User"
 
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "login"
 
 LANGUAGE_CODE = "vi"
 TIME_ZONE = "Asia/Ho_Chi_Minh"

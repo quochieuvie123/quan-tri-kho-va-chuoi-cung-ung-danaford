@@ -21,7 +21,7 @@ from . import nhap_views
 app_name = "warehouse"
 
 urlpatterns = [
-    path('nhap/import-pdi/', nhap_views.import_pdi_excel, name='import_pdi_excel'),
+    path("nhap/import-pdi/", nhap_views.import_pdi_excel, name="import_pdi_excel"),
     # 0. Quản lý nhập kho (Tích hợp nghiệp vụ Nhập kho & PDI)
     path("nhap/", nhap_views.receipt_list, name="nhap"),
     path("nhap/tao/", nhap_views.receipt_create_page, name="receipt_create_shortcut"),

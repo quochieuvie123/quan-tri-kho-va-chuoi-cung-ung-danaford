@@ -6,9 +6,31 @@
 <div class="actions">
   <a class="btn" href="{% url 'incidents:index' %}"><i class="bi bi-arrow-left"></i> Danh sách</a>
   <span class="spacer"></span>
+  {% if phieu_nhap %}
+    <a class="btn btn--light" href="{% url 'warehouse:receipt_detail' phieu_nhap.id %}">
+      <i class="bi bi-box-seam"></i> Xem phiếu nhập {{ phieu_nhap.ma_phieu }}
+    </a>
+  {% endif %}
   {% if co_the_gui %}<a class="btn btn--primary" href="{% url 'incidents:gui_yeu_cau' bb.ma_pdi %}"><i class="bi bi-send"></i> Gửi yêu cầu xử lý cho ĐVVC</a>{% endif %}
-  {% if co_the_cap_nhat %}<a class="btn btn--primary" href="{% url 'incidents:cap_nhat' bb.ma_pdi %}"><i class="bi bi-check2-circle"></i> Cập nhật kết quả bồi thường / xử lý</a>{% endif %}
+  {% if co_the_cap_nhat %}
+    <a class="btn btn--success" style="background-color: #16a34a; border-color: #16a34a; color: #fff; font-weight: 700;" href="{% url 'incidents:cap_nhat' bb.ma_pdi %}">
+      <i class="bi bi-check2-circle"></i> Xác nhận đã xử lý xong sự cố (Đóng sự cố)
+    </a>
+  {% endif %}
 </div>
+
+{% if bb.trang_thai_claim == 'Đã xử lý' %}
+<div class="card" style="background: #f0fdf4; border: 1px solid #bbf7d0; margin-bottom: 20px; padding: 14px 18px; border-left: 4px solid #16a34a;">
+  <div style="font-weight: 700; color: #15803d; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+    <i class="bi bi-check-circle-fill" style="font-size: 18px;"></i>
+    Sự cố vận chuyển này đã được xác nhận xử lý xong và đóng hồ sơ!
+  </div>
+  <p style="margin: 4px 0 0; color: #166534; font-size: 13px;">
+    Xe đã được nghiệm thu kỹ thuật, mở khóa nhập kho và tự động cập nhật sang module Quản lý nhập kho
+    {% if phieu_nhap %}(Phiếu nhập: <strong>{{ phieu_nhap.ma_phieu }}</strong> - <span class="badge badge--DA_DUYET">Đã xử lý</span>){% endif %}.
+  </p>
+</div>
+{% endif %}
 
 <div class="grid2">
   <div class="card">
@@ -29,23 +51,113 @@
       <dt>Số khung VIN</dt><dd>{{ xe.vin }}</dd>
       <dt>Dòng xe</dt><dd>{{ xe.ten_xe }}</dd>
       <dt>Màu sắc</dt><dd>{{ xe.mau_sac|default:"—" }}</dd>
+      {% if hdn %}
       <dt>Đơn hàng nhập</dt><dd>{{ hdn.ma_hdn }}</dd>
       <dt>Tên ĐVVC</dt><dd>{{ hdn.don_vi_van_chuyen.ten_dvvc }}</dd>
       <dt>Tên tài xế</dt><dd>{{ hdn.ten_tai_xe|default:"—" }}</dd>
       <dt>Biển số xe chở</dt><dd>{{ hdn.bien_so_xe|default:"—" }}</dd>
       <dt>Thời gian bàn giao</dt><dd>{{ hdn.ngay_nhap|date:"d/m/Y H:i" }}</dd>
+      {% elif lenh %}
+      <dt>Lệnh lưu chuyển</dt><dd>{{ lenh.ma_lenh }}</dd>
+      <dt>Tên ĐVVC</dt><dd>{{ lenh.don_vi_van_chuyen.ten_dvvc|default:"—" }}</dd>
+      <dt>Tên tài xế</dt><dd>{{ lenh.tai_xe|default:"—" }}</dd>
+      <dt>Biển số xe chở</dt><dd>{{ lenh.bien_so_xe|default:"—" }}</dd>
+      <dt>Thời gian bàn giao</dt><dd>{{ lenh.ngay_giao|date:"d/m/Y H:i"|default:lenh.ngay_xuat|date:"d/m/Y H:i"|default:"—" }}</dd>
+      {% endif %}
+      {% if phieu_nhap %}
+        <dt>Phiếu nhập kho</dt>
+        <dd>
+          <a href="{% url 'warehouse:receipt_detail' phieu_nhap.id %}" style="font-weight: 700; color: #0067c5;">{{ phieu_nhap.ma_phieu }}</a>
+          <span class="badge {{ phieu_nhap.badge_class|default:'badge--NHAP' }}" style="margin-left: 6px;">{{ phieu_nhap.trang_thai_hien_thi }}</span>
+        </dd>
+      {% endif %}
     </dl>
   </div>
 </div>
 
 <div class="card">
-  <h3>Ảnh chụp hư hại</h3>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+    <h3 style="margin: 0;">Ảnh chụp hư hại</h3>
+    <button type="button" class="btn btn--primary btn--sm" onclick="document.getElementById('dlg-thay-anh').showModal();" style="cursor: pointer;">
+      <i class="bi bi-camera"></i> Thay thế / Thêm hình ảnh
+    </button>
+  </div>
   {% if anh %}
-    <div class="thumbs">{% for a in anh %}<a href="{% url 'incidents:tep_anh' a.pk %}" target="_blank"><img src="{% url 'incidents:tep_anh' a.pk %}" alt="Ảnh sự cố {{ bb.ma_pdi }}"></a>{% endfor %}</div>
+    <div class="thumbs">
+      {% for a in anh %}
+        <a href="{% url 'incidents:tep_anh' a.pk %}" target="_blank" title="Bấm để xem ảnh phóng to">
+          <img src="{% url 'incidents:tep_anh' a.pk %}" alt="Ảnh sự cố {{ bb.ma_pdi }}">
+        </a>
+      {% endfor %}
+    </div>
   {% elif bb.hinh_anh_url %}
     <p><a href="{{ bb.hinh_anh_url }}" target="_blank" rel="noopener">{{ bb.hinh_anh_url }}</a></p>
-  {% else %}<p class="muted">Chưa có hình ảnh.</p>{% endif %}
+  {% else %}
+    <div style="padding: 16px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; text-align: center;">
+      <p class="muted" style="margin-bottom: 10px;">Chưa có hình ảnh sự cố này trong hệ thống.</p>
+      <button type="button" class="btn btn--primary btn--sm" onclick="document.getElementById('dlg-thay-anh').showModal();" style="cursor: pointer;">
+        <i class="bi bi-upload"></i> Tải ảnh lên ngay
+      </button>
+    </div>
+  {% endif %}
 </div>
+
+<!-- Modal Dialog Thay thế / Thêm hình ảnh -->
+<dialog id="dlg-thay-anh" class="dlg" style="max-width: 500px; width: 90%;">
+  <form method="post" action="{% url 'incidents:cap_nhat_anh' bb.ma_pdi %}" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 style="margin: 0; font-size: 18px; color: #1f4e79;"><i class="bi bi-images"></i> Thay thế / Cập nhật ảnh sự cố</h3>
+      <button type="button" class="btn btn--sm" onclick="document.getElementById('dlg-thay-anh').close();" style="border: none; background: transparent; font-size: 18px; cursor: pointer;">&times;</button>
+    </div>
+
+    <p style="font-size: 13px; color: #64748b; margin-bottom: 14px;">
+      Sự cố: <strong>{{ bb.ma_pdi }}</strong> &mdash; Xe VIN: <strong>{{ xe.vin }}</strong>
+    </p>
+
+    <div style="margin-bottom: 16px;">
+      <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Chọn một hoặc nhiều ảnh mới từ máy tính:</label>
+      <input type="file" name="anh" id="id_anh_thay_the" multiple accept="image/jpeg,image/png,image/webp" required style="display: block; width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px;">
+      <small style="display: block; color: #94a3b8; margin-top: 4px;">Định dạng hỗ trợ: JPG, PNG, WEBP.</small>
+    </div>
+
+    <div id="preview-thay-the" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; min-height: 10px;"></div>
+
+    <fieldset style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; margin-bottom: 20px;">
+      <legend style="font-size: 12px; font-weight: 600; color: #475569; padding: 0 4px;">Chế độ cập nhật</legend>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 6px; cursor: pointer;">
+        <input type="radio" name="che_do" value="thay_the" checked>
+        <span><strong>Thay thế toàn bộ ảnh cũ</strong> (Xóa ảnh cũ của sự cố này và chỉ giữ ảnh mới)</span>
+      </label>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+        <input type="radio" name="che_do" value="them_moi">
+        <span><strong>Thêm vào danh sách</strong> (Giữ lại ảnh cũ và thêm ảnh mới vào)</span>
+      </label>
+    </fieldset>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+      <button type="button" class="btn" onclick="document.getElementById('dlg-thay-anh').close();">Hủy</button>
+      <button type="submit" class="btn btn--primary"><i class="bi bi-cloud-arrow-up"></i> Xác nhận lưu ảnh</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  document.getElementById('id_anh_thay_the')?.addEventListener('change', function(e) {
+    const box = document.getElementById('preview-thay-the');
+    if (!box) return;
+    box.innerHTML = '';
+    for (const f of e.target.files) {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      img.style.height = '70px';
+      img.style.borderRadius = '6px';
+      img.style.border = '1px solid #cbd5e1';
+      img.style.objectFit = 'cover';
+      box.appendChild(img);
+    }
+  });
+</script>
 
 {% if ho_so.hinh_thuc_khac_phuc %}
 <div class="card">

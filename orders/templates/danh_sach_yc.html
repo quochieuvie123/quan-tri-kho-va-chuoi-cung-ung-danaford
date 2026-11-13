@@ -5,7 +5,7 @@
     <div>
         <h2 class="section-title" style="margin: 0;">Danh sách phiếu yêu cầu đặt xe</h2>
         <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">
-            Theo dõi tiến độ gửi phiếu yêu cầu đặt hàng tới Ford Việt Nam và trạng thái phản hồi tiếp nhận
+            Theo dõi tiến độ gửi phiếu yêu cầu đặt xe, tiếp nhận phê duyệt từ Sale Admin (Quốc Hiếu) và chuyển tiếp sang kho
         </p>
     </div>
     <div>
@@ -21,9 +21,9 @@
             <tr>
                 <th style="width: 50px; text-align: center;">STT</th>
                 <th>Mã số phiếu</th>
+                <th>Người lập phiếu</th>
                 <th>Thời điểm tạo phiếu</th>
                 <th style="text-align: center;">Trạng thái xử lý</th>
-                <th style="text-align: right;">Thao tác</th>
             </tr>
         </thead>
         <tbody>
@@ -31,26 +31,27 @@
             <tr>
                 <td style="text-align: center;">{{ forloop.counter }}</td>
                 <td>
-                    <a href="{% url 'orders:phieu_yeu_cau' phieu.id %}" style="text-decoration: none; font-weight: 700; color: #0b66c3;">
+                    <a href="{% url 'orders:phieu_yeu_cau' phieu.id %}" style="text-decoration: none; font-weight: 700; color: #0067c5;">
                         {{ phieu.request_number }}
                     </a>
+                </td>
+                <td>
+                    <strong>{{ phieu.created_by.get_full_name|default:phieu.created_by.username }}</strong>
+                    {% if phieu.created_by.username == 'ygiang' %}
+                        <small style="color: #64748b; display: block;">Sale Chi Nhánh</small>
+                    {% endif %}
                 </td>
                 <td>{{ phieu.created_at|date:"d/m/Y H:i" }}</td>
                 <td style="text-align: center;">
                     {% if phieu.status == "DRAFT" %}
                         <span class="badge badge--NHAP"><i class="bi bi-pencil"></i> Bản nháp</span>
                     {% elif phieu.status == "PENDING" %}
-                        <span class="badge badge--CHO_DUYET"><i class="bi bi-send"></i> Đã gửi Ford VN</span>
+                        <span class="badge badge--CHO_DUYET"><i class="bi bi-clock-history"></i> Chờ Quốc Hiếu duyệt</span>
                     {% elif phieu.status == "ACCEPTED" %}
-                        <span class="badge badge--DA_DUYET"><i class="bi bi-check-circle"></i> Đã xác nhận</span>
+                        <span class="badge badge--DA_DUYET"><i class="bi bi-check-circle"></i> Đã phê duyệt</span>
                     {% else %}
                         <span class="badge">{{ phieu.status }}</span>
                     {% endif %}
-                </td>
-                <td style="text-align: right;">
-                    <a class="btn btn--light" href="{% url 'orders:phieu_yeu_cau' phieu.id %}">
-                        <i class="bi bi-eye"></i> Xem chi tiết
-                    </a>
                 </td>
             </tr>
             {% empty %}

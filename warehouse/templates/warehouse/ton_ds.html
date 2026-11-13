@@ -1,57 +1,122 @@
 {% extends "base.html" %}
+
 {% load static %}
+
 {% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
+
 {% block content %}
+
 {% include "warehouse/_messages.html" %}
+
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+  <div>
+    <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #0b2a4a;">Quản lý tồn kho</h1>
+    <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Theo dõi số lượng tồn kho theo chi nhánh, phân loại tuổi tồn và kiểm kê thực tế</p>
+  </div>
+  <a class="btn btn--primary" href="{% url 'warehouse:kk_ds' %}?kho={{ ma_kho }}"><i class="bi bi-clipboard-check"></i> Kiểm kê kho</a>
+</div>
+
 <div class="stats">
+
   <div class="card stat"><small>Tổng số xe tồn</small><strong>{{ tong_xe }}</strong></div>
+
   <div class="card stat"><small>Tồn bình thường (≤ 30 ngày)</small><strong>{{ n_binh_thuong }}</strong></div>
+
   <div class="card stat"><small>Cần theo dõi (31-60 ngày)</small><strong>{{ n_theo_doi }}</strong></div>
+
   <div class="card stat"><small>Tồn lâu (&gt; 60 ngày)</small><strong>{{ n_lau }}</strong></div>
+
 </div>
+
 <form method="get" class="card filter">
+
   <div class="filter__grid">
+
     <label>Kho
-      <select name="kho" class="inp">{% for k in ds_kho %}<option value="{{ k.ma_kho }}" {% if k.ma_kho == ma_kho %}selected{% endif %}>{{ k.ma_kho }} - {{ k.chi_nhanh.ten_cn }}</option>{% endfor %}</select></label>
+
+      <select name="kho" class="inp"><option value="ALL" {% if ma_kho == "ALL" %}selected{% endif %}>Cả ba kho (ĐN - BĐ - GL)</option>{% for k in ds_kho %}<option value="{{ k.ma_kho }}" {% if k.ma_kho == ma_kho %}selected{% endif %}>{{ k.ma_kho }} - {{ k.chi_nhanh.ten_cn }}</option>{% endfor %}</select></label>
+
     <label>VIN<input class="inp" name="vin" value="{{ bo_loc.vin }}"></label>
+
     <label>Loại xe<input class="inp" name="loai_xe" value="{{ bo_loc.loai_xe }}"></label>
+
     <label>Màu sắc<input class="inp" name="mau_sac" value="{{ bo_loc.mau_sac }}"></label>
+
     <label>Trạng thái xe
+
       <select name="trang_thai" class="inp"><option value="">Tất cả</option>{% for v, t in ds_trang_thai %}<option value="{{ v }}" {% if v == bo_loc.trang_thai %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></label>
+
   </div>
+
   <div class="actions">
+
     <button class="btn btn--primary" type="submit"><i class="bi bi-search"></i> Tìm kiếm</button>
+
     <a class="btn" href="{% url 'warehouse:ton_kho' %}">Xóa bộ lọc</a>
+
     <span class="spacer"></span>
+
     <a class="btn" href="{% url 'warehouse:kk_ds' %}?kho={{ ma_kho }}"><i class="bi bi-clipboard-check"></i> Kiểm kê</a>
+
   </div>
+
 </form>
+
 <div class="card">
+
   <p class="muted">{{ tong }} dòng tồn kho{% if co_loc %} phù hợp bộ lọc{% endif %}.</p>
+
   <div class="scroll">
+
   <table class="tbl">
-    <thead><tr><th>VIN</th><th>Tên xe</th><th>Loại</th><th>Màu</th><th>Vị trí</th><th>Ngày vào kho</th><th>Tuổi tồn</th><th>Trạng thái xe</th></tr></thead>
+
+    <thead><tr><th>VIN</th><th>Tên xe</th><th>Loại</th><th>Màu</th>{% if ma_kho == "ALL" %}<th>Kho</th>{% endif %}<th>Vị trí</th><th>Ngày vào kho</th><th>Tuổi tồn</th><th>Trạng thái xe</th></tr></thead>
+
     <tbody>
+
     {% for x in trang %}
+
       <tr>
+
         <td><a href="{% url 'warehouse:ton_chi_tiet' x.vin %}?kho={{ ma_kho }}"><strong>{{ x.vin }}</strong></a></td>
-        <td>{{ x.ten_xe }}</td><td>{{ x.loai_xe }}</td><td>{{ x.mau_sac|default:"—" }}</td><td>{{ x.vi_tri }}</td>
+
+        <td>{{ x.ten_xe }}</td><td>{{ x.loai_xe }}</td><td>{{ x.mau_sac|default:"—" }}</td>{% if ma_kho == "ALL" %}<td><span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:600;">{{ x.kho_id }}</span></td>{% endif %}<td>{{ x.vi_tri }}</td>
+
         <td>{{ x.ngay_vao_kho }}</td>
+
         <td>{{ x.so_ngay_ton }} ngày <span class="badge {% if x.nhom_tuoi_ton == 'Tồn lâu' %}badge--bad{% elif x.nhom_tuoi_ton == 'Cần theo dõi' %}badge--wait{% else %}badge--ok{% endif %}">{{ x.nhom_tuoi_ton }}</span></td>
+
         <td>{{ x.trang_thai_display }}</td>
+
       </tr>
+
     {% empty %}
-      <tr><td colspan="8" class="none">{% if co_loc %}Không tìm thấy xe phù hợp{% else %}Kho này hiện chưa có xe tồn{% endif %}</td></tr>
+
+      <tr><td colspan="{% if ma_kho == "ALL" %}9{% else %}8{% endif %}" class="none">{% if co_loc %}Không tìm thấy xe phù hợp{% else %}Kho này hiện chưa có xe tồn{% endif %}</td></tr>
+
     {% endfor %}
+
     </tbody>
+
   </table>
+
   </div>
+
   {% if trang.paginator.num_pages > 1 %}
+
   <div class="pager">
+
     {% if trang.has_previous %}<a href="?{{ query }}&page={{ trang.previous_page_number }}">&laquo; Trước</a>{% endif %}
+
     <span>Trang {{ trang.number }} / {{ trang.paginator.num_pages }}</span>
+
     {% if trang.has_next %}<a href="?{{ query }}&page={{ trang.next_page_number }}">Sau &raquo;</a>{% endif %}
+
   </div>
+
   {% endif %}
+
 </div>
+
 {% endblock %}
+

@@ -73,7 +73,7 @@ ALL_MODULES = [
         "label": "Dự báo nhu cầu và đề xuất nhập xe",
         "url_name": "analytics:index",
         "icon": "bi-graph-up-arrow",
-        "badge": "Phân tích",
+        "badge": "Phác thảo",
         "description": "Dự báo xu hướng tiêu thụ từng dòng xe Ford và đề xuất kế hoạch đặt hàng.",
     },
     {
@@ -86,7 +86,7 @@ ALL_MODULES = [
     },
 ]
 
-# Định nghĩa các vai trò và phạm vi quyền hạn
+# Định nghĩa các vai trò và phạm vi quyền hạn (2 nhóm chính: Sale Admin & Nhân viên Sale)
 ROLES = {
     "SALE_ADMIN": {
         "code": "SALE_ADMIN", "title": "Sale Admin", "department": "Kinh doanh",
@@ -96,87 +96,99 @@ ROLES = {
     },
     "ADMIN": {
         "code": "ADMIN",
-        "title": "Quản trị viên (Admin)",
+        "title": "Quản trị viên (Sale Admin)",
         "department": "Ban Điều Hành & Quản Trị Hệ Thống",
         "badge_color": "danger",
         "can_monitor_subordinates": True,
         "can_manage_events": True,
         "can_manage_notifications": True,
+        "can_manage_allocations": True,
+        "can_manage_transfers": True,
         "is_read_only": False,
         "allowed_urls": ["*"],  # Toàn bộ module
     },
-    "BA": {
-        "code": "BA",
-        "title": "Chuyên viên BA (Phân tích nghiệp vụ)",
-        "department": "Phòng Kế Hoạch & Phân Tích Dữ Liệu",
-        "badge_color": "info",
-        "can_monitor_subordinates": True,
-        "can_manage_events": True,
-        "can_manage_notifications": True,
-        "is_read_only": True,  # Không được can thiệp sửa dữ liệu tác nghiệp
-        "allowed_urls": ["*"],  # Toàn bộ module (chế độ xem & phân tích)
-    },
-    "KIEM_TRA_TON_KHO": {
-        "code": "KIEM_TRA_TON_KHO",
-        "title": "Kiểm tra tồn kho & Quản lý kho",
-        "department": "Bộ Phận Quản Lý Kho & Lưu Chuyển",
-        "badge_color": "warning",
-        "can_monitor_subordinates": False,
-        "can_manage_events": False,
-        "can_manage_notifications": False,
-        "is_read_only": False,
-        "allowed_urls": [
-            "contracts:index",
-            "incidents:index",
-            "warehouse:ton_kho",
-            "warehouse:xuat",
-            "warehouse:nhap",
-            "transfers:index",
-            "alerts:index",
-        ],
-    },
-    "DIEU_PHOI_SU_CO_DU_BAO": {
-        "code": "DIEU_PHOI_SU_CO_DU_BAO",
-        "title": "Điều phối Sự cố & Dự báo nhu cầu",
-        "department": "Phòng Điều Vận & Kế Hoạch Cung Ứng",
+    "SALE": {
+        "code": "SALE",
+        "title": "Sale Chi Nhánh",
+        "department": "Phòng Kinh Doanh & Bán Hàng Chi Nhánh",
         "badge_color": "primary",
         "can_monitor_subordinates": False,
         "can_manage_events": False,
         "can_manage_notifications": False,
+        "can_manage_allocations": True,   # Được up phân bổ theo yêu cầu
+        "can_manage_transfers": True,     # Được lưu chuyển xe theo yêu cầu
         "is_read_only": False,
-        "allowed_urls": [
-            "incidents:index",
-            "analytics:index",
-            "alerts:index",
-        ],
+        "allowed_urls": ["*"],  # Truy cập toàn bộ module tác nghiệp
     },
-    "NHAN_VIEN_CHUNG": {
-        "code": "NHAN_VIEN_CHUNG",
-        "title": "Nhân viên tác nghiệp",
-        "department": "Chi Nhánh Dana Ford",
-        "badge_color": "secondary",
+    # Giữ lại các alias cũ để tương thích ngược tuyệt đối
+    "BA": {
+        "code": "ADMIN",
+        "title": "Quản trị viên (Sale Admin)",
+        "department": "Ban Điều Hành & Quản Trị Hệ Thống",
+        "badge_color": "danger",
+        "can_monitor_subordinates": True,
+        "can_manage_events": True,
+        "can_manage_notifications": True,
+        "can_manage_allocations": True,
+        "can_manage_transfers": True,
+        "is_read_only": False,
+        "allowed_urls": ["*"],
+    },
+    "KIEM_TRA_TON_KHO": {
+        "code": "SALE",
+        "title": "Sale Chi Nhánh",
+        "department": "Phòng Kinh Doanh & Bán Hàng Chi Nhánh",
+        "badge_color": "primary",
         "can_monitor_subordinates": False,
         "can_manage_events": False,
         "can_manage_notifications": False,
+        "can_manage_allocations": True,
+        "can_manage_transfers": True,
         "is_read_only": False,
-        "allowed_urls": [
-            "alerts:index",
-        ],
+        "allowed_urls": ["*"],
+    },
+    "DIEU_PHOI_SU_CO_DU_BAO": {
+        "code": "SALE",
+        "title": "Sale Chi Nhánh",
+        "department": "Phòng Kinh Doanh & Bán Hàng Chi Nhánh",
+        "badge_color": "primary",
+        "can_monitor_subordinates": False,
+        "can_manage_events": False,
+        "can_manage_notifications": False,
+        "can_manage_allocations": True,
+        "can_manage_transfers": True,
+        "is_read_only": False,
+        "allowed_urls": ["*"],
+    },
+    "NHAN_VIEN_CHUNG": {
+        "code": "SALE",
+        "title": "Sale Chi Nhánh",
+        "department": "Phòng Kinh Doanh & Bán Hàng Chi Nhánh",
+        "badge_color": "primary",
+        "can_monitor_subordinates": False,
+        "can_manage_events": False,
+        "can_manage_notifications": False,
+        "can_manage_allocations": True,
+        "can_manage_transfers": True,
+        "is_read_only": False,
+        "allowed_urls": ["*"],
     },
 }
 
 # Mapping người dùng theo username vào vai trò
+# Nhóm 1: Sale Admin (Hiếu và Dung)
+# Nhóm 2: Nhân viên Sale (4 bạn còn lại: Yên Giang, Linh Giang, Cẩm Tú, Minh Thư)
 USER_ROLE_MAPPING = {
     "phanquochieu": "ADMIN",
     "hieu": "ADMIN",
     "admin": "ADMIN",
-    "mydung": "BA",
-    "dung": "BA",
-    "tu": "KIEM_TRA_TON_KHO",
-    "ygiang": "KIEM_TRA_TON_KHO",
-    "lgiang": "DIEU_PHOI_SU_CO_DU_BAO",
-    "quanly": "KIEM_TRA_TON_KHO",
-    "nhanvien": "NHAN_VIEN_CHUNG",
+    "mydung": "ADMIN",
+    "dung": "ADMIN",
+    "tu": "SALE",
+    "ygiang": "SALE",
+    "lgiang": "SALE",
+    "nhanvien": "SALE",
+    "quanly": "SALE",
 }
 
 
@@ -193,21 +205,26 @@ def get_user_role_info(user):
         role_code = USER_ROLE_MAPPING.get(username, None)
         if not role_code:
             # Fallback từ Django Groups nếu có
-            group_name = user.groups.values_list("name", flat=True).first()
             groups = set(user.groups.values_list("name", flat=True))
-            if "Quản trị viên" in groups:
+            if groups.intersection({"Quản lý", "Admin", "Quản trị viên", "III-IV Sale Admin"}):
                 role_code = "ADMIN"
-            elif groups.intersection({"III-IV Sale Admin", "Nhân viên kinh doanh"}):
-                role_code = "SALE_ADMIN"
-            elif groups.intersection({"III-IV Nhân viên kho", "Quản lý kho"}):
-                role_code = "KIEM_TRA_TON_KHO"
-            elif group_name == "Quản lý":
-                role_code = "KIEM_TRA_TON_KHO"
             else:
-                role_code = "NHAN_VIEN_CHUNG"
+                role_code = "SALE"
 
-    role_info = dict(ROLES.get(role_code, ROLES["NHAN_VIEN_CHUNG"]))
+    role_info = dict(ROLES.get(role_code, ROLES["SALE"]))
     return role_info
+
+
+def is_sale_admin(user):
+    """Kiểm tra người dùng có quyền Sale Admin hay không dựa trên role_info."""
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    role_info = get_user_role_info(user)
+    if role_info and role_info.get("code") in ("ADMIN", "SALE_ADMIN"):
+        return True
+    return False
 
 
 def get_user_allowed_modules(user):

@@ -74,20 +74,31 @@
               <th>Ngày lập</th>
               <th>Người lập</th>
               <th style="text-align: center;">Trạng thái</th>
-              <th style="text-align: right;">Thao tác</th>
             </tr>
           </thead>
           <tbody>
             {% for p in display_rows %}
             <tr>
               <td>
-                {% if p.pending_order %}{{ p.ma_phieu }}{% else %}
-                <a href="{% url 'warehouse:receipt_detail' p.id %}" style="text-decoration: none; font-weight: 700; color: #0b66c3;">
+                {% if p.is_transfer_pending %}
+                  <a href="{% url 'warehouse:receipt_create_page' %}?nguon_xe=luu-chuyen:{{ p.transfer_line_id }}" class="btn btn--sm btn--primary" style="font-size: 11px; padding: 3px 8px; text-decoration: none;">
+                    <i class="bi bi-plus-circle"></i> Lập phiếu ({{ p.ma_phieu }})
+                  </a>
+                {% elif p.pending_order %}
+                  {{ p.ma_phieu }}
+                {% else %}
+                <a href="{% url 'warehouse:receipt_detail' p.id %}" style="text-decoration: none; font-weight: 700; color: #0067c5;">
                   {{ p.ma_phieu }}
                 </a>
                 {% endif %}
               </td>
-              <td><strong>{{ p.vin }}</strong></td>
+              <td>
+                {% if not p.pending_order %}
+                <a href="{% url 'warehouse:receipt_detail' p.id %}" style="text-decoration: none; color: inherit; font-weight: 700;">{{ p.vin }}</a>
+                {% else %}
+                <strong>{{ p.vin }}</strong>
+                {% endif %}
+              </td>
               <td>
                 <div style="font-weight: 600; color: #0b2a4a;">{{ p.dong_xe }}</div>
                 <small style="color: #64748b;">{{ p.phien_ban|default:"—" }} · {{ p.mau_sac|default:"—" }}</small>
@@ -96,19 +107,16 @@
               <td>{{ p.ngay_lap|date:"d/m/Y H:i"|default:"—" }}</td>
               <td>{{ p.nguoi_lap|default:"—" }}</td>
               <td style="text-align: center;">
-                <span class="badge badge--{{ p.trang_thai }}">{{ p.trang_thai_hien_thi }}</span>
-              </td>
-              <td style="text-align: right;">
-                {% if p.pending_order %}<span title="Chờ xác nhận đơn, hóa đơn nhập và kho tiếp nhận">Chờ lập phiếu</span>{% else %}
-                <a class="btn btn--light" href="{% url 'warehouse:receipt_detail' p.id %}">
-                  <i class="bi bi-eye"></i> Chi tiết
-                </a>
+                {% if p.pending_order %}
+                  <span class="badge badge--CHO_DUYET" title="Chờ xác nhận đơn, hóa đơn nhập và kho tiếp nhận">Chờ lập phiếu</span>
+                {% else %}
+                  <span class="badge {{ p.badge_class|default:'badge--NHAP' }}">{{ p.trang_thai_hien_thi }}</span>
                 {% endif %}
               </td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="8" class="empty">
+              <td colspan="7" class="empty">
                 <i class="bi bi-inbox" style="font-size: 32px; color: #94a3b8; display: block; margin-bottom: 8px;"></i>
                 <p style="margin: 0; color: #64748b;">Chưa có phiếu nhập kho nào.</p>
               </td>

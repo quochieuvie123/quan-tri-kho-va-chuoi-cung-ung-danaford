@@ -14,6 +14,28 @@ from warehouse.pdi_import import HEADERS
 
 
 class PdiImportTests(TestCase):
+    def test_transfer_import_keeps_each_vin_independent(self):
+        from transfers.models import LenhLuuChuyen, ChiTietLenhLuuChuyen
+        from warehouse.pdi_import import read_file, import_rows
+        branch = ChiNhanh.objects.create(ma_cn='CN02', ten_cn='Bình Định')
+        source = Kho.objects.create(ma_kho='KHO02', chi_nhanh=branch)
+        transfer = LenhLuuChuyen.objects.create(
+            ma_lenh='LC-PDI-IMPORT', kho_xuat=source, kho_nhap=self.store,
+            nguoi_lap=self.user, trang_thai=LenhLuuChuyen.TrangThai.DA_GIAO_DEN_DA_NANG)
+        for vin in ('VIN1', 'VIN3'):
+            ChiTietLenhLuuChuyen.objects.create(lenh=transfer, xe_id=vin)
+            PhieuNhapKho.objects.filter(xe_id=vin).update(
+                loai_nguon=PhieuNhapKho.LoaiNguon.LUU_CHUYEN,
+                chi_tiet_nhap=None, lenh_luu_chuyen=transfer)
+        import_rows(self.user, read_file(self.file().read()))
+        self.assertEqual(PhieuNhapKho.objects.get(xe_id='VIN1').trang_thai, 'DA_DUYET')
+        self.assertEqual(PhieuNhapKho.objects.get(xe_id='VIN3').trang_thai, 'NHAP')
+        incident = BienBanPDI.objects.get(xe_id='VIN3')
+        self.assertEqual(incident.lenh_luu_chuyen_id, transfer.pk)
+        self.assertIsNone(incident.hoa_don_nhap_id)
+        transfer.refresh_from_db()
+        self.assertNotEqual(transfer.trang_thai, LenhLuuChuyen.TrangThai.HOAN_TAT)
+
     def setUp(self):
         branch = ChiNhanh.objects.create(ma_cn='CN01', ten_cn='Đà Nẵng')
         self.store = Kho.objects.create(ma_kho='KHO01', chi_nhanh=branch)

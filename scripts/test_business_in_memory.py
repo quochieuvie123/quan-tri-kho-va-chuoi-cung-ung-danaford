@@ -18,7 +18,7 @@ assert connection.settings_dict['NAME'] == ':memory:'
 with connection.schema_editor() as editor:
     for model in apps.get_models():
         editor.create_model(model)
-names = sys.argv[1:] or ['contracts.tests', 'warehouse.test_receipt_ui', 'warehouse.test_integration', 'warehouse.tests']
+names = sys.argv[1:] or ['contracts.tests', 'warehouse.test_order_intake', 'warehouse.test_pdi_import', 'warehouse.tests']
 suite = unittest.defaultTestLoader.loadTestsFromNames(names)
 result = unittest.TextTestRunner(verbosity=2).run(suite)
 sys.exit(not result.wasSuccessful())

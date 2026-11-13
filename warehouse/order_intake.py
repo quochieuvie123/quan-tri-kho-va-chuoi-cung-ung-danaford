@@ -1,5 +1,6 @@
 """Create the receiving draft for every car saved on a PYC order."""
 from decimal import Decimal
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
@@ -21,6 +22,9 @@ def _da_nang_receiving_data():
 def sync_request(request_id):
     """Make one real NHAP receipt per VIN as soon as a PYC is saved."""
     order = VehicleRequest.objects.select_for_update().get(pk=request_id)
+    items = list(order.items.select_related('allocation').order_by('pk'))
+    if any(item.quantity != 1 for item in items):
+        raise ValidationError('Mỗi xe cần một VIN riêng để lập phiếu nhập và PDI riêng. Hãy tách đơn nhiều xe thành từng dòng VIN, số lượng 1.')
     branch, warehouse, supplier, carrier = _da_nang_receiving_data()
     invoice, _ = HoaDonNhap.objects.get_or_create(
         ma_hdn=f'HDN-PYC-{order.pk}',
@@ -29,7 +33,7 @@ def sync_request(request_id):
                   'ky_hieu': 'PYC', 'ten_tai_xe': 'Chờ dữ liệu PDI'},
     )
     created = 0
-    for item in order.items.select_related('allocation').order_by('pk'):
+    for item in items:
         allocation = item.allocation
         if PhieuNhapKho.objects.filter(xe_id=allocation.vin).exists():
             continue
