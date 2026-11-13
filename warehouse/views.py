@@ -296,6 +296,8 @@ class XuLyChenhLechView(LoginRequiredMixin, View):
 class DuyetPhieuKiemKeView(LoginRequiredMixin, View):
     """UC-KK-06 & UC-KK-07: Duyệt kiểm kê và điều chỉnh tồn kho tự động"""
     def post(self, request, ma_pkk, *args, **kwargs):
+        if not is_sale_admin(request.user):
+            return JsonResponse({"status": "error", "message": "Chỉ Quản trị viên (Sale Admin) mới có quyền duyệt phiếu kiểm kê."}, status=403)
         try:
             nhan_vien = getattr(request.user, "nhan_vien", None)
             phieu = InventoryService.duyet_phieu_kiem_ke(ma_pkk=ma_pkk, ma_nv_duyet=nhan_vien.ma_nv)

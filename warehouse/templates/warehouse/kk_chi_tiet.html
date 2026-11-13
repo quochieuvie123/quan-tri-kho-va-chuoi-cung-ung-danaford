@@ -52,9 +52,14 @@
   </div>
   {% if cho_xu_ly %}
   <div class="actions">
-    {% if so_chenh_lech %}<button class="btn" type="submit">Lưu nguyên nhân và phương án</button>{% endif %}
-    {% include "warehouse/_chon_nv.html" %}
-    <button class="btn btn--primary" type="submit" formaction="{% url 'warehouse:kk_duyet' phieu.ma_pkk %}" onclick="return confirm('Duyệt và điều chỉnh tồn kho theo thực tế?')"><i class="bi bi-check2-circle"></i> Duyệt phiếu kiểm kê</button>
+    {% if so_chenh_lech %}
+      {% include "warehouse/_chon_nv.html" %}
+      <button class="btn" type="submit">Lưu nguyên nhân và phương án</button>
+    {% endif %}
+    {% if is_sale_admin %}
+      {% if not so_chenh_lech %}{% include "warehouse/_chon_nv.html" %}{% endif %}
+      <button class="btn btn--primary" type="submit" formaction="{% url 'warehouse:kk_duyet' phieu.ma_pkk %}" onclick="return confirm('Duyệt và điều chỉnh tồn kho theo thực tế?')"><i class="bi bi-check2-circle"></i> Duyệt phiếu kiểm kê</button>
+    {% endif %}
   </div>
   {% endif %}
 </form>
