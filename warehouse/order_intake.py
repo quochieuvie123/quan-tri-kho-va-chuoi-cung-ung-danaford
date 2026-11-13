@@ -31,8 +31,22 @@ def sync_request(request_id):
     created = 0
     for item in order.items.select_related('allocation').order_by('pk'):
         allocation = item.allocation
-        if PhieuNhapKho.objects.filter(xe_id=allocation.vin).exists():
+        ma_phieu = f'PN-PYC-{order.pk}-{item.pk}'
+        if PhieuNhapKho.objects.filter(ma_phieu=ma_phieu).exists():
             continue
+
+        # Nếu xe đang có phiếu nhập nháp cũ chưa hoàn tất (từ bản nháp cũ chưa duyệt, không có PDI)
+        active_pnk = PhieuNhapKho.objects.filter(
+            xe_id=allocation.vin,
+            trang_thai__in=['NHAP', 'CHO_DUYET']
+        ).exclude(ma_phieu=ma_phieu).first()
+
+        if active_pnk:
+            if not active_pnk.cac_lan_pdi.exists():
+                active_pnk.delete()
+            else:
+                continue
+
         engine = (allocation.engine_number or f'DEMO-{allocation.vin}')[:50]
         car, _ = Xe.objects.get_or_create(
             vin=allocation.vin,
@@ -40,11 +54,15 @@ def sync_request(request_id):
                       'loai_xe': allocation.vehicle_code, 'phien_ban': allocation.description or '',
                       'so_may': engine, 'mau_sac': allocation.exterior_color or ''},
         )
+        if car.trang_thai == 'DA_XUAT':
+            car.trang_thai = 'SAN_SANG'
+            car.save(update_fields=['trang_thai'])
+
         line, _ = ChiTietNhap.objects.get_or_create(
             hoa_don_nhap=invoice, xe=car, defaults={'so_luong_nhap': 1, 'don_gia': Decimal('0')},
         )
         _, was_created = PhieuNhapKho.objects.get_or_create(
-            ma_phieu=f'PN-PYC-{order.pk}-{item.pk}',
+            ma_phieu=ma_phieu,
             defaults={'chi_tiet_nhap': line, 'xe': car, 'kho': warehouse,
                       'ngay_nhap': timezone.localdate(), 'nguoi_lap': order.created_by,
                       'trang_thai': PhieuNhapKho.TrangThai.NHAP})

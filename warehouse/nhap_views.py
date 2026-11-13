@@ -118,7 +118,13 @@ def receipt_list(request):
     rows = receipt_rows().order_by('-ngay_lap', '-pk')
     keyword = request.GET.get('q', '').strip()
     if keyword:
-        rows = rows.filter(Q(ma_phieu__icontains=keyword) | Q(xe__vin__icontains=keyword))
+        rows = rows.filter(
+            Q(ma_phieu__icontains=keyword)
+            | Q(xe__vin__icontains=keyword)
+            | Q(chi_tiet_nhap__hoa_don_nhap__so_hoa_don__icontains=keyword)
+            | Q(chi_tiet_nhap__hoa_don_nhap__ma_hdn__icontains=keyword)
+            | Q(xe__ten_xe__icontains=keyword)
+        )
     if request.GET.get('kho_id'):
         rows = rows.filter(kho_id=request.GET['kho_id'].strip())
     if request.GET.get('ngay_lap'):
