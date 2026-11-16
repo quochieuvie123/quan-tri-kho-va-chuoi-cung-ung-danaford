@@ -50,6 +50,7 @@ def _ngu_canh(request, tieu_de, **them):
         "ds_kho": Kho.objects.select_related("chi_nhanh").order_by("ma_kho"),
         "can_chon_nv": nv is None,
         "ds_nv": NhanVien.objects.order_by("ma_nv"),
+        "is_sale_admin": is_sale_admin(request.user),
     }
     ctx.update(them)
     return ctx
@@ -346,6 +347,9 @@ def kk_xu_ly(request, ma_pkk):
 @login_required
 @require_POST
 def kk_duyet(request, ma_pkk):
+    if not is_sale_admin(request.user):
+        messages.error(request, "Chỉ Quản trị viên (Sale Admin) mới có quyền duyệt phiếu kiểm kê.")
+        return _ve_kk(ma_pkk)
     nv = _nhan_vien(request)
     if nv is not None:
         try:
