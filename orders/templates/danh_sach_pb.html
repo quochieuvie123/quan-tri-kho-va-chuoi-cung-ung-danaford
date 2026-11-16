@@ -157,7 +157,23 @@
                         <td>{{ allocation.color_code }}</td>
                         <td>{{ allocation.exterior_color }}</td>
                         <td>{{ allocation.engine_number }}</td>
-                        <td style="text-align: center;"><span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0;">Còn trống</span></td>
+                        <td style="text-align: center;">
+                            {% if allocation.availability_info %}
+                                {% if allocation.availability_info.status == 'CON_TRONG' %}
+                                    <span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0;">Còn trống</span>
+                                {% elif allocation.availability_info.status == 'DANG_GIU' %}
+                                    <span class="badge" style="background:#fef3c7; color:#b45309; border:1px solid #fde68a;" title="{{ allocation.availability_info.label }}">{{ allocation.availability_info.label }}</span>
+                                {% elif allocation.availability_info.status == 'DA_DAT' %}
+                                    <span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;">Đã đặt</span>
+                                {% elif allocation.availability_info.status == 'DA_GAN_HOP_DONG' %}
+                                    <span class="badge" style="background:#f5f3ff; color:#6d28d9; border:1px solid #ddd6fe;">Đã gán HĐ</span>
+                                {% else %}
+                                    <span class="badge">{{ allocation.availability_info.label }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0;">Còn trống</span>
+                            {% endif %}
+                        </td>
                         <td>{{ allocation.expected_ship_date|date:"d/m/Y"|default:"—" }}</td>
                         <td>{{ allocation.contractual_delivery_date|date:"d/m/Y"|default:"—" }}</td>
                         <td style="text-align: center;">{{ allocation.allocation_month|date:"m/Y" }}</td>

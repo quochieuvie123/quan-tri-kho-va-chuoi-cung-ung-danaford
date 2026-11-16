@@ -1,3 +1,9 @@
+from .availability import (
+    release_expired_draft_requests,
+    get_allocations_availability_map,
+    get_allocation_status,
+    AllocationAvailabilityStatus
+)
 
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
@@ -422,6 +428,11 @@ def allocation_list(request):
         if cn_obj:
             cn_name = cn_obj.ten_cn
 
+    release_expired_draft_requests()
+    avail_map = get_allocations_availability_map(allocations)
+    for a_item in allocations:
+        a_item.availability_info = avail_map.get(a_item.id)
+
     tong_so_xe = allocations.aggregate(total=Sum("quantity"))["total"] or 0
     return render(request, "danh_sach_pb.html", {
         "form": form,
@@ -458,6 +469,11 @@ def dat_xe(request):
             cn_obj = ChiNhanh.objects.filter(ma_cn=current_cn).first()
             if cn_obj:
                 cn_name = cn_obj.ten_cn
+
+        release_expired_draft_requests()
+        avail_map = get_allocations_availability_map(allocations)
+        for xe_item in allocations:
+            xe_item.availability_info = avail_map.get(xe_item.id)
 
         context = {
             "keyword": keyword,
@@ -511,10 +527,17 @@ def chi_tiet_xe(request, id):
             messages.error(request, "Xe đã có trong phiếu.")
             return redirect("orders:vehicle_orders")
 
-        danh_sach[ma_xe] = 1
-        request.session["selected_vehicles"] = danh_sach
-        messages.success(request, "Đã thêm xe vào danh sách.")
-        return redirect("orders:vehicle_orders")
+        with transaction.atomic():
+            locked_alloc = Allocation.objects.select_for_update().filter(id=xe.id).first()
+            status_info = get_allocation_status(locked_alloc)
+            if not status_info["is_available"]:
+                messages.error(request, f"Xe VIN {xe.vin} không khả dụng ({status_info['label']}).")
+                return redirect("orders:vehicle_orders")
+
+            danh_sach[ma_xe] = 1
+            request.session["selected_vehicles"] = danh_sach
+            messages.success(request, "Đã thêm xe vào danh sách.")
+            return redirect("orders:vehicle_orders")
 
     return render(request, "chi_tiet_xe.html", {
         "xe": xe
@@ -593,18 +616,33 @@ def lap_phieu_yeu_cau(request):
 
     # 3. Lưu phiếu và danh sách xe vào database
     with transaction.atomic():
+        release_expired_draft_requests()
+        from datetime import timedelta
+        hold_minutes = getattr(settings, "ORDER_DRAFT_HOLD_MINUTES", 30)
+        hold_until = timezone.now() + timedelta(minutes=hold_minutes)
+
+        alloc_ids = [item["xe"].id for item in xe_trong_phieu]
+        locked_allocs = list(Allocation.objects.select_for_update().filter(id__in=alloc_ids))
+
+        for alloc in locked_allocs:
+            status_info = get_allocation_status(alloc)
+            if not status_info["is_available"]:
+                messages.error(request, f"Xe VIN {alloc.vin} không còn trống: {status_info['label']}.")
+                return redirect("orders:vehicle_orders")
 
         phieu = VehicleRequest.objects.create(
             created_by=request.user,
-            status=VehicleRequest.Status.DRAFT
+            status=VehicleRequest.Status.DRAFT,
+            hold_until=hold_until
         )
 
-        for item in xe_trong_phieu:
+        for alloc in locked_allocs:
             VehicleRequestItem.objects.create(
                 vehicle_request=phieu,
-                allocation=item["xe"],
+                allocation=alloc,
                 quantity=1
             )
+        request.session["selected_vehicles"] = {}
 
         # Ghi nhận phiếu nháp thành công, chờ người dùng gửi để Sale Admin duyệt trước khi chuyển sang kho.
 
@@ -685,6 +723,22 @@ def gui_phieu_yeu_cau(request, id):
             id=phieu.id
         )
 
+    # Kiểm tra nếu phiếu nháp đã hết hạn giữ chỗ
+    if phieu.hold_until and phieu.hold_until < timezone.now():
+        phieu.items.all().delete()
+        phieu.status = VehicleRequest.Status.REJECTED
+        phieu.rejection_reason = "Phiếu nháp đã quá thời hạn giữ chỗ."
+        phieu.save(update_fields=["status", "rejection_reason"])
+        messages.error(request, "Phiếu nháp đã hết thời hạn giữ chỗ và đã tự động giải phóng xe.")
+        return redirect("orders:danh_sach_yeu_cau")
+
+    # Kiểm tra xe có bị chiếm bởi giao dịch khác hay không
+    for item in phieu.items.select_related("allocation").all():
+        status_info = get_allocation_status(item.allocation, exclude_request_id=phieu.id)
+        if not status_info["is_available"]:
+            messages.error(request, f"Xe VIN {item.allocation.vin} không khả dụng để gửi: {status_info['label']}.")
+            return redirect("orders:phieu_yeu_cau", id=phieu.id)
+
     # 4. Tính tổng số lượng xe
     tong_so_luong = (
         phieu.items.aggregate(total=Sum("quantity"))["total"] or 0
@@ -747,8 +801,9 @@ def gui_phieu_yeu_cau(request, id):
     # 8. Cập nhật trạng thái sang PENDING (Chờ Quốc Hiếu / Sale Admin duyệt)
     phieu.status = VehicleRequest.Status.PENDING
     phieu.sent_at = timezone.now()
+    phieu.hold_until = None
     phieu.save(
-        update_fields=["status", "sent_at"]
+        update_fields=["status", "sent_at", "hold_until"]
     )
 
     # 9. Làm trống danh sách xe đang chọn trong Session
@@ -1083,3 +1138,52 @@ def chi_tiet_de_xuat(request, id):
         "de_xuat_nhap": de_xuat_nhap,
     }
     return render(request, "chi_tiet_de_xuat.html", context)
+
+
+@login_required
+@require_POST
+def tu_choi_phieu(request, id):
+    role_info = get_user_role_info(request.user)
+    is_admin = (
+        request.user.is_superuser
+        or (role_info and role_info.get("code") == "ADMIN")
+        or request.user.groups.filter(name__in=["Sale Admin", "Quản lý"]).exists()
+    )
+
+    if not is_admin:
+        messages.error(request, "Chỉ Quản trị viên (Sale Admin) mới có quyền từ chối phiếu yêu cầu đặt xe.")
+        return redirect("orders:phieu_yeu_cau", id=id)
+
+    phieu = get_object_or_404(VehicleRequest, id=id)
+    if phieu.status != VehicleRequest.Status.PENDING:
+        messages.error(request, "Chỉ có thể từ chối phiếu đang ở trạng thái chờ duyệt.")
+        return redirect("orders:phieu_yeu_cau", id=id)
+
+    ly_do = request.POST.get("ly_do", "").strip() or "Sale Admin từ chối"
+    phieu.status = VehicleRequest.Status.REJECTED
+    phieu.rejection_reason = ly_do
+    phieu.hold_until = None
+    phieu.save(update_fields=["status", "rejection_reason", "hold_until"])
+
+    messages.success(request, f"Đã từ chối phiếu {phieu.request_number}. Toàn bộ xe trong phiếu đã được nhả.")
+    return redirect("orders:phieu_yeu_cau", id=id)
+
+
+@login_required
+@require_POST
+def xoa_xe_phieu_nhap(request, id, item_id):
+    phieu = get_object_or_404(VehicleRequest, id=id)
+    if phieu.status != VehicleRequest.Status.DRAFT:
+        messages.error(request, "Chỉ có thể xóa xe khỏi phiếu ở trạng thái Bản nháp.")
+        return redirect("orders:phieu_yeu_cau", id=phieu.id)
+
+    if not (request.user.is_superuser or phieu.created_by == request.user):
+        messages.error(request, "Bạn không có quyền chỉnh sửa phiếu này.")
+        return redirect("orders:phieu_yeu_cau", id=phieu.id)
+
+    item = get_object_or_404(VehicleRequestItem, id=item_id, vehicle_request=phieu)
+    vin = item.allocation.vin
+    item.delete()
+
+    messages.success(request, f"Đã xóa xe VIN {vin} khỏi phiếu nháp. Xe đã được nhả.")
+    return redirect("orders:phieu_yeu_cau", id=phieu.id)

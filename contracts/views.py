@@ -348,9 +348,11 @@ def find_allocation_vehicles(hd, criteria):
         Q(allocation_month__gte=date(2026, 11, 1)) | Q(allocation_month=date(2026, 11, 1))
     ).order_by('allocation_month', 'id')
 
+    from orders.availability import get_allocation_status
     matched_allocs = []
     for alloc in alloc_qs:
-        if ChiTietHopDong.objects.filter(xe__vin=alloc.vin).exclude(hop_dong=hd).exists():
+        status_info = get_allocation_status(alloc, target_hd=hd)
+        if not status_info["is_available"]:
             continue
 
         m_car = get_model(alloc.description) or get_model(alloc.vehicle_code)
@@ -476,8 +478,10 @@ def choose_allocation_vehicle(request, ma_hd, alloc_id):
     hd = get_object_or_404(HopDong, pk=ma_hd)
     alloc = get_object_or_404(Allocation, pk=alloc_id)
 
-    if ChiTietHopDong.objects.filter(xe__vin=alloc.vin).exclude(hop_dong=hd).exists():
-        messages.error(request, f'Xe VIN {alloc.vin} từ lịch phân bổ đã được gán cho một hợp đồng khác.')
+    from orders.availability import get_allocation_status
+    status_info = get_allocation_status(alloc, target_hd=hd)
+    if not status_info["is_available"]:
+        messages.error(request, f'Xe VIN {alloc.vin} từ lịch phân bổ không khả dụng: {status_info["label"]}.')
         return redirect('contracts:xe_phu_hop', ma_hd=ma_hd)
 
     ten_xe = alloc.description or alloc.vehicle_code

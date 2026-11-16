@@ -51,6 +51,16 @@ urlpatterns = [
         name="xac_nhan_phieu"
     ),
     path(
+        "phieu-yeu-cau/<int:id>/tu-choi/",
+        views.tu_choi_phieu,
+        name="tu_choi_phieu",
+    ),
+    path(
+        "phieu-yeu-cau/<int:id>/xoa-xe/<int:item_id>/",
+        views.xoa_xe_phieu_nhap,
+        name="xoa_xe_phieu_nhap",
+    ),
+    path(
         "de-xuat/<int:id>/",
         views.chi_tiet_de_xuat,
         name="proposal_detail"

@@ -49,6 +49,8 @@
                         <span class="badge badge--CHO_DUYET"><i class="bi bi-clock-history"></i> Chờ Quốc Hiếu duyệt</span>
                     {% elif phieu.status == "ACCEPTED" %}
                         <span class="badge badge--DA_DUYET"><i class="bi bi-check-circle"></i> Đã phê duyệt</span>
+                    {% elif phieu.status == "REJECTED" %}
+                        <span class="badge" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca;"><i class="bi bi-x-circle"></i> Đã từ chối</span>
                     {% else %}
                         <span class="badge">{{ phieu.status }}</span>
                     {% endif %}

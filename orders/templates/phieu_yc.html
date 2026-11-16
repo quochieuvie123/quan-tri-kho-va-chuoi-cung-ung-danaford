@@ -114,7 +114,17 @@
                         <td><strong>{{ item.allocation.description }}</strong></td>
                         <td style="font-family: monospace;">{{ item.allocation.vin }}</td>
                         <td>{{ item.allocation.color_code }}</td>
-                        <td style="text-align: center; font-weight: 700; color: #0067c5;">1</td>
+                        <td style="text-align: center; font-weight: 700; color: #0067c5;">
+                            1
+                            {% if phieu.status == "DRAFT" %}
+                            <form method="POST" action="{% url 'orders:xoa_xe_phieu_nhap' phieu.id item.id %}" style="display:inline; margin-left: 8px;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn--light" style="padding: 2px 7px; color: #dc2626; font-size: 11px; border-color: #fecaca;" title="Xóa xe khỏi phiếu nháp" onclick="return confirm('Bạn muốn xóa xe này khỏi phiếu nháp?');">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
@@ -180,6 +190,13 @@
                 <button type="submit" class="btn btn--success" style="background: #16a34a; border-color: #16a34a; color: #fff; font-weight: 700; padding: 9px 20px;"
                         onclick="return confirm('Bạn xác nhận tiếp nhận và phê duyệt phiếu đặt xe này để chuyển tiếp sang kho và các quy trình tiếp theo?');">
                     <i class="bi bi-check2-circle"></i> Xác nhận & Phê duyệt phiếu (Quốc Hiếu)
+                </button>
+            </form>
+            <form method="POST" action="{% url 'orders:tu_choi_phieu' phieu.id %}" style="margin: 0;" onsubmit="var r = prompt('Nhập lý do từ chối:'); if (!r) return false; this.ly_do.value = r;">
+                {% csrf_token %}
+                <input type="hidden" name="ly_do" value="">
+                <button type="submit" class="btn btn--danger" style="background: #dc2626; border-color: #dc2626; color: #fff; font-weight: 700; padding: 9px 20px;">
+                    <i class="bi bi-x-circle"></i> Từ chối phiếu
                 </button>
             </form>
             {% else %}
