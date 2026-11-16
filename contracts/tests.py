@@ -47,6 +47,13 @@ class ContractPresentationTests(SimpleTestCase):
         self.assertIn('Lưu ngày giao', html)
         self.assertIn('openDateModal', html)
 
+    def test_detail_template_renders_cho_xe_ve_kho_state(self):
+        html = render_to_string('contracts/detail.html', {'hop_dong': {
+            'ma_hd': 'HD99', 'tieu_chi_xe': [], 'canh_bao': None, 'trang_thai': 'CHO_XE_VE_KHO'
+        }})
+        self.assertIn('Đang chờ xe về kho', html)
+        self.assertIn('Xem nguồn phân bổ', html)
+
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
