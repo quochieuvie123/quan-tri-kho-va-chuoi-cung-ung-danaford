@@ -132,42 +132,40 @@
             </div>
         </div>
         {% if allocations %}
-            <div class="table-wrap">
-                <table class="data-table">
+            <div class="table-wrap table-wrap--scroll">
+                <table class="data-table" style="min-width: 1300px;">
                     <thead>
                         <tr>
-                            <th>Mã xe</th>
+                            <th style="width: 50px; text-align: center;">STT</th>
+                            <th>Số đơn đặt hàng</th>
+                            <th>Mã dòng xe</th>
                             <th>Mô tả phiên bản</th>
-                            <th>Chi nhánh</th>
                             <th>Số khung (VIN)</th>
                             <th>Mã màu</th>
                             <th>Màu ngoại thất</th>
                             <th>Số máy</th>
-                            <th style="text-align: center;">Số lượng PB</th>
+                            <th style="text-align: center;">Trạng thái</th>
+                            <th>Dự kiến ship</th>
+                            <th>Giao theo HĐ</th>
+                            <th style="text-align: center;">Tháng phân bổ</th>
                             <th style="text-align: right;">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for xe in allocations %}
                         <tr>
+                            <td style="text-align: center;">{{ forloop.counter }}</td>
+                            <td><strong>{{ xe.order_number|default:"—" }}</strong></td>
                             <td><span class="badge">{{ xe.vehicle_code }}</span></td>
                             <td><strong>{{ xe.description }}</strong></td>
-                            <td>
-                                {% if xe.chi_nhanh.ma_cn == 'CN01' %}
-                                    <span class="badge" style="background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; font-size: 11px;">Đà Nẵng</span>
-                                {% elif xe.chi_nhanh.ma_cn == 'CN02' %}
-                                    <span class="badge" style="background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; font-size: 11px;">Bình Định</span>
-                                {% elif xe.chi_nhanh.ma_cn == 'CN03' %}
-                                    <span class="badge" style="background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; font-size: 11px;">Gia Lai</span>
-                                {% else %}
-                                    <span class="badge" style="font-size: 11px;">{{ xe.dealer_name|default:"Dana Ford" }}</span>
-                                {% endif %}
-                            </td>
                             <td style="font-family: monospace; font-weight: 700; color: #0067c5;">{{ xe.vin }}</td>
                             <td>{{ xe.color_code }}</td>
                             <td>{{ xe.exterior_color }}</td>
                             <td>{{ xe.engine_number }}</td>
-                            <td style="text-align: center; font-weight: 700; color: #0067c5;">{{ xe.quantity }}</td>
+                            <td style="text-align: center;"><span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0;">Còn trống</span></td>
+                            <td>{{ xe.expected_ship_date|date:"d/m/Y"|default:"—" }}</td>
+                            <td>{{ xe.contractual_delivery_date|date:"d/m/Y"|default:"—" }}</td>
+                            <td style="text-align: center;">{{ xe.allocation_month|date:"m/Y" }}</td>
                             <td style="text-align: right;">
                                 <a href="{% url 'orders:chi_tiet_xe' xe.id %}" class="btn btn--primary">
                                     <i class="bi bi-plus-lg"></i> Chọn xe

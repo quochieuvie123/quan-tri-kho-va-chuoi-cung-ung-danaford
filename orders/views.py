@@ -299,6 +299,7 @@ def allocation_list(request):
                         raise ValueError("Không tìm thấy cột Số khung (VIN) trong file Excel")
 
                     data = []
+                    qty_warnings = []
                     default_month = today.replace(day=1)
 
                     for row_number, row in enumerate(all_rows[start_data_idx:], start=start_data_idx + 1):
@@ -335,6 +336,10 @@ def allocation_list(request):
 
                         cn_obj = ChiNhanh.objects.filter(ma_cn=target_ma_cn).first()
 
+                        raw_qty = chuyen_so_luong(get_col("quantity"), default=1)
+                        if raw_qty and raw_qty > 1:
+                            qty_warnings.append(vin)
+
                         data.append({
                             "vin": vin,
                             "order_number": chuyen_chuoi(get_col("order_number")),
@@ -344,7 +349,7 @@ def allocation_list(request):
                             "exterior_color": chuyen_chuoi(get_col("exterior_color")),
                             "mau_sac": chuyen_chuoi(get_col("mau_sac")) or chuyen_chuoi(get_col("exterior_color")),
                             "engine_number": chuyen_chuoi(get_col("engine_number")),
-                            "quantity": chuyen_so_luong(get_col("quantity"), default=1),
+                            "quantity": 1,
                             "expected_ship_date": chuyen_ngay(get_col("expected_ship_date")),
                             "contractual_delivery_date": chuyen_ngay(get_col("contractual_delivery_date")),
                             "allocation_month": alloc_month,
@@ -385,6 +390,11 @@ def allocation_list(request):
                     except Exception:
                         pass
 
+                    if qty_warnings:
+                        messages.warning(
+                            request,
+                            f"Cảnh báo: Có {len(qty_warnings)} dòng xe có số lượng > 1 trong file Excel đã được chuẩn hóa về 1 xe (VIN: {', '.join(qty_warnings[:5])}{'...' if len(qty_warnings) > 5 else ''})."
+                        )
                     messages.success(
                         request,
                         f"Tải danh sách phân bổ thành công! Đã nạp {len(data)} xe vào hệ thống."
@@ -490,42 +500,21 @@ def chi_tiet_xe(request, id):
     )
 
     if request.method == "POST":
-        try:
-            so_luong = int(request.POST.get("quantity", ""))
-        except (ValueError, TypeError):
-            messages.error(request, "Số lượng phải là số nguyên.")
-        else:
-            if so_luong <= 0:
-                messages.error(request, "Số lượng phải lớn hơn 0.")
+        danh_sach = request.session.get("selected_vehicles", {})
+        ma_xe = str(xe.id)
 
-            else:
-                # Lấy danh sách xe đã chọn từ Session
-                danh_sach = request.session.get("selected_vehicles", {})
+        # Kiểm tra nếu VIN đã có trong danh sách đã chọn thì báo "Xe đã có trong phiếu"
+        selected_ids = [int(k) for k in danh_sach.keys() if str(k).isdigit()]
+        existing_vins = set(Allocation.objects.filter(id__in=selected_ids).values_list("vin", flat=True))
 
-                ma_xe = str(xe.id)
+        if ma_xe in danh_sach or xe.vin in existing_vins:
+            messages.error(request, "Xe đã có trong phiếu.")
+            return redirect("orders:vehicle_orders")
 
-                # Số lượng đã chọn trước đó
-                so_luong_cu = danh_sach.get(ma_xe, 0)
-
-                tong_so_luong = so_luong_cu + so_luong
-
-                if tong_so_luong > xe.quantity:
-                    messages.error(
-                        request,
-                        f"Số lượng yêu cầu không được vượt quá "
-                        f"{xe.quantity} xe phân bổ."
-                    )
-                else:
-                    danh_sach[ma_xe] = tong_so_luong
-
-                    request.session["selected_vehicles"] = danh_sach
-
-                    messages.success(
-                        request,
-                        "Đã thêm xe vào danh sách."
-                    )
-
-                    return redirect("orders:vehicle_orders")
+        danh_sach[ma_xe] = 1
+        request.session["selected_vehicles"] = danh_sach
+        messages.success(request, "Đã thêm xe vào danh sách.")
+        return redirect("orders:vehicle_orders")
 
     return render(request, "chi_tiet_xe.html", {
         "xe": xe
@@ -614,7 +603,7 @@ def lap_phieu_yeu_cau(request):
             VehicleRequestItem.objects.create(
                 vehicle_request=phieu,
                 allocation=item["xe"],
-                quantity=item["quantity"]
+                quantity=1
             )
 
         # Ghi nhận phiếu nháp thành công, chờ người dùng gửi để Sale Admin duyệt trước khi chuyển sang kho.

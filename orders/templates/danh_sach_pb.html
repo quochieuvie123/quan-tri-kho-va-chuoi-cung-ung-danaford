@@ -140,7 +140,7 @@
                         <th>Mã màu</th>
                         <th>Màu ngoại thất</th>
                         <th>Số máy</th>
-                        <th style="text-align: center;">Số lượng</th>
+                        <th style="text-align: center;">Trạng thái</th>
                         <th>Dự kiến ship</th>
                         <th>Giao theo HĐ</th>
                         <th style="text-align: center;">Tháng phân bổ</th>
@@ -157,7 +157,7 @@
                         <td>{{ allocation.color_code }}</td>
                         <td>{{ allocation.exterior_color }}</td>
                         <td>{{ allocation.engine_number }}</td>
-                        <td style="text-align: center; font-weight: 700;">{{ allocation.quantity }}</td>
+                        <td style="text-align: center;"><span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0;">Còn trống</span></td>
                         <td>{{ allocation.expected_ship_date|date:"d/m/Y"|default:"—" }}</td>
                         <td>{{ allocation.contractual_delivery_date|date:"d/m/Y"|default:"—" }}</td>
                         <td style="text-align: center;">{{ allocation.allocation_month|date:"m/Y" }}</td>

@@ -27,33 +27,22 @@
             <dt>Số máy động cơ</dt>
             <dd>{{ xe.engine_number }}</dd>
 
-            <dt>Số lượng phân bổ còn lại</dt>
-            <dd style="font-size: 16px; font-weight: 700; color: #166534;">{{ xe.quantity }} xe</dd>
+            <dt>Trạng thái</dt>
+            <dd><span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0;">Còn trống</span></dd>
         </dl>
     </div>
 
-    <!-- FORM NHẬP SỐ LƯỢNG ĐẶT -->
+    <!-- FORM XÁC NHẬN CHỌN XE -->
     <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
         <h3 style="margin: 0 0 14px; font-size: 15px; font-weight: 700; color: #0b2a4a;">
-            Nhập số lượng xe muốn đặt hàng
+            Xác nhận đặt xe
         </h3>
+        <p style="margin: 0 0 16px; color: #64748b; font-size: 14px;">
+            Mỗi xe phân bổ tương ứng với 1 số khung (VIN) duy nhất. Bấm nút bên dưới để thêm xe vào danh sách đặt xe.
+        </p>
 
         <form method="POST">
             {% csrf_token %}
-
-            <div class="field" style="max-width: 300px; margin-bottom: 20px;">
-                <label for="quantity">Số lượng đặt (Tối đa: {{ xe.quantity }} xe):</label>
-                <input
-                    type="number"
-                    id="quantity"
-                    name="quantity"
-                    class="input"
-                    min="1"
-                    max="{{ xe.quantity }}"
-                    value="1"
-                    required
-                >
-            </div>
 
             <div style="display: flex; gap: 12px; align-items: center;">
                 <button type="submit" class="btn btn--primary">
