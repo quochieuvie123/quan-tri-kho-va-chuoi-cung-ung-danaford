@@ -442,21 +442,40 @@ def suitable_vehicles(request, ma_hd):
     else:
         info_msg = ''
 
+    from .sourcing import get_sourcing_tiers_info, SourcingTier
+    tiers_info = get_sourcing_tiers_info(hd)
+
+    for row in results:
+        if row['uu_tien'] in (0, 2):
+            row['duoc_chon'] = tiers_info[SourcingTier.DA_NANG]['duoc_chon']
+            row['ly_do_khoa'] = tiers_info[SourcingTier.DA_NANG]['ly_do_khoa']
+        elif row['uu_tien'] in (1, 3):
+            row['duoc_chon'] = tiers_info[SourcingTier.CHI_NHANH]['duoc_chon']
+            row['ly_do_khoa'] = tiers_info[SourcingTier.CHI_NHANH]['ly_do_khoa']
+        elif row.get('nguon_pyc') or row['uu_tien'] == 4:
+            row['duoc_chon'] = tiers_info[SourcingTier.PHAN_BO]['duoc_chon']
+            row['ly_do_khoa'] = tiers_info[SourcingTier.PHAN_BO]['ly_do_khoa']
+
+    for alloc_item in xe_phan_bo:
+        alloc_item['duoc_chon'] = tiers_info[SourcingTier.PHAN_BO]['duoc_chon']
+        alloc_item['ly_do_khoa'] = tiers_info[SourcingTier.PHAN_BO]['ly_do_khoa']
+
     payload = {
         'ma_hd': hd.pk,
         'co_the_xem_hop_dong': has_role(request.user, SALE_ADMIN),
         'tieu_chi_xac_nhan': criteria,
         'xe_phu_hop': results,
         'message': info_msg,
+        'tiers_info': tiers_info,
     }
     payload['xe_da_nang'] = [row for row in results if row['uu_tien'] in (0, 2)]
     payload['xe_chi_nhanh'] = [row for row in results if row['uu_tien'] in (1, 3)]
     payload['xe_phan_bo'] = xe_phan_bo
     payload['nhom_xe'] = [
-        {'id': 'xe-da-nang', 'tieu_de': 'Xe tại kho Đà Nẵng', 'xe': payload['xe_da_nang']},
-        {'id': 'xe-chi-nhanh', 'tieu_de': 'Xe tại kho Bình Định / Gia Lai', 'xe': payload['xe_chi_nhanh']},
-        {'id': 'xe-phan-bo', 'tieu_de': 'Xe theo lịch phân bổ', 'xe': xe_phan_bo},
-        {'id': 'xe-pyc', 'tieu_de': 'Xe đang chờ PDI', 'xe': [row for row in results if row.get('nguon_pyc')]},
+        {'id': 'xe-da-nang', 'tieu_de': 'Xe tại kho Đà Nẵng', 'xe': payload['xe_da_nang'], 'duoc_chon': tiers_info[SourcingTier.DA_NANG]['duoc_chon'], 'ly_do_khoa': tiers_info[SourcingTier.DA_NANG]['ly_do_khoa']},
+        {'id': 'xe-chi-nhanh', 'tieu_de': 'Xe tại kho Bình Định / Gia Lai', 'xe': payload['xe_chi_nhanh'], 'duoc_chon': tiers_info[SourcingTier.CHI_NHANH]['duoc_chon'], 'ly_do_khoa': tiers_info[SourcingTier.CHI_NHANH]['ly_do_khoa']},
+        {'id': 'xe-phan-bo', 'tieu_de': 'Xe theo lịch phân bổ', 'xe': xe_phan_bo, 'duoc_chon': tiers_info[SourcingTier.PHAN_BO]['duoc_chon'], 'ly_do_khoa': tiers_info[SourcingTier.PHAN_BO]['ly_do_khoa']},
+        {'id': 'xe-pyc', 'tieu_de': 'Xe đang chờ PDI', 'xe': [row for row in results if row.get('nguon_pyc')], 'duoc_chon': tiers_info[SourcingTier.PHAN_BO]['duoc_chon'], 'ly_do_khoa': tiers_info[SourcingTier.PHAN_BO]['ly_do_khoa']},
     ]
     payload['co_the_cho_phan_bo'] = not results and has_role(request.user, SALE_ADMIN)
     if wants_html(request):
@@ -475,8 +494,14 @@ def choose_allocation_vehicle(request, ma_hd, alloc_id):
     Gán số khung VIN, cập nhật ngày giao dự kiến và chuyển hợp đồng sang CHO_XE_VE_KHO.
     """
     from orders.models import Allocation
+    from .sourcing import check_can_source_from_tier, SourcingTier
     hd = get_object_or_404(HopDong, pk=ma_hd)
     alloc = get_object_or_404(Allocation, pk=alloc_id)
+
+    can_choose, reason = check_can_source_from_tier(hd, SourcingTier.PHAN_BO)
+    if not can_choose:
+        messages.error(request, reason)
+        return redirect('contracts:xe_phu_hop', ma_hd=ma_hd)
 
     from orders.availability import get_allocation_status
     status_info = get_allocation_status(alloc, target_hd=hd)

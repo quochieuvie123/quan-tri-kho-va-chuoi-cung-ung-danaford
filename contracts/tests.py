@@ -1,3 +1,5 @@
+from django.urls import reverse
+from django.core.exceptions import ValidationError
 from datetime import date
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -300,3 +302,198 @@ class ContractWorkflowTests(TestCase):
         self.assertEqual(hd_new.trang_thai, TrangThaiHopDong.CHO_XE_VE_KHO)
         self.assertEqual(hd_new.ngay_du_kien_giao, date(2026, 11, 25))
         self.assertTrue(ChiTietHopDong.objects.filter(hop_dong=hd_new, xe__vin='RL2TESTVIN0000100').exists())
+
+
+from contracts.sourcing import check_can_source_from_tier, SourcingTier
+from django.contrib.messages import get_messages
+from django.test import Client
+from django.core.exceptions import ValidationError
+from django.urls import reverse
+
+
+class ContractSourcingTierTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_superuser(username='sourcing_tester', password='password123', email='sourcing@danaford.com.vn')
+        self.cn_dn = ChiNhanh.objects.create(ma_cn="CN01", ten_cn="Dana Ford Đà Nẵng", dia_chi_cn="Đà Nẵng")
+        self.cn_bd = ChiNhanh.objects.create(ma_cn="CN02", ten_cn="Dana Ford Bình Định", dia_chi_cn="Bình Định")
+        self.kho_dn = Kho.objects.create(ma_kho="KHO01", chi_nhanh=self.cn_dn)
+        self.kho_bd = Kho.objects.create(ma_kho="KHO02", chi_nhanh=self.cn_bd)
+        self.nv = NhanVien.objects.create(ma_nv="NV_TIER_01", ten_nv="Sale Admin Tier", chi_nhanh=self.cn_dn, sdt_nv="0901234567")
+        self.user.nhan_vien = self.nv
+        self.user.save()
+        self.kh = KhachHang.objects.create(ma_kh="KH_TIER_01", ten_kh="Khách Hàng Tier", sdt_kh="0909999888")
+
+        self.client = Client()
+        self.client.force_login(self.user)
+
+    def test_da_nang_con_xe_chan_chot_chi_nhanh_va_chan_chot_phan_bo(self):
+        # 1. Xe tại Đà Nẵng
+        car_dn = Xe.objects.create(
+            vin="VN0000000TIERDN01",
+            ten_xe="Ford Ranger Wildtrak",
+            phien_ban="Wildtrak 2.0L",
+            mau_sac="Trắng",
+            so_may="ENG-DN-001",
+            trang_thai=TrangThaiXe.SAN_SANG,
+            nam_sx=2026
+        )
+        TonKho.objects.create(kho=self.kho_dn, xe=car_dn, so_luong_ton=1, ngay_vao_kho=timezone.localdate())
+
+        # 2. Xe tại Bình Định
+        car_bd = Xe.objects.create(
+            vin="VN0000000TIERBD01",
+            ten_xe="Ford Ranger Wildtrak",
+            phien_ban="Wildtrak 2.0L",
+            mau_sac="Trắng",
+            so_may="ENG-BD-001",
+            trang_thai=TrangThaiXe.SAN_SANG,
+            nam_sx=2026
+        )
+        TonKho.objects.create(kho=self.kho_bd, xe=car_bd, so_luong_ton=1, ngay_vao_kho=timezone.localdate())
+
+        # 3. Xe theo lịch phân bổ
+        from orders.models import Allocation
+        alloc = Allocation.objects.create(
+            order_number="ORD-TIER-01",
+            vehicle_code="RANGER-WILDTRAK",
+            description="Ford Ranger Wildtrak 2.0L",
+            vin="RL2TIERALLOC00001",
+            mau_sac="Trắng",
+            exterior_color="Trắng",
+            allocation_month=date(2026, 11, 1),
+            contractual_delivery_date=date(2026, 11, 20),
+            quantity=1,
+            chi_nhanh=self.cn_dn
+        )
+
+        # Hợp đồng yêu cầu Ranger Wildtrak màu Trắng
+        hd = HopDong.objects.create(
+            ma_hd="HD-TIER-01",
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Ranger Wildtrak",
+            phien_ban_yeu_cau="Wildtrak 2.0L",
+            mau_sac_yeu_cau="Trắng",
+            trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=date(2026, 11, 1)
+        )
+
+        # Kiểm tra check_can_source_from_tier
+        can_bd, reason_bd = check_can_source_from_tier(hd, SourcingTier.CHI_NHANH)
+        self.assertFalse(can_bd)
+        self.assertIn("Kho Đà Nẵng còn", reason_bd)
+
+        can_pb, reason_pb = check_can_source_from_tier(hd, SourcingTier.PHAN_BO)
+        self.assertFalse(can_pb)
+        self.assertIn("Kho Đà Nẵng còn", reason_pb)
+
+        # Gọi choose_vehicle cho xe chi nhánh bị raise ValidationError
+        with self.assertRaises(ValidationError) as ctx:
+            choose_vehicle(hd.ma_hd, car_bd.vin, self.user)
+        self.assertIn("Kho Đà Nẵng còn", str(ctx.exception))
+
+        # Gọi thẳng URL POST cho xe chi nhánh bị chặn
+        url_bd = reverse("contracts:choose_suggested_vehicle", args=[hd.ma_hd, car_bd.vin])
+        resp_bd = self.client.post(url_bd)
+        self.assertEqual(resp_bd.status_code, 302)
+        messages_bd = list(get_messages(resp_bd.wsgi_request))
+        self.assertTrue(any("Kho Đà Nẵng còn" in str(m) for m in messages_bd))
+
+        # Gọi thẳng URL POST cho xe phân bổ bị chặn
+        url_pb = reverse("contracts:choose_allocation_vehicle", args=[hd.ma_hd, alloc.id])
+        resp_pb = self.client.post(url_pb)
+        self.assertEqual(resp_pb.status_code, 302)
+        messages_pb = list(get_messages(resp_pb.wsgi_request))
+        self.assertTrue(any("Kho Đà Nẵng còn" in str(m) for m in messages_pb))
+
+    def test_da_nang_het_chi_nhanh_con_duoc_chot_chi_nhanh_chan_phan_bo(self):
+        # Đà Nẵng không có xe. Bình Định có 1 xe
+        car_bd = Xe.objects.create(
+            vin="VN0000000TIERBD02",
+            ten_xe="Ford Ranger Wildtrak",
+            phien_ban="Wildtrak 2.0L",
+            mau_sac="Đen",
+            so_may="ENG-BD-002",
+            trang_thai=TrangThaiXe.SAN_SANG,
+            nam_sx=2026
+        )
+        TonKho.objects.create(kho=self.kho_bd, xe=car_bd, so_luong_ton=1, ngay_vao_kho=timezone.localdate())
+
+        from orders.models import Allocation
+        alloc = Allocation.objects.create(
+            order_number="ORD-TIER-02",
+            vehicle_code="RANGER-WILDTRAK",
+            description="Ford Ranger Wildtrak 2.0L",
+            vin="RL2TIERALLOC00002",
+            mau_sac="Đen",
+            exterior_color="Đen",
+            allocation_month=date(2026, 11, 1),
+            contractual_delivery_date=date(2026, 11, 20),
+            quantity=1,
+            chi_nhanh=self.cn_dn
+        )
+
+        hd = HopDong.objects.create(
+            ma_hd="HD-TIER-02",
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Ranger Wildtrak",
+            phien_ban_yeu_cau="Wildtrak 2.0L",
+            mau_sac_yeu_cau="Đen",
+            trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=date(2026, 11, 1)
+        )
+
+        # Chốt phân bổ bị chặn vì chi nhánh còn xe
+        can_pb, reason_pb = check_can_source_from_tier(hd, SourcingTier.PHAN_BO)
+        self.assertFalse(can_pb)
+        self.assertIn("Kho chi nhánh còn", reason_pb)
+
+        url_pb = reverse("contracts:choose_allocation_vehicle", args=[hd.ma_hd, alloc.id])
+        resp_pb = self.client.post(url_pb)
+        self.assertEqual(resp_pb.status_code, 302)
+        messages_pb = list(get_messages(resp_pb.wsgi_request))
+        self.assertTrue(any("Kho chi nhánh còn" in str(m) for m in messages_pb))
+
+        # Chốt chi nhánh được phép
+        can_bd, reason_bd = check_can_source_from_tier(hd, SourcingTier.CHI_NHANH)
+        self.assertTrue(can_bd)
+        updated_hd = choose_vehicle(hd.ma_hd, car_bd.vin, self.user)
+        self.assertEqual(updated_hd.trang_thai, TrangThaiHopDong.CHO_XE_VE_KHO)
+
+    def test_ca_hai_het_duoc_chot_phan_bo(self):
+        from orders.models import Allocation
+        alloc = Allocation.objects.create(
+            order_number="ORD-TIER-03",
+            vehicle_code="TERRITORY-TITANIUM",
+            description="Ford Territory Titanium 1.5L EcoBoost",
+            vin="RL2TIERALLOC00003",
+            mau_sac="Nâu Ánh Kim",
+            exterior_color="Nâu Ánh Kim",
+            allocation_month=date(2026, 11, 1),
+            contractual_delivery_date=date(2026, 11, 28),
+            quantity=1,
+            chi_nhanh=self.cn_dn
+        )
+
+        hd = HopDong.objects.create(
+            ma_hd="HD-TIER-03",
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Territory Titanium 1.5L EcoBoost",
+            phien_ban_yeu_cau="Titanium",
+            mau_sac_yeu_cau="Nâu Ánh Kim",
+            trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=date(2026, 11, 1)
+        )
+
+        can_pb, reason_pb = check_can_source_from_tier(hd, SourcingTier.PHAN_BO)
+        self.assertTrue(can_pb)
+        self.assertEqual(reason_pb, "")
+
+        resp = self.client.post(f"/hop-dong/{hd.ma_hd}/chon-xe-phan-bo/{alloc.id}/")
+        self.assertEqual(resp.status_code, 302)
+        hd.refresh_from_db()
+        self.assertEqual(hd.trang_thai, TrangThaiHopDong.CHO_XE_VE_KHO)
+        self.assertEqual(hd.ngay_du_kien_giao, date(2026, 11, 28))

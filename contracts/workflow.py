@@ -90,6 +90,12 @@ def choose_vehicle(contract_id, vin, user):
     if not available_here:
         raise ValidationError('Xe không còn tồn kho tại bất kỳ chi nhánh nào.')
 
+    from .sourcing import check_can_source_from_tier, SourcingTier
+    if not is_da_nang_branch(available_here.kho.chi_nhanh):
+        can_choose, reason = check_can_source_from_tier(contract, SourcingTier.CHI_NHANH)
+        if not can_choose:
+            raise ValidationError(reason)
+
     nv = getattr(user, 'nhan_vien', None)
     if not nv:
         nv = NhanVien.objects.filter(chi_nhanh=contract.chi_nhanh).first() or NhanVien.objects.first()
