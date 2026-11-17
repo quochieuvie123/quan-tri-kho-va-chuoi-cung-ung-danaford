@@ -68,6 +68,15 @@ class VehicleRequest(models.Model):
         verbose_name="Lý do từ chối"
     )
 
+    hop_dong = models.ForeignKey(
+        "database.HopDong",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="phieu_dat_xe",
+        verbose_name="Hợp đồng xe bán liên kết"
+    )
+
     @property
     def request_number(self):
         if self.pk is None:

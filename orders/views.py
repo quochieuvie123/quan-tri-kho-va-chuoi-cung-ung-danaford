@@ -306,6 +306,7 @@ def allocation_list(request):
 
                     data = []
                     qty_warnings = []
+                    vin_seen_counts = defaultdict(int)
                     default_month = today.replace(day=1)
 
                     for row_number, row in enumerate(all_rows[start_data_idx:], start=start_data_idx + 1):
@@ -344,25 +345,33 @@ def allocation_list(request):
 
                         raw_qty = chuyen_so_luong(get_col("quantity"), default=1)
                         if raw_qty and raw_qty > 1:
-                            qty_warnings.append(vin)
+                            qty_warnings.append(f"{vin} (x{raw_qty})")
 
-                        data.append({
-                            "vin": vin,
-                            "order_number": chuyen_chuoi(get_col("order_number")),
-                            "vehicle_code": chuyen_chuoi(get_col("vehicle_code")),
-                            "description": chuyen_chuoi(get_col("description")),
-                            "color_code": chuyen_chuoi(get_col("color_code")),
-                            "exterior_color": chuyen_chuoi(get_col("exterior_color")),
-                            "mau_sac": chuyen_chuoi(get_col("mau_sac")) or chuyen_chuoi(get_col("exterior_color")),
-                            "engine_number": chuyen_chuoi(get_col("engine_number")),
-                            "quantity": 1,
-                            "expected_ship_date": chuyen_ngay(get_col("expected_ship_date")),
-                            "contractual_delivery_date": chuyen_ngay(get_col("contractual_delivery_date")),
-                            "allocation_month": alloc_month,
-                            "dealer_name": d_name_val or d_lbl,
-                            "dealer_code": d_code_val or ("V20011" if target_ma_cn == "CN02" else ("V20012" if target_ma_cn == "CN03" else "VD2001")),
-                            "chi_nhanh": cn_obj,
-                        })
+                        # Đảm bảo mỗi 1 xe có 1 mã số VIN riêng biệt (thêm hậu tố -1, -2... nếu số lượng > 1 hoặc trùng VIN)
+                        for q_idx in range(raw_qty):
+                            vin_seen_counts[vin] += 1
+                            if raw_qty > 1 or vin_seen_counts[vin] > 1:
+                                unique_vin = f"{vin}-{vin_seen_counts[vin]}"
+                            else:
+                                unique_vin = vin
+
+                            data.append({
+                                "vin": unique_vin,
+                                "order_number": chuyen_chuoi(get_col("order_number")),
+                                "vehicle_code": chuyen_chuoi(get_col("vehicle_code")),
+                                "description": chuyen_chuoi(get_col("description")),
+                                "color_code": chuyen_chuoi(get_col("color_code")),
+                                "exterior_color": chuyen_chuoi(get_col("exterior_color")),
+                                "mau_sac": chuyen_chuoi(get_col("mau_sac")) or chuyen_chuoi(get_col("exterior_color")),
+                                "engine_number": chuyen_chuoi(get_col("engine_number")),
+                                "quantity": 1,
+                                "expected_ship_date": chuyen_ngay(get_col("expected_ship_date")),
+                                "contractual_delivery_date": chuyen_ngay(get_col("contractual_delivery_date")),
+                                "allocation_month": alloc_month,
+                                "dealer_name": d_name_val or d_lbl,
+                                "dealer_code": d_code_val or ("V20011" if target_ma_cn == "CN02" else ("V20012" if target_ma_cn == "CN03" else "VD2001")),
+                                "chi_nhanh": cn_obj,
+                            })
 
                     if not data:
                         raise ValueError("Không đọc được dòng dữ liệu xe phân bổ hợp lệ nào từ file Excel")
@@ -399,7 +408,7 @@ def allocation_list(request):
                     if qty_warnings:
                         messages.warning(
                             request,
-                            f"Cảnh báo: Có {len(qty_warnings)} dòng xe có số lượng > 1 trong file Excel đã được chuẩn hóa về 1 xe (VIN: {', '.join(qty_warnings[:5])}{'...' if len(qty_warnings) > 5 else ''})."
+                            f"Thông báo: Có {len(qty_warnings)} dòng xe có số lượng > 1 trong file Excel đã được tách thành từng xe riêng biệt với mã số VIN độc lập (hậu tố -1, -2, -3...): {', '.join(qty_warnings[:5])}{'...' if len(qty_warnings) > 5 else ''}."
                         )
                     messages.success(
                         request,
@@ -496,11 +505,7 @@ def dat_xe(request):
                     "xe": xe,
                     "quantity": so_luong
                 })
-                context = {
-                    "keyword": keyword,
-                    "allocations": allocations,
-                    "xe_da_chon": xe_da_chon
-                }
+        context["xe_da_chon"] = xe_da_chon
         return render(request, "tim_kiem_xe.html", context)
 
 
@@ -618,7 +623,7 @@ def lap_phieu_yeu_cau(request):
     with transaction.atomic():
         release_expired_draft_requests()
         from datetime import timedelta
-        hold_minutes = getattr(settings, "ORDER_DRAFT_HOLD_MINUTES", 30)
+        hold_minutes = getattr(settings, "ORDER_DRAFT_HOLD_MINUTES", 10)
         hold_until = timezone.now() + timedelta(minutes=hold_minutes)
 
         alloc_ids = [item["xe"].id for item in xe_trong_phieu]
@@ -981,12 +986,13 @@ def danh_sach_de_xuat(request):
             so_phan_bo_thuc_te = xe_phu_hop.aggregate(total=Sum("quantity"))["total"] or 0
             first_xe = xe_phu_hop.first()
 
+            live_hd_cho_giao = tinh_hop_dong_cho_giao_thuc_te(dong.ten_xe, current_cn)
             danh_sach.append({
                 "dong_id": dong.id,
                 "allocation_id": first_xe.id if first_xe else None,
                 "ten_xe": dong.ten_xe,
                 "ma_dong_xe": getattr(dong, "ma_dong_xe", ""),
-                "hop_dong_cho_giao": dong.hop_dong_cho_giao,
+                "hop_dong_cho_giao": live_hd_cho_giao,
                 "so_ton": dong.ton_kho,
                 "chi_tieu": dong.chi_tieu,
                 "so_phan_bo": so_phan_bo_thuc_te,
@@ -1033,13 +1039,15 @@ def danh_sach_de_xuat(request):
             so_ban = doanh_so_map.get(ten_xe, 0)
             so_ton = ton_kho_map.get(ten_xe, 0)
             so_phan_bo = thong_tin["so_phan_bo"]
-            nhu_cau = max(0, so_ban - so_ton)
+            live_hd = tinh_hop_dong_cho_giao_thuc_te(ten_xe, current_cn)
+            nhu_cau = max(0, so_ban + live_hd - so_ton)
             de_xuat_nhap = min(nhu_cau, so_phan_bo)
 
             danh_sach.append({
                 "dong_id": None,
                 "allocation_id": thong_tin["allocation_id"],
                 "ten_xe": ten_xe,
+                "hop_dong_cho_giao": live_hd,
                 "so_ban": so_ban,
                 "so_ton": so_ton,
                 "so_phan_bo": so_phan_bo,
@@ -1087,11 +1095,12 @@ def chi_tiet_de_xuat(request, id):
         )
         so_phan_bo_thuc_te = xe_phu_hop.aggregate(total=Sum("quantity"))["total"] or 0
 
+        live_hd = tinh_hop_dong_cho_giao_thuc_te(dong.ten_xe, current_cn)
         context = {
             "dong": dong,
             "phien": phien,
             "ten_xe": dong.ten_xe,
-            "hop_dong_cho_giao": dong.hop_dong_cho_giao,
+            "hop_dong_cho_giao": live_hd,
             "so_ton": dong.ton_kho,
             "chi_tieu": dong.chi_tieu,
             "so_phan_bo": so_phan_bo_thuc_te,
@@ -1187,3 +1196,69 @@ def xoa_xe_phieu_nhap(request, id, item_id):
 
     messages.success(request, f"Đã xóa xe VIN {vin} khỏi phiếu nháp. Xe đã được nhả.")
     return redirect("orders:phieu_yeu_cau", id=phieu.id)
+
+
+def tinh_hop_dong_cho_giao_thuc_te(ten_xe, chi_nhanh_id=None):
+    """
+    Tính số lượng hợp đồng đã ký đang chờ giao xe (chưa xuất kho hoàn tất)
+    cho dòng xe `ten_xe` theo thời gian thực (real-time).
+    """
+    from database.models import HopDong, TrangThaiHopDong, TrangThaiPhieuXuat, ChiTietHopDong
+    if not ten_xe:
+        return 0
+
+    ten_lower = ten_xe.strip().lower()
+    main_keywords = [w for w in ["ranger", "everest", "territory", "explorer", "transit"] if w in ten_lower]
+
+    active_states = [
+        TrangThaiHopDong.CHO_XU_LY,
+        TrangThaiHopDong.CHO_PHAN_BO,
+        TrangThaiHopDong.CHO_XE_VE_KHO,
+        TrangThaiHopDong.DU_DIEU_KIEN_XUAT,
+        TrangThaiHopDong.DANG_XUAT_KHO,
+    ]
+
+    ct_qs = ChiTietHopDong.objects.filter(
+        hop_dong__trang_thai__in=active_states
+    ).exclude(
+        phieuxuatkho__trang_thai=TrangThaiPhieuXuat.DA_DUYET
+    ).select_related("hop_dong", "xe")
+
+    if chi_nhanh_id and chi_nhanh_id != "ALL":
+        ct_qs = ct_qs.filter(hop_dong__chi_nhanh__ma_cn=chi_nhanh_id)
+
+    count = 0
+    seen_hd_ids = set()
+    for ct in ct_qs:
+        xe = ct.xe
+        hd = ct.hop_dong
+        xe_name = f"{xe.ten_xe or ''} {getattr(xe, 'phien_ban', '') or ''} {xe.loai_xe or ''}".lower()
+        hd_req = f"{hd.dong_xe_yeu_cau or ''} {hd.phien_ban_yeu_cau or ''}".lower()
+
+        matched = (ten_lower in xe_name) or (ten_lower in hd_req)
+        if not matched and main_keywords:
+            matched = any(kw in xe_name or kw in hd_req for kw in main_keywords) and (
+                any(token in xe_name or token in hd_req for token in ten_lower.split() if len(token) > 2)
+            )
+
+        if matched:
+            count += 1
+            seen_hd_ids.add(hd.pk)
+
+    unassigned_hd_qs = HopDong.objects.filter(
+        chitiethopdong__isnull=True,
+        trang_thai__in=[TrangThaiHopDong.CHO_XU_LY, TrangThaiHopDong.CHO_PHAN_BO]
+    )
+    if chi_nhanh_id and chi_nhanh_id != "ALL":
+        unassigned_hd_qs = unassigned_hd_qs.filter(chi_nhanh__ma_cn=chi_nhanh_id)
+
+    for hd in unassigned_hd_qs:
+        hd_req = f"{hd.dong_xe_yeu_cau or ''} {hd.phien_ban_yeu_cau or ''}".lower()
+        matched = ten_lower in hd_req
+        if not matched and main_keywords:
+            matched = any(kw in hd_req for kw in main_keywords)
+        if matched and hd.pk not in seen_hd_ids:
+            count += 1
+            seen_hd_ids.add(hd.pk)
+
+    return count

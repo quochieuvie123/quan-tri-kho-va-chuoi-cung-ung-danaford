@@ -21,12 +21,15 @@ def get_sourcing_counts_by_tier(hd):
     if error or not criteria:
         so_da_nang = 0
         so_chi_nhanh = 0
+        so_pyc = 0
     else:
         so_da_nang = len([r for r in results if r.get('uu_tien') in (0, 2)])
         so_chi_nhanh = len([r for r in results if r.get('uu_tien') in (1, 3)])
+        # Tầng "xe từ PYC chờ PDI" (uu_tien=4) được xếp cùng tầng với lịch phân bổ (Tầng 3)
+        so_pyc = len([r for r in results if r.get('uu_tien') == 4 or r.get('nguon_pyc')])
 
     xe_phan_bo = find_allocation_vehicles(hd, criteria) if criteria else []
-    so_phan_bo = len(xe_phan_bo)
+    so_phan_bo = len(xe_phan_bo) + so_pyc
 
     return {
         SourcingTier.DA_NANG: so_da_nang,

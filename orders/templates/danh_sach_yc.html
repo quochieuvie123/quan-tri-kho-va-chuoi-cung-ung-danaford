@@ -34,6 +34,13 @@
                     <a href="{% url 'orders:phieu_yeu_cau' phieu.id %}" style="text-decoration: none; font-weight: 700; color: #0067c5;">
                         {{ phieu.request_number }}
                     </a>
+                    {% if phieu.hop_dong_id %}
+                        <div style="margin-top: 3px;">
+                            <span class="badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 11px; padding: 2px 6px;">
+                                <i class="bi bi-file-earmark-text"></i> Đặt theo HĐ {{ phieu.hop_dong_id }}
+                            </span>
+                        </div>
+                    {% endif %}
                 </td>
                 <td>
                     <strong>{{ phieu.created_by.get_full_name|default:phieu.created_by.username }}</strong>

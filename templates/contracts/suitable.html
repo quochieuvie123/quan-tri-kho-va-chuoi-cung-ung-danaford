@@ -115,8 +115,8 @@
         <span class="count-badge">{{ xe_chi_nhanh|length }} xe</span>
       </a>
       <a class="source-jump" href="#xe-phan-bo" id="tab-xe-phan-bo">
-        <i class="bi bi-calendar2-check"></i> 3. Theo lịch phân bổ
-        <span class="count-badge">{{ xe_phan_bo|length }} xe</span>
+        <i class="bi bi-calendar2-check"></i> 3. Nguồn phân bổ & Xe chờ PDI
+        <span class="count-badge">{% with total_t3=xe_phan_bo|length|add:xe_pyc|length %}{{ total_t3 }} xe{% endwith %}</span>
       </a>
     </div>
 
@@ -254,11 +254,63 @@
       {% endif %}
     </section>
 
-    <!-- 3. THEO LỊCH PHÂN BỔ -->
+    <!-- 3. THEO LỊCH PHÂN BỔ VÀ XE TỪ PYC CHỜ PDI -->
     <section id="xe-phan-bo" class="source-section" hidden>
+      {% if xe_pyc %}
+      <div style="margin-bottom: 24px; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 10px; padding: 18px;">
+        <div class="source-title" style="color: #9333ea; margin-bottom: 6px;">
+          <i class="bi bi-hourglass-split"></i> Xe từ Phiếu yêu cầu (PYC) đang chờ kiểm tra PDI tại Đà Nẵng ({{ xe_pyc|length }} xe)
+        </div>
+        <p class="source-desc" style="margin-bottom: 14px;">
+          Xe đã được đại lý lên phiếu yêu cầu đặt xe từ trước và đang trong quá trình nhập kho / kiểm tra PDI tại kho Đà Nẵng. Cùng tầng ưu tiên với lịch phân bổ.
+        </p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Số khung (VIN)</th>
+                <th>Dòng xe & Phiên bản</th>
+                <th>Màu sắc</th>
+                <th>Vị trí kho</th>
+                <th>Tình trạng</th>
+                <th style="text-align: right;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for xe in xe_pyc %}
+              <tr>
+                <td><strong style="color: #0067c5; font-family: monospace;">{{ xe.vin }}</strong></td>
+                <td><strong>{{ xe.xe__ten_xe }}</strong> {{ xe.xe__phien_ban }}</td>
+                <td>{{ xe.xe__mau_sac|default:"Tiêu chuẩn" }}</td>
+                <td><span class="badge">{{ xe.vi_tri_kho }}</span></td>
+                <td><span class="badge" style="background: #f3e8ff; color: #7e22ce; border-color: #d8b4fe;">Chờ PDI nhập kho</span></td>
+                <td style="text-align: right;">
+                  {% if xe.duoc_chon or xe.duoc_chon is None %}
+                  <form method="post" action="{% url 'contracts:choose_suggested_vehicle' ma_hd xe.vin %}" style="margin: 0;"
+                        onsubmit="return confirm('Xác nhận chọn xe VIN {{ xe.vin }} từ nguồn PYC chờ PDI cho hợp đồng {{ ma_hd }}?');">
+                    {% csrf_token %}
+                    <button class="btn btn--primary" type="submit" style="background: #9333ea; border-color: #9333ea; font-weight: 600; white-space: nowrap;">
+                      <i class="bi bi-check2-circle"></i> Chốt xe chờ PDI
+                    </button>
+                  </form>
+                  {% else %}
+                  <button class="btn btn--light" disabled style="opacity: 0.6; cursor: not-allowed; font-size: 12px;" title="{{ xe.ly_do_khoa }}">
+                    <i class="bi bi-lock-fill"></i> Đã khóa
+                  </button>
+                  <div style="font-size: 11px; color: #dc2626; margin-top: 4px;">{{ xe.ly_do_khoa }}</div>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
       <div class="source-header">
         <div class="source-title" style="color: #7c3aed;">
-          <i class="bi bi-calendar2-check"></i> Xe theo lịch phân bổ nhà máy (Kỳ Tháng 11/2026: {{ xe_phan_bo|length }} xe phù hợp)
+          <i class="bi bi-calendar2-check"></i> Xe theo lịch phân bổ nhà máy ({{ xe_phan_bo|length }} xe phù hợp)
         </div>
         <p class="source-desc">
           Nguồn xe từ danh sách phân bổ của nhà máy Ford cho các tháng tiếp theo. Khi cả kho Đà Nẵng và các kho chi nhánh đều không có sẵn xe trong kho, Sale Admin có thể chọn xe đề xuất theo lịch phân bổ để gán cho hợp đồng và xác nhận kế hoạch bàn giao.

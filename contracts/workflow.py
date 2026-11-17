@@ -87,11 +87,22 @@ def choose_vehicle(contract_id, vin, user):
         xe=car, so_luong_ton__gt=0
     ).select_related('kho__chi_nhanh').first()
 
+    from warehouse.models import PhieuNhapKho
+    pnk_pyc = None
     if not available_here:
-        raise ValidationError('Xe không còn tồn kho tại bất kỳ chi nhánh nào.')
+        # Kiểm tra xe từ PYC đang chờ PDI (đã có phiếu nhập trạng thái NHAP)
+        pnk_pyc = PhieuNhapKho.objects.filter(
+            xe=car, trang_thai=PhieuNhapKho.TrangThai.NHAP
+        ).select_related('kho__chi_nhanh').first()
+        if not pnk_pyc:
+            raise ValidationError('Xe không còn tồn kho tại bất kỳ chi nhánh nào.')
 
     from .sourcing import check_can_source_from_tier, SourcingTier
-    if not is_da_nang_branch(available_here.kho.chi_nhanh):
+    if pnk_pyc:
+        can_choose, reason = check_can_source_from_tier(contract, SourcingTier.PHAN_BO)
+        if not can_choose:
+            raise ValidationError(reason)
+    elif not is_da_nang_branch(available_here.kho.chi_nhanh):
         can_choose, reason = check_can_source_from_tier(contract, SourcingTier.CHI_NHANH)
         if not can_choose:
             raise ValidationError(reason)
@@ -102,7 +113,26 @@ def choose_vehicle(contract_id, vin, user):
 
     dn_branch_ids = getattr(settings, 'III_IV_DA_NANG_BRANCH_IDS', ['CN01'])
 
-    if is_da_nang_branch(available_here.kho.chi_nhanh):
+    if pnk_pyc:
+        # 3. Xe từ PYC chờ PDI: giữ chỗ xe và chuyển hợp đồng sang CHO_XE_VE_KHO
+        car.trang_thai = TrangThaiXe.GIU_CHO_XUAT
+        car.save(update_fields=['trang_thai'])
+
+        contract.trang_thai = TrangThaiHopDong.CHO_XE_VE_KHO
+        contract.save(update_fields=['trang_thai'])
+
+        from dashboard.models import ThongBaoHoatDong
+        ten_kho = pnk_pyc.kho.chi_nhanh.ten_cn if pnk_pyc.kho and pnk_pyc.kho.chi_nhanh else pnk_pyc.kho.ma_kho
+        ThongBaoHoatDong.objects.create(
+            user=user if user and user.is_authenticated else None,
+            ten_nhan_vien=nv.ten_nv if nv else "Hệ thống",
+            chuc_vu="Nhân viên kinh doanh",
+            hanh_dong=f"Chốt xe từ PYC {car.vin}",
+            chi_tiet=f"Hợp đồng {contract.ma_hd} đã chốt xe {car.ten_xe} ({car.vin}) từ nguồn PYC chờ PDI tại {ten_kho}. Trạng thái hợp đồng: Chờ xe về kho.",
+            module="contracts",
+            loai="THONG_TIN"
+        )
+    elif is_da_nang_branch(available_here.kho.chi_nhanh):
         # 1. Xe tại kho Đà Nẵng: Giữ chỗ xe & chuyển trạng thái hợp đồng
         car.trang_thai = TrangThaiXe.GIU_CHO_XUAT
         car.save(update_fields=['trang_thai'])

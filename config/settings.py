@@ -195,3 +195,6 @@ TIME_ZONE = "Asia/Ho_Chi_Minh"
 
 
 
+
+# Cấu hình thời hạn giữ chỗ phiếu nháp (mặc định 10 phút)
+ORDER_DRAFT_HOLD_MINUTES = 10

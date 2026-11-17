@@ -141,6 +141,8 @@ class ContractWorkflowTests(TestCase):
         """Xe tại Bình Định: giữ chỗ xe, hợp đồng CHO_XE_VE_KHO, tạo lệnh lưu chuyển ở trạng thái CHO_DUYET."""
         from transfers.models import LenhLuuChuyen
 
+        # Khi Đà Nẵng hết xe phù hợp, được phép chốt xe chi nhánh
+        self.ton_dn.delete()
         hd = choose_vehicle(self.hd1.pk, self.xe_bd.vin, self.user)
 
         self.xe_bd.refresh_from_db()
@@ -193,6 +195,7 @@ class ContractWorkflowTests(TestCase):
         from transfers.models import LenhLuuChuyen
         from transfers.services import tu_choi_lenh_luu_chuyen
 
+        self.ton_dn.delete()
         choose_vehicle(self.hd1.pk, self.xe_bd.vin, self.user)
 
         lenh = LenhLuuChuyen.objects.filter(chi_tiet__xe=self.xe_bd).first()
@@ -214,6 +217,7 @@ class ContractWorkflowTests(TestCase):
 
     def test_06_xe_ve_da_nang_nhap_kho_pdi_dat_hop_dong_du_dieu_kien_xuat(self):
         """Sau khi xe nhập kho Đà Nẵng và PDI đạt: sync_contract_for_vin chuyển hợp đồng sang DU_DIEU_KIEN_XUAT."""
+        self.ton_dn.delete()
         choose_vehicle(self.hd1.pk, self.xe_bd.vin, self.user)
         self.hd1.refresh_from_db()
         self.assertEqual(self.hd1.trang_thai, TrangThaiHopDong.CHO_XE_VE_KHO)
@@ -497,3 +501,332 @@ class ContractSourcingTierTests(TestCase):
         hd.refresh_from_db()
         self.assertEqual(hd.trang_thai, TrangThaiHopDong.CHO_XE_VE_KHO)
         self.assertEqual(hd.ngay_du_kien_giao, date(2026, 11, 28))
+
+    def test_choose_allocation_creates_vehicle_request_in_orders(self):
+        """Khi chốt xe từ lịch phân bổ cho hợp đồng, hệ thống tự động sinh Phiếu yêu cầu đặt xe bên orders."""
+        from orders.models import Allocation, VehicleRequest, VehicleRequestItem
+        from contracts.sourcing import check_can_source_from_tier, SourcingTier
+
+        alloc = Allocation.objects.create(
+            order_number="ORD-AUTO-PYC",
+            vehicle_code="TERRITORY",
+            description="Ford Territory Trend",
+            vin="RL2AUTOPYC0000001",
+            mau_sac="Đỏ",
+            exterior_color="Đỏ",
+            allocation_month=date(2026, 11, 1),
+            contractual_delivery_date=date(2026, 11, 25),
+            quantity=1,
+            chi_nhanh=self.cn_dn
+        )
+
+        hd = HopDong.objects.create(
+            ma_hd="HD-AUTO-PYC-01",
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Territory Trend",
+            phien_ban_yeu_cau="Trend",
+            mau_sac_yeu_cau="Đỏ",
+            trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=date(2026, 11, 1)
+        )
+
+        can_pb, _ = check_can_source_from_tier(hd, SourcingTier.PHAN_BO)
+        self.assertTrue(can_pb)
+
+        url = reverse("contracts:choose_allocation_vehicle", args=[hd.ma_hd, alloc.id])
+        resp = self.client.post(url)
+        self.assertEqual(resp.status_code, 302)
+
+        # Kiểm tra VehicleRequest được tự động tạo và có gắn ghi chú HĐ
+        pyc = VehicleRequest.objects.filter(items__allocation=alloc).first()
+        self.assertIsNotNone(pyc)
+        self.assertEqual(pyc.status, VehicleRequest.Status.ACCEPTED)
+        self.assertEqual(pyc.hop_dong_id, hd.ma_hd)
+
+    def test_sourcing_tier_counts_pyc_waiting_pdi_in_tier_3(self):
+        """Tầng xe từ PYC chờ PDI (uu_tien=4) được xếp cùng tầng với lịch phân bổ (Tầng 3)."""
+        from warehouse.models import PhieuNhapKho
+        from contracts.sourcing import get_sourcing_counts_by_tier, SourcingTier
+
+        hd = HopDong.objects.create(
+            ma_hd="HD-PYC-WAIT-01",
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Transit",
+            phien_ban_yeu_cau="Trend",
+            mau_sac_yeu_cau="Bạc",
+            trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=date(2026, 11, 1)
+        )
+
+        # Tạo xe PYC chờ PDI theo đúng luồng thật: PYC được duyệt -> sync_request sinh phiếu nhập NHAP
+        from orders.models import Allocation, VehicleRequest, VehicleRequestItem
+        from warehouse.order_intake import sync_request
+        alloc = Allocation.objects.create(
+            order_number="ORD-PYC-WAIT", vehicle_code="TRANSIT", description="Ford Transit Trend",
+            vin="VIN-PYC-TEST-001", mau_sac="Bạc", exterior_color="Bạc", engine_number="SM-PYC01",
+            allocation_month=date(2026, 10, 1), quantity=1, chi_nhanh=self.cn_dn,
+        )
+        pyc = VehicleRequest.objects.create(created_by=self.user, status=VehicleRequest.Status.ACCEPTED)
+        VehicleRequestItem.objects.create(vehicle_request=pyc, allocation=alloc, quantity=1)
+        sync_request(pyc.pk)
+        xe_pyc = Xe.objects.get(pk="VIN-PYC-TEST-001")
+        self.assertTrue(PhieuNhapKho.objects.filter(xe=xe_pyc, trang_thai="NHAP").exists())
+
+        counts = get_sourcing_counts_by_tier(hd)
+        self.assertEqual(counts[SourcingTier.DA_NANG], 0)
+        self.assertEqual(counts[SourcingTier.CHI_NHANH], 0)
+        # Xe PYC chờ PDI được tính vào số lượng tầng 3 (PHAN_BO)
+        self.assertGreaterEqual(counts[SourcingTier.PHAN_BO], 1)
+
+        # Chốt được xe PYC này cho hợp đồng
+        hd_updated = choose_vehicle(hd.pk, xe_pyc.vin, self.user)
+        self.assertEqual(hd_updated.trang_thai, TrangThaiHopDong.CHO_XE_VE_KHO)
+        xe_pyc.refresh_from_db()
+        self.assertEqual(xe_pyc.trang_thai, TrangThaiXe.GIU_CHO_XUAT)
+
+    def test_real_time_hop_dong_cho_giao_updates_live(self):
+        """Kiểm tra hàm tính toán thời gian thực hợp đồng chờ giao xe phản ánh đúng ngay khi chốt xe."""
+        from orders.views import tinh_hop_dong_cho_giao_thuc_te
+
+        hd = HopDong.objects.create(
+            ma_hd="HD-LIVE-DEMAND-01",
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Explorer Limited",
+            phien_ban_yeu_cau="Limited",
+            mau_sac_yeu_cau="Đen",
+            trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=date(2026, 11, 1)
+        )
+
+        initial_count = tinh_hop_dong_cho_giao_thuc_te("Explorer")
+        self.assertEqual(initial_count, 1)
+
+        # Sau khi hoàn tất hợp đồng (HOAN_TAT), số hợp đồng chờ giao phải giảm về 0
+        hd.trang_thai = TrangThaiHopDong.HOAN_TAT
+        hd.save(update_fields=['trang_thai'])
+
+        after_complete_count = tinh_hop_dong_cho_giao_thuc_te("Explorer")
+        self.assertEqual(after_complete_count, 0)
+
+    def test_detail_view_renders_allocation_schedule_and_color_filter(self):
+        """Trang chi tiết hợp đồng hiển thị lịch phân bổ dự kiến cập bến kho Đà Nẵng và bộ lọc nâng cao màu sắc trong modal chọn ngày giao."""
+        from orders.models import Allocation
+
+        alloc1 = Allocation.objects.create(
+            order_number="ORD-MODAL-01",
+            vehicle_code="EVEREST",
+            description="Ford Everest Titanium 4x2",
+            vin="RL2MODALALLOC0001",
+            mau_sac="Trắng Ngọc Trai",
+            exterior_color="Trắng Ngọc Trai",
+            allocation_month=date(2026, 11, 1),
+            expected_ship_date=date(2026, 11, 18),
+            contractual_delivery_date=date(2026, 11, 22),
+            quantity=1,
+            chi_nhanh=self.cn_dn
+        )
+        alloc2 = Allocation.objects.create(
+            order_number="ORD-MODAL-02",
+            vehicle_code="EVEREST",
+            description="Ford Everest Titanium 4x2",
+            vin="RL2MODALALLOC0002",
+            mau_sac="Đen Ánh Kim",
+            exterior_color="Đen Ánh Kim",
+            allocation_month=date(2026, 11, 1),
+            expected_ship_date=date(2026, 11, 20),
+            contractual_delivery_date=date(2026, 11, 25),
+            quantity=1,
+            chi_nhanh=self.cn_dn
+        )
+
+        hd = HopDong.objects.create(
+            ma_hd="HD-MODAL-DATE-01",
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Everest",
+            phien_ban_yeu_cau="Titanium",
+            mau_sac_yeu_cau="Trắng Ngọc Trai",
+            trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=date(2026, 11, 1)
+        )
+
+        url = reverse("contracts:detail", args=[hd.ma_hd])
+        resp = self.client.get(url, HTTP_ACCEPT="text/html")
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode("utf-8")
+
+        # Kiểm tra bảng tra cứu lịch phân bổ và bộ lọc nâng cao màu xe
+        self.assertIn("modalAllocTable", html)
+        self.assertIn("modalColorFilter", html)
+        self.assertIn("RL2MODALALLOC0001", html)
+        self.assertIn("RL2MODALALLOC0002", html)
+        self.assertIn("Trắng Ngọc Trai", html)
+        self.assertIn("Đen Ánh Kim", html)
+        self.assertIn("22/11/2026", html)
+
+    def test_pyc_waiting_pdi_blocked_when_da_nang_has_stock(self):
+        """Khi kho Đà Nẵng còn xe phù hợp, chặn cứng việc chốt xe từ PYC chờ PDI (Tầng 3)."""
+        from orders.models import Allocation, VehicleRequest, VehicleRequestItem
+        from warehouse.order_intake import sync_request
+
+        # Tạo 1 xe sẵn sàng tại kho Đà Nẵng
+        car_dn = Xe.objects.create(
+            vin="VN-DN-STOCK-99",
+            ten_xe="Ford Transit",
+            phien_ban="Trend",
+            loai_xe="Transit",
+            mau_sac="Bạc",
+            so_may="SM-DN-99",
+            trang_thai=TrangThaiXe.SAN_SANG
+        )
+        TonKho.objects.create(kho=self.kho_dn, xe=car_dn, so_luong_ton=1, ngay_vao_kho=timezone.localdate())
+
+        # Tạo 1 xe từ PYC chờ PDI
+        alloc = Allocation.objects.create(
+            order_number="ORD-PYC-BLK", vehicle_code="TRANSIT", description="Ford Transit Trend",
+            vin="VIN-PYC-BLOCKED-01", mau_sac="Bạc", exterior_color="Bạc", engine_number="SM-PYC-BLK",
+            allocation_month=date(2026, 10, 1), quantity=1, chi_nhanh=self.cn_dn,
+        )
+        pyc = VehicleRequest.objects.create(created_by=self.user, status=VehicleRequest.Status.ACCEPTED)
+        VehicleRequestItem.objects.create(vehicle_request=pyc, allocation=alloc, quantity=1)
+        sync_request(pyc.pk)
+
+        hd = HopDong.objects.create(
+            ma_hd="HD-PYC-BLOCKED-01",
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Transit",
+            phien_ban_yeu_cau="Trend",
+            mau_sac_yeu_cau="Bạc",
+            trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=date(2026, 11, 1)
+        )
+
+        # Cố tình chốt xe PYC chờ PDI khi Đà Nẵng còn xe -> Bị chặn cứng
+        with self.assertRaises(ValidationError) as ctx:
+            choose_vehicle(hd.pk, "VIN-PYC-BLOCKED-01", self.user)
+        self.assertIn("Kho Đà Nẵng còn", str(ctx.exception))
+
+    def test_danh_sach_yeu_cau_shows_contract_badge_and_rejected_phieu_shows_banner(self):
+        """Kiểm tra giao diện Danh sách yêu cầu hiển thị badge HĐ liên kết và trang chi tiết phiếu bị từ chối hiển thị lý do."""
+        from orders.models import Allocation, VehicleRequest, VehicleRequestItem
+
+        alloc = Allocation.objects.create(
+            order_number="ORD-UI-01",
+            vehicle_code="TERRITORY",
+            description="Ford Territory Titanium",
+            vin="RL2UITEST00000001",
+            mau_sac="Trắng",
+            exterior_color="Trắng",
+            allocation_month=date(2026, 11, 1),
+            quantity=1,
+            chi_nhanh=self.cn_dn
+        )
+        hd = HopDong.objects.create(
+            ma_hd="HD-UI-BADGE-01",
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Territory Titanium",
+            phien_ban_yeu_cau="Titanium",
+            mau_sac_yeu_cau="Trắng",
+            trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=date(2026, 11, 1)
+        )
+
+        # Chốt xe phân bổ cho hợp đồng
+        self.client.post(reverse("contracts:choose_allocation_vehicle", args=[hd.ma_hd, alloc.id]))
+
+        # Mở danh sách yêu cầu bên module orders -> Phải thấy badge "Đặt theo HĐ HD-UI-BADGE-01"
+        resp_list = self.client.get(reverse("orders:danh_sach_yeu_cau"))
+        self.assertEqual(resp_list.status_code, 200)
+        self.assertIn("Đặt theo HĐ HD-UI-BADGE-01", resp_list.content.decode("utf-8"))
+
+        # Tạo 1 phiếu PENDING khác rồi bấm từ chối
+        alloc2 = Allocation.objects.create(
+            order_number="ORD-UI-02",
+            vehicle_code="RANGER",
+            description="Ford Ranger XLS",
+            vin="RL2UITEST00000002",
+            mau_sac="Đen",
+            exterior_color="Đen",
+            allocation_month=date(2026, 11, 1),
+            quantity=1,
+            chi_nhanh=self.cn_dn
+        )
+        req_reject = VehicleRequest.objects.create(
+            created_by=self.user,
+            status=VehicleRequest.Status.PENDING,
+            sent_at=timezone.now()
+        )
+        VehicleRequestItem.objects.create(vehicle_request=req_reject, allocation=alloc2, quantity=1)
+
+        self.client.post(reverse("orders:tu_choi_phieu", args=[req_reject.id]), {"ly_do": "Sai cấu hình màu ngoại thất"})
+        resp_detail = self.client.get(reverse("orders:phieu_yeu_cau", args=[req_reject.id]))
+        self.assertEqual(resp_detail.status_code, 200)
+        html_detail = resp_detail.content.decode("utf-8")
+        self.assertIn("Đã từ chối", html_detail)
+        self.assertIn("Sai cấu hình màu ngoại thất", html_detail)
+        self.assertIn("tự động nhả về trạng thái", html_detail)
+
+    def test_proposal_list_view_updates_hop_dong_cho_giao_live_after_chot_xe(self):
+        """Màn hình Đề xuất nhập xe (orders:proposal_list & proposal_detail) cập nhật ngay cột Hợp đồng chờ giao xe khi chốt xe."""
+        from analytics.models import PhienDuBao, DongDuBao
+
+        today = timezone.localdate()
+        phien = PhienDuBao.objects.create(
+            thang=today.month,
+            nam=today.year,
+            nguoi_tao=self.user
+        )
+        # Snapshot cũ trong DongDuBao đang có hop_dong_cho_giao = 0
+        dong = DongDuBao.objects.create(
+            phien=phien,
+            loai_xe="SUV",
+            ma_dong_xe="EVEREST-PLATINUM",
+            ten_xe="Ford Everest Platinum",
+            ten_ngan="Ford Everest",
+            phien_ban="Platinum",
+            du_bao_sarima=2.0,
+            hop_dong_cho_giao=0,
+            ton_kho=0,
+            de_xuat_poq=2
+        )
+
+        # Tạo hợp đồng và chốt 1 xe Ford Everest Platinum
+        car = Xe.objects.create(
+            vin="VN-PLATINUM-LIVE-01",
+            ten_xe="Ford Everest Platinum",
+            phien_ban="Platinum",
+            loai_xe="Everest",
+            mau_sac="Đen",
+            so_may="SM-PLAT-01",
+            trang_thai=TrangThaiXe.SAN_SANG
+        )
+        TonKho.objects.create(kho=self.kho_dn, xe=car, so_luong_ton=1, ngay_vao_kho=today)
+
+        hd = HopDong.objects.create(
+            ma_hd="HD-PLATINUM-LIVE-01",
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Everest Platinum",
+            phien_ban_yeu_cau="Platinum",
+            mau_sac_yeu_cau="Đen",
+            trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=timezone.now()
+        )
+        choose_vehicle(hd.pk, car.vin, self.user)
+
+        # Truy cập trang danh sách đề xuất và chi tiết đề xuất
+        resp_list = self.client.get(reverse("orders:proposal_list") + f"?month={today.year}-{today.month:02d}")
+        self.assertEqual(resp_list.status_code, 200)
+        danh_sach = resp_list.context["danh_sach"]
+        row = next((item for item in danh_sach if item["dong_id"] == dong.id), None)
+        self.assertIsNotNone(row)
+        self.assertEqual(row["hop_dong_cho_giao"], 1)
+
+        resp_detail = self.client.get(reverse("orders:proposal_detail", args=[dong.id]))
+        self.assertEqual(resp_detail.status_code, 200)
+        self.assertEqual(resp_detail.context["hop_dong_cho_giao"], 1)

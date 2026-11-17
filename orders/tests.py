@@ -68,6 +68,12 @@ class OrdersStage1Tests(TestCase):
         session = self.client.session
         self.assertEqual(session["selected_vehicles"][str(self.alloc1.id)], 1)
 
+
+    def test_hold_minutes_default_ten_minutes(self):
+        """Hạn giữ chỗ phiếu nháp mặc định 10 phút cấu hình trong settings."""
+        from django.conf import settings
+        self.assertEqual(getattr(settings, "ORDER_DRAFT_HOLD_MINUTES", 10), 10)
+
     def test_lap_phieu_yeu_cau_always_quantity_one(self):
         # Thiết lập session đã chọn xe
         session = self.client.session
@@ -110,16 +116,19 @@ class OrdersStage1Tests(TestCase):
         response = self.client.post(upload_url, {"file": uploaded})
         self.assertEqual(response.status_code, 302)
 
-        # Kiểm tra database lưu quantity = 1
-        alloc = Allocation.objects.filter(vin=test_vin).first()
-        self.assertIsNotNone(alloc)
-        self.assertEqual(alloc.quantity, 1)
+        # Kiểm tra database tách thành 2 xe riêng biệt với mã VIN hậu tố -1 và -2, quantity = 1
+        alloc1 = Allocation.objects.filter(vin=f"{test_vin}-1").first()
+        alloc2 = Allocation.objects.filter(vin=f"{test_vin}-2").first()
+        self.assertIsNotNone(alloc1)
+        self.assertIsNotNone(alloc2)
+        self.assertEqual(alloc1.quantity, 1)
+        self.assertEqual(alloc2.quantity, 1)
 
-        # Kiểm tra có thông báo cảnh báo về số lượng > 1
+        # Kiểm tra có thông báo về việc tách xe và tạo mã VIN riêng biệt
         messages = list(get_messages(response.wsgi_request))
         self.assertTrue(
-            any("chuẩn hóa về 1 xe" in str(m) or "chuẩn hóa về số lượng 1" in str(m) for m in messages),
-            f"Expected warning message not found. Messages: {[str(m) for m in messages]}"
+            any("tách thành từng xe riêng biệt" in str(m) or "hậu tố" in str(m) for m in messages),
+            f"Expected message not found. Messages: {[str(m) for m in messages]}"
         )
 
 from datetime import timedelta

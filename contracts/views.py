@@ -87,13 +87,9 @@ def index(request):
     for param, field in [('trang_thai', 'trang_thai'), ('chi_nhanh_id', 'chi_nhanh_id')]:
         if request.GET.get(param):
             value = request.GET[param].strip()
-            if param == 'trang_thai' and value == TrangThaiHopDong.CHO_XU_LY:
-                rows = rows.filter(trang_thai=TrangThaiHopDong.CHO_XU_LY)
-            elif param == 'trang_thai' and value == TrangThaiHopDong.HOAN_TAT:
-                rows = rows.filter(trang_thai__in=[TrangThaiHopDong.CHO_XE_VE_KHO,
-                    TrangThaiHopDong.DU_DIEU_KIEN_XUAT, TrangThaiHopDong.DANG_XUAT_KHO,
-                    TrangThaiHopDong.HOAN_TAT])
-            else:
+            if param == 'trang_thai' and value:
+                rows = rows.filter(trang_thai=value)
+            elif param != 'trang_thai':
                 rows = rows.filter(**{field: value})
     sess = getattr(request, 'session', {})
     current_cn = sess.get('current_cn') if hasattr(sess, 'get') else None
@@ -126,6 +122,9 @@ def index(request):
         payload.update(page_title='Quản lý hợp đồng xe bán', trang_thai_options=[
             (TrangThaiHopDong.CHO_XU_LY, 'Chờ xử lý'),
             (TrangThaiHopDong.CHO_PHAN_BO, 'Chờ lịch phân bổ'),
+            (TrangThaiHopDong.CHO_XE_VE_KHO, 'Đã phân bổ - chờ xe về kho'),
+            (TrangThaiHopDong.DU_DIEU_KIEN_XUAT, 'Đủ điều kiện xuất kho'),
+            (TrangThaiHopDong.DANG_XUAT_KHO, 'Đang xuất kho'),
             (TrangThaiHopDong.HOAN_TAT, 'Hoàn tất'),
         ])
         return render(request, 'contracts/index.html', payload)
@@ -163,6 +162,30 @@ def detail(request, ma_hd):
         except Exception:
             ctx['lenh_luu_chuyen'] = None
         can_edit = has_role(request.user, SALE_ADMIN) or request.user.is_superuser
+
+        # Lấy danh sách lịch phân bổ để hỗ trợ tra cứu ngày xe cập bến kho Đà Nẵng
+        from orders.models import Allocation
+        from orders.availability import get_allocations_availability_map
+        dong_yeu_cau = result.get('dong_xe_yeu_cau') or ''
+        alloc_qs = Allocation.objects.filter(
+            Q(expected_ship_date__isnull=False) | Q(contractual_delivery_date__isnull=False)
+        )
+        if dong_yeu_cau:
+            alloc_qs = alloc_qs.filter(
+                Q(description__icontains=dong_yeu_cau) | Q(vehicle_code__icontains=dong_yeu_cau)
+            )
+
+        alloc_list = list(alloc_qs.order_by('contractual_delivery_date', 'expected_ship_date')[:50])
+        avail_map = get_allocations_availability_map(alloc_list, target_hd=hd)
+        for a in alloc_list:
+            a.availability_info = avail_map.get(a.id)
+
+        all_colors = sorted(list(set(
+            c for c in alloc_qs.values_list('exterior_color', flat=True) if c
+        )))
+
+        ctx['allocations_lich_ve'] = alloc_list
+        ctx['mau_sac_phan_bo'] = all_colors
         return render(request, 'contracts/detail.html', {'page_title': f'Hợp đồng {hd.pk}', 'hop_dong': ctx, 'co_the_chinh_sua': can_edit})
     return JsonResponse(result)
 
@@ -470,6 +493,7 @@ def suitable_vehicles(request, ma_hd):
     }
     payload['xe_da_nang'] = [row for row in results if row['uu_tien'] in (0, 2)]
     payload['xe_chi_nhanh'] = [row for row in results if row['uu_tien'] in (1, 3)]
+    payload['xe_pyc'] = [row for row in results if row.get('nguon_pyc') or row.get('uu_tien') == 4]
     payload['xe_phan_bo'] = xe_phan_bo
     payload['nhom_xe'] = [
         {'id': 'xe-da-nang', 'tieu_de': 'Xe tại kho Đà Nẵng', 'xe': payload['xe_da_nang'], 'duoc_chon': tiers_info[SourcingTier.DA_NANG]['duoc_chon'], 'ly_do_khoa': tiers_info[SourcingTier.DA_NANG]['ly_do_khoa']},
@@ -535,6 +559,29 @@ def choose_allocation_vehicle(request, ma_hd, alloc_id):
 
     hd.trang_thai = TrangThaiHopDong.CHO_XE_VE_KHO
     hd.save(update_fields=update_fields)
+
+    # Tự động lập Phiếu yêu cầu đặt xe bên Module Đặt xe (orders) để hiển thị trong Danh sách yêu cầu đặt xe
+    try:
+        from orders.models import VehicleRequest, VehicleRequestItem
+        from warehouse.order_intake import sync_request
+
+        req_item = VehicleRequestItem.objects.filter(allocation=alloc).exclude(vehicle_request__status=VehicleRequest.Status.REJECTED).first()
+        if not req_item:
+            pyc = VehicleRequest.objects.create(
+                created_by=request.user,
+                status=VehicleRequest.Status.ACCEPTED,
+                sent_at=timezone.now(),
+                hop_dong=hd,
+            )
+            VehicleRequestItem.objects.create(
+                vehicle_request=pyc,
+                allocation=alloc,
+                quantity=1
+            )
+            # Đồng bộ sang Kho để tạo phiếu nhập dự kiến (PhieuNhapKho ở trạng thái NHAP)
+            sync_request(pyc.pk)
+    except Exception as e:
+        print("Lỗi tạo VehicleRequest tự động từ Hợp đồng:", repr(e))
 
     ky_str = alloc.allocation_month.strftime('%m/%Y') if alloc.allocation_month else '11/2026'
     messages.success(
