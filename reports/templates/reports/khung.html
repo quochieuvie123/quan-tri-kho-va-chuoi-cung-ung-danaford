@@ -175,21 +175,29 @@
 <section class="bc">
     <form method="get" id="form-bao-cao">
         <div class="truong">
-            <label for="chon-nhanh-thang">Kỳ tháng (Đồng bộ)</label>
+            <label for="chon-nhanh-thang">Tháng / Năm:</label>
             <select id="chon-nhanh-thang" onchange="chonNhanhThangBaoCao(this.value);">
-                <option value="">-- Chọn nhanh theo tháng --</option>
+                <option value="">Tất cả các tháng</option>
                 <option value="2026-11" {% if request.GET.tu_ngay == '2026-11-01' %}selected{% endif %}>Tháng 11/2026</option>
                 <option value="2026-10" {% if request.GET.tu_ngay == '2026-10-01' %}selected{% endif %}>Tháng 10/2026</option>
                 <option value="2026-09" {% if request.GET.tu_ngay == '2026-09-01' %}selected{% endif %}>Tháng 09/2026</option>
                 <option value="2026-08" {% if request.GET.tu_ngay == '2026-08-01' %}selected{% endif %}>Tháng 08/2026</option>
+                <option value="2026-07" {% if request.GET.tu_ngay == '2026-07-01' %}selected{% endif %}>Tháng 07/2026</option>
             </select>
         </div>
         {% for field in form %}
+        {% if field.name == 'tu_ngay' or field.name == 'den_ngay' %}
+        <div style="display: none;">
+            {{ field }}
+            {{ field.errors }}
+        </div>
+        {% else %}
         <div class="truong">
             {{ field.label_tag }}
             {{ field }}
             {{ field.errors }}
         </div>
+        {% endif %}
         {% endfor %}
 
         <button class="nut" type="submit" style="align-self: flex-end;">

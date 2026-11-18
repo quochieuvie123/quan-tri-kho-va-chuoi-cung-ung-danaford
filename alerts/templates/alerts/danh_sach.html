@@ -90,21 +90,8 @@
         </div>
     </div>
 
-    <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
-        <a href="{% url 'alerts:index' %}" style="padding: 9px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; {% if not nhom_cb %}background: #0b66c3; color: #fff;{% else %}background: #fff; color: #334155; border: 1px solid #cbd5e1;{% endif %}">
-            Tất cả cảnh báo ({{ so_tat_ca }})
-        </a>
-        <a href="{% url 'alerts:index' %}?nhom_cb=ton_kho" style="padding: 9px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; {% if nhom_cb == 'ton_kho' %}background: #d97706; color: #fff;{% else %}background: #fff; color: #334155; border: 1px solid #cbd5e1;{% endif %}">
-            Cảnh báo tồn kho: Dưới ngưỡng &amp; Tồn lâu ({{ so_ton_kho }})
-        </a>
-        <a href="{% url 'alerts:index' %}?nhom_cb=het_hang" style="padding: 9px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; {% if nhom_cb == 'het_hang' %}background: #b91c1c; color: #fff;{% else %}background: #fff; color: #334155; border: 1px solid #cbd5e1;{% endif %}">
-            Dòng xe đã hết hàng — Chờ phân bổ kỳ sau ({{ so_het_hang }})
-        </a>
-    </div>
-
     <div class="card">
         <form method="get" class="bo-loc">
-            {% if nhom_cb %}<input type="hidden" name="nhom_cb" value="{{ nhom_cb }}">{% endif %}
             {{ form.as_p }}
             <p>
                 <label for="id_thang_cb">Tháng phát sinh:</label>
