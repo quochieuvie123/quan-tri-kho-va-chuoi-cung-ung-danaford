@@ -49,6 +49,22 @@
                     <option value="TU_CHOI" {% if trang_thai == 'TU_CHOI' %}selected{% endif %}>Từ chối</option>
                     <option value="HUY" {% if trang_thai == 'HUY' %}selected{% endif %}>Đã hủy</option>
                 </select>
+
+                <label for="thang-select" style="font-weight: 600; font-size: 13px; color: #102a43; margin: 0 0 0 8px; white-space: nowrap;">
+                    <i class="bi bi-calendar3"></i> Tháng lập:
+                </label>
+                <select
+                    id="thang-select"
+                    name="thang"
+                    class="select"
+                    onchange="this.form.submit()"
+                    style="min-width: 175px; padding: 8px 14px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; color: #102a43; cursor: pointer;"
+                >
+                    <option value="" {% if not thang %}selected{% endif %}>📅 Tất cả các tháng</option>
+                    {% for val, lbl in thang_options %}
+                    <option value="{{ val }}" {% if thang == val %}selected{% endif %}>{{ lbl }}</option>
+                    {% endfor %}
+                </select>
             </div>
 
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">

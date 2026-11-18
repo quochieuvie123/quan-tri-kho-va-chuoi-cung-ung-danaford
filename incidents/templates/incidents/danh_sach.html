@@ -17,6 +17,15 @@
     <label class="filter__wide">{{ form.q.label }}{{ form.q }}</label>
     <label>{{ form.tu_ngay.label }}{{ form.tu_ngay }}</label>
     <label>{{ form.den_ngay.label }}{{ form.den_ngay }}</label>
+    <label>Kỳ tháng
+      <select name="thang" onchange="this.form.submit()">
+        <option value="">-- Tất cả các tháng --</option>
+        <option value="2026-11"{% if request.GET.thang == '2026-11' %} selected{% endif %}>Tháng 11/2026</option>
+        <option value="2026-10"{% if request.GET.thang == '2026-10' %} selected{% endif %}>Tháng 10/2026</option>
+        <option value="2026-09"{% if request.GET.thang == '2026-09' %} selected{% endif %}>Tháng 09/2026</option>
+        <option value="2026-08"{% if request.GET.thang == '2026-08' %} selected{% endif %}>Tháng 08/2026</option>
+      </select>
+    </label>
     <label>{{ form.dvvc.label }}{{ form.dvvc }}</label>
     <label>{{ form.trang_thai.label }}{{ form.trang_thai }}</label>
   </div>

@@ -309,6 +309,12 @@ class XuatKhoService:
             except Exception:
                 pass
 
+            try:
+                from alerts.utils import cap_nhat_tat_ca_canh_bao
+                cap_nhat_tat_ca_canh_bao()
+            except Exception:
+                pass
+
             return phieu
 
     @classmethod

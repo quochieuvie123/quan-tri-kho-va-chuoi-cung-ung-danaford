@@ -830,3 +830,203 @@ class ContractSourcingTierTests(TestCase):
         resp_detail = self.client.get(reverse("orders:proposal_detail", args=[dong.id]))
         self.assertEqual(resp_detail.status_code, 200)
         self.assertEqual(resp_detail.context["hop_dong_cho_giao"], 1)
+
+    def test_big_update_3_warehouse_receipt_form_manual_and_preset_transfer(self):
+        """Mục 1: Tạo phiếu nhập thủ công chỉ nhập tên dòng xe (không droplist, không NCC); từ nút Lập phiếu thì đọc thẳng xe lưu chuyển."""
+        from transfers.models import LenhLuuChuyen
+        from transfers.services import tao_lenh_luu_chuyen, gui_lenh_luu_chuyen, duyet_lenh_luu_chuyen
+        from warehouse.models import PhieuNhapKho
+
+        # 1. Kiểm tra chế độ tạo phiếu thủ công: không có <select name="nguon_xe">, có input name="ten_dong_xe"
+        resp_manual = self.client.get(reverse("warehouse:receipt_create_page"), HTTP_ACCEPT="text/html")
+        self.assertEqual(resp_manual.status_code, 200)
+        html_manual = resp_manual.content.decode("utf-8")
+        self.assertNotIn('<select class="select" name="nguon_xe"', html_manual)
+        self.assertIn('name="ten_dong_xe"', html_manual)
+
+        # Tạo 1 xe sẵn sàng tại chi nhánh Bình Định rồi lập phiếu nhập kho thủ công chỉ bằng Tên dòng xe
+        car_bd = Xe.objects.create(
+            vin="VN-MANUAL-NHAP-01",
+            ten_xe="Ford Explorer Limited",
+            phien_ban="Limited",
+            loai_xe="Explorer",
+            mau_sac="Đỏ",
+            so_may="SM-MAN-01",
+            trang_thai=TrangThaiXe.SAN_SANG
+        )
+        TonKho.objects.create(kho=self.kho_bd, xe=car_bd, so_luong_ton=1, ngay_vao_kho=timezone.localdate())
+
+        resp_post = self.client.post(reverse("warehouse:receipt_create_page"), {
+            "ten_dong_xe": "Ford Explorer Limited",
+            "kho_id": self.kho_dn.pk,
+            "ngay_nhap": timezone.localdate().isoformat(),
+        })
+        self.assertEqual(resp_post.status_code, 302)
+        self.assertTrue(PhieuNhapKho.objects.filter(xe=car_bd).exists())
+
+        # 2. Kiểm tra chế độ bấm "Lập phiếu" từ dòng Lệnh lưu chuyển bên ngoài (?nguon_xe=luu-chuyen:<id>)
+        car_tf = Xe.objects.create(
+            vin="VN-PRESET-TF-001",
+            ten_xe="Ford Territory Titanium",
+            phien_ban="Titanium",
+            loai_xe="Territory",
+            mau_sac="Trắng",
+            so_may="SM-TF-01",
+            trang_thai=TrangThaiXe.SAN_SANG
+        )
+        TonKho.objects.create(kho=self.kho_bd, xe=car_tf, so_luong_ton=1, ngay_vao_kho=timezone.localdate())
+        lenh = tao_lenh_luu_chuyen(self.user, self.kho_bd, self.kho_dn, ds_xe=[car_tf])
+        lenh = gui_lenh_luu_chuyen(self.user, lenh.pk)
+        lenh = duyet_lenh_luu_chuyen(self.user, lenh.pk)
+        ct_tf = lenh.chi_tiet.first()
+
+        resp_preset = self.client.get(
+            reverse("warehouse:receipt_create_page") + f"?nguon_xe=luu-chuyen:{ct_tf.pk}",
+            HTTP_ACCEPT="text/html"
+        )
+        self.assertEqual(resp_preset.status_code, 200)
+        html_preset = resp_preset.content.decode("utf-8")
+        self.assertNotIn('<select class="select" name="nguon_xe"', html_preset)
+        self.assertIn(f'type="hidden" name="nguon_xe" value="luu-chuyen:{ct_tf.pk}"', html_preset)
+        self.assertIn("VN-PRESET-TF-001", html_preset)
+
+    def test_big_update_3_contract_only_two_statuses_and_transfer_from_branch_ui(self):
+        """Mục 3 & 4: Hợp đồng chỉ hiển thị 2 trạng thái (Chờ xử lý / Hoàn tất) và cho phép gắn HĐ Đà Nẵng ngay tại trang Lưu chuyển xe."""
+        hd1 = HopDong.objects.create(
+            ma_hd="HD-2STATE-01",
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Everest",
+            phien_ban_yeu_cau="Titanium",
+            mau_sac_yeu_cau="Trắng",
+            trang_thai=TrangThaiHopDong.CHO_PHAN_BO,
+            ngay_ky=date(2026, 10, 15)
+        )
+        resp_idx = self.client.get(reverse("contracts:index"), HTTP_ACCEPT="text/html")
+        self.assertEqual(resp_idx.status_code, 200)
+        opts = resp_idx.context["trang_thai_options"]
+        self.assertEqual(len(opts), 2)
+        self.assertEqual([o[1] for o in opts], ["Chờ xử lý", "Hoàn tất"])
+
+        # Hợp đồng CHO_PHAN_BO cũng hiển thị là "Chờ xử lý"
+        row_hd1 = next((r for r in resp_idx.context["hop_dong"] if r["ma_hd"] == hd1.ma_hd), None)
+        self.assertIsNotNone(row_hd1)
+        self.assertEqual(row_hd1["trang_thai_hien_thi"], "Chờ xử lý")
+
+        # Tạo xe ở chi nhánh Bình Định và gắn trực tiếp cho HĐ Đà Nẵng từ màn hình Lưu chuyển (/luu-chuyen/chi-tiet-xe/<id>/)
+        car_gl = Xe.objects.create(
+            vin="VN-GL-TO-DN-001",
+            ten_xe="Ford Everest Titanium",
+            phien_ban="Titanium",
+            loai_xe="Everest",
+            mau_sac="Trắng",
+            so_may="SM-GL-01",
+            trang_thai=TrangThaiXe.SAN_SANG
+        )
+        ton_gl = TonKho.objects.create(kho=self.kho_bd, xe=car_gl, so_luong_ton=1, ngay_vao_kho=timezone.localdate())
+
+        resp_tf = self.client.post(reverse("transfers:chi_tiet_xe", args=[ton_gl.pk]), {
+            "kho_nhan": self.kho_dn.pk,
+            "so_luong": "1",
+            "hop_dong_id": hd1.ma_hd,
+        })
+        self.assertEqual(resp_tf.status_code, 302)
+        hd1.refresh_from_db()
+        # Sau khi gắn xe và lập lệnh lưu chuyển, trạng thái hiển thị của hợp đồng chuyển sang "Hoàn tất"
+        resp_idx2 = self.client.get(reverse("contracts:index") + "?trang_thai=HOAN_TAT", HTTP_ACCEPT="text/html")
+        row_after = next((r for r in resp_idx2.context["hop_dong"] if r["ma_hd"] == hd1.ma_hd), None)
+        self.assertIsNotNone(row_after)
+        self.assertEqual(row_after["trang_thai_hien_thi"], "Hoàn tất")
+
+    def test_big_update_3_buttons_money_dates_and_alerts(self):
+        """Kiểm tra giữ 1 nút thao tác trên cùng ở detail, format tiền 600.000.000, lọc kỳ phân bổ >= tháng ký và cảnh báo hết hàng."""
+        from decimal import Decimal
+        from orders.models import Allocation
+        from alerts.models import CanhBao
+
+        hd_money = HopDong.objects.create(
+            ma_hd="HD-MONEY-BTN-01",
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Ranger Wildtrak",
+            phien_ban_yeu_cau="Wildtrak",
+            mau_sac_yeu_cau="Trắng",
+            so_tien_coc=Decimal("600000000.00"),
+            trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=date(2026, 10, 15),
+        )
+        car_dn = Xe.objects.create(
+            vin="VN-BTN-TEST-0001",
+            ten_xe="Ford Ranger Wildtrak",
+            phien_ban="Wildtrak",
+            loai_xe="Ranger",
+            mau_sac="Trắng",
+            so_may="SM-BTN-01",
+            trang_thai=TrangThaiXe.SAN_SANG,
+        )
+        TonKho.objects.create(kho=self.kho_dn, xe=car_dn, so_luong_ton=1, ngay_vao_kho=timezone.localdate())
+        choose_vehicle(hd_money.ma_hd, car_dn.vin, self.user)
+
+        resp_dt = self.client.get(reverse("contracts:detail", args=[hd_money.ma_hd]), HTTP_ACCEPT="text/html")
+        self.assertEqual(resp_dt.status_code, 200)
+        html_dt = resp_dt.content.decode("utf-8")
+        # 1. Định dạng tiền 600.000.000
+        self.assertIn("600.000.000", html_dt)
+        self.assertNotIn("600000000,00", html_dt)
+        # 2. Chỉ giữ 1 nút Duyệt xuất kho ở trên cùng, xóa 2 nút trùng bên dưới
+        self.assertIn("Duyệt xuất kho (", html_dt)
+        self.assertNotIn("Chuyển tới Quản lý xuất kho để duyệt", html_dt)
+        self.assertNotIn("Duyệt xuất kho tại Quản lý xuất kho", html_dt)
+        self.assertNotIn("Xuất kho xe & Hoàn tất hợp đồng", html_dt)
+
+        # 3. Kiểm tra hợp đồng tháng 10 không lấy phân bổ tháng 08/09 và tự chuẩn hóa ngày giao theo tháng phân bổ
+        Allocation.objects.create(
+            order_number="ORD-OLD-08",
+            vehicle_code="TERRITORY",
+            description="Ford Territory Titanium",
+            vin="RL2OLD08000000001",
+            mau_sac="Đỏ Cam",
+            allocation_month=date(2026, 8, 1),
+            contractual_delivery_date=date(2026, 8, 25),
+            quantity=1,
+        )
+        alloc_11 = Allocation.objects.create(
+            order_number="ORD-NEW-11",
+            vehicle_code="TERRITORY",
+            description="Ford Territory Titanium",
+            vin="RL2NEW11000000001",
+            mau_sac="Đỏ Cam",
+            allocation_month=date(2026, 11, 1),
+            contractual_delivery_date=date(2026, 9, 15),  # Ngày cũ bị lệch tháng 9
+            quantity=1,
+        )
+        hd_t10 = HopDong.objects.create(
+            ma_hd="HD-T10-CHECK-PB",
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Territory Titanium",
+            phien_ban_yeu_cau="Titanium",
+            mau_sac_yeu_cau="Đỏ Cam",
+            trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=date(2026, 10, 20),
+        )
+        from .views import find_allocation_vehicles, criteria_for
+        crits, _ = criteria_for(hd_t10)
+        matched_pb = find_allocation_vehicles(hd_t10, crits)
+        vins_pb = [x["vin"] for x in matched_pb]
+        self.assertNotIn("RL2OLD08000000001", vins_pb)
+        self.assertIn("RL2NEW11000000001", vins_pb)
+        row_11 = next(x for x in matched_pb if x["vin"] == "RL2NEW11000000001")
+        self.assertEqual(row_11["contractual_delivery_date"].month, 11)
+
+        # 4. Kiểm tra xuất kho 1 xe duy nhất (1 -> 0) tự động cập nhật cảnh báo Hết hàng và xuất CSV hết hàng
+        resp_ht = self.client.post(reverse("contracts:hoan_tat", args=[hd_money.ma_hd]))
+        self.assertEqual(resp_ht.status_code, 302)
+        cb_het = CanhBao.objects.filter(nguong__ten_xe="Ranger", nguong__mau_sac="Trắng", con_hieu_luc=True).first()
+        self.assertIsNotNone(cb_het)
+        self.assertEqual(cb_het.loai, CanhBao.Loai.HET_HANG)
+        self.assertEqual(cb_het.so_luong_hien_tai, 0)
+
+        resp_csv = self.client.get(reverse("alerts:xuat_het_hang"))
+        self.assertEqual(resp_csv.status_code, 200)
+        self.assertIn("Ranger", resp_csv.content.decode("utf-8-sig"))

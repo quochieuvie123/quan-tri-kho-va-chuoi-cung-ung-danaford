@@ -78,15 +78,44 @@
 
 {% block content %}
 <div class="canh-bao">
-    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
         <div>
             <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #0b2a4a;">Cảnh báo hệ thống</h1>
-            <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Theo dõi các cảnh báo tồn kho lâu ngày, chậm tiến độ giao xe, vượt chỉ tiêu hoặc sai lệch số liệu</p>
+            <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Theo dõi cảnh báo tồn kho dưới ngưỡng, xe tồn lâu ngày và danh sách dòng xe đã hết hàng (chuyển sang phân bổ kỳ sau)</p>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <a href="{% url 'alerts:xuat_het_hang' %}" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; background: #0f766e; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 13px;">
+                <i class="bi bi-download"></i> Xuất danh sách xe hết hàng ({{ so_het_hang }})
+            </a>
         </div>
     </div>
+
+    <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+        <a href="{% url 'alerts:index' %}" style="padding: 9px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; {% if not nhom_cb %}background: #0b66c3; color: #fff;{% else %}background: #fff; color: #334155; border: 1px solid #cbd5e1;{% endif %}">
+            Tất cả cảnh báo ({{ so_tat_ca }})
+        </a>
+        <a href="{% url 'alerts:index' %}?nhom_cb=ton_kho" style="padding: 9px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; {% if nhom_cb == 'ton_kho' %}background: #d97706; color: #fff;{% else %}background: #fff; color: #334155; border: 1px solid #cbd5e1;{% endif %}">
+            Cảnh báo tồn kho: Dưới ngưỡng &amp; Tồn lâu ({{ so_ton_kho }})
+        </a>
+        <a href="{% url 'alerts:index' %}?nhom_cb=het_hang" style="padding: 9px 16px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; {% if nhom_cb == 'het_hang' %}background: #b91c1c; color: #fff;{% else %}background: #fff; color: #334155; border: 1px solid #cbd5e1;{% endif %}">
+            Dòng xe đã hết hàng — Chờ phân bổ kỳ sau ({{ so_het_hang }})
+        </a>
+    </div>
+
     <div class="card">
         <form method="get" class="bo-loc">
+            {% if nhom_cb %}<input type="hidden" name="nhom_cb" value="{{ nhom_cb }}">{% endif %}
             {{ form.as_p }}
+            <p>
+                <label for="id_thang_cb">Tháng phát sinh:</label>
+                <select name="thang" id="id_thang_cb" onchange="this.form.submit()">
+                    <option value="">Tất cả các tháng</option>
+                    <option value="2026-11"{% if request.GET.thang == '2026-11' %} selected{% endif %}>Tháng 11/2026</option>
+                    <option value="2026-10"{% if request.GET.thang == '2026-10' %} selected{% endif %}>Tháng 10/2026</option>
+                    <option value="2026-09"{% if request.GET.thang == '2026-09' %} selected{% endif %}>Tháng 09/2026</option>
+                    <option value="2026-08"{% if request.GET.thang == '2026-08' %} selected{% endif %}>Tháng 08/2026</option>
+                </select>
+            </p>
 
             <div class="thao-tac">
                 <button type="submit">Lọc</button>
@@ -120,7 +149,24 @@
                             CB{{ cb.pk }}
                         </a>
                     </td>
-                    <td>{{ cb.get_loai_display }}</td>
+                    <td>
+                        {% if cb.loai == "HET_HANG" %}
+                            <span style="display: inline-block; padding: 4px 9px; border-radius: 6px; background: #fef2f2; color: #b91c1c; font-weight: 700; font-size: 12px;">
+                                {{ cb.get_loai_display }}
+                            </span>
+                            <div style="margin-top: 4px; font-size: 12px; color: #64748b;">
+                                Đặt xe theo lịch phân bổ kỳ sau
+                            </div>
+                        {% elif cb.loai == "DUOI_NGUONG" %}
+                            <span style="display: inline-block; padding: 4px 9px; border-radius: 6px; background: #fffbeb; color: #b45309; font-weight: 700; font-size: 12px;">
+                                {{ cb.get_loai_display }}
+                            </span>
+                        {% else %}
+                            <span style="display: inline-block; padding: 4px 9px; border-radius: 6px; background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: 12px;">
+                                {{ cb.get_loai_display }}
+                            </span>
+                        {% endif %}
+                    </td>
                     <td>{{ cb.kho_hien_thi }}</td>
 
                     <td>

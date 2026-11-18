@@ -53,11 +53,18 @@ def _loc(params):
             qs = qs.exclude(trang_thai_claim=DA_XU_LY)
         elif d["trang_thai"] == "da_dong":
             qs = qs.filter(trang_thai_claim=DA_XU_LY)
+    thang = (params.get("thang") or params.get("month") or "").strip() if params else ""
+    if thang and thang != "ALL" and "-" in thang:
+        try:
+            y_val, m_val = map(int, thang.split("-", 1))
+            qs = qs.filter(ngay_ghi_nhan__year=y_val, ngay_ghi_nhan__month=m_val)
+        except ValueError:
+            pass
     return form, qs
 
 
 def _co_loc(params):
-    return any(params.get(k) for k in ("q", "tu_ngay", "den_ngay", "dvvc", "trang_thai"))
+    return any(params.get(k) for k in ("q", "tu_ngay", "den_ngay", "dvvc", "trang_thai", "thang", "month"))
 
 
 def _lay_bien_ban(request, ma_pdi):

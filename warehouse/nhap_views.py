@@ -127,6 +127,13 @@ def receipt_list(request):
         )
     if request.GET.get('kho_id'):
         rows = rows.filter(kho_id=request.GET['kho_id'].strip())
+    thang_filter = (request.GET.get('thang') or request.GET.get('month') or '').strip()
+    if thang_filter and thang_filter != 'ALL' and '-' in thang_filter:
+        try:
+            y_val, m_val = map(int, thang_filter.split('-', 1))
+            rows = rows.filter(ngay_nhap__year=y_val, ngay_nhap__month=m_val)
+        except ValueError:
+            pass
     if request.GET.get('ngay_lap'):
         try:
             day = date.fromisoformat(request.GET['ngay_lap'])
@@ -373,10 +380,13 @@ def eligible_vehicles(request):
 @role_required(WAREHOUSE)
 @permission_required('warehouse.add_phieunhapkho', raise_exception=True)
 def receipt_create_page(request):
+    from decimal import Decimal
+    from database.models import ChiNhanh, DonViVanChuyen, TonKho, TrangThaiXe
     from transfers.models import ChiTietLenhLuuChuyen, LenhLuuChuyen
+
     lines = ChiTietNhap.objects.exclude(xe__tonkho__so_luong_ton__gt=0).filter(
         so_luong_nhap=1, phieunhapkho__isnull=True,
-    ).select_related('xe', 'hoa_don_nhap__nha_cung_cap').order_by('pk')
+    ).select_related('xe', 'hoa_don_nhap__nha_cung_cap', 'hoa_don_nhap__chi_nhanh').order_by('pk')
 
     xe_luu_chuyen = ChiTietLenhLuuChuyen.objects.filter(
         lenh__trang_thai__in=[
@@ -389,7 +399,7 @@ def receipt_create_page(request):
         xe__phieunhapkho__trang_thai__in=['NHAP', 'CHO_DUYET', 'DA_DUYET']
     ).exclude(
         xe__tonkho__so_luong_ton__gt=0
-    ).select_related('xe', 'lenh').order_by('pk')
+    ).select_related('xe', 'lenh__kho_xuat__chi_nhanh', 'lenh__kho_nhap__chi_nhanh').order_by('pk')
 
     warehouses = [kho for kho in Kho.objects.select_related('chi_nhanh').order_by('ma_kho')
                   if can_write_warehouse(request.user, kho) and is_da_nang_branch(kho.chi_nhanh)]
@@ -398,13 +408,141 @@ def receipt_create_page(request):
         lines = lines.filter(Q(xe__vin__icontains=keyword) | Q(xe__ten_xe__icontains=keyword) | Q(xe__phien_ban__icontains=keyword) | Q(xe__mau_sac__icontains=keyword))
         xe_luu_chuyen = xe_luu_chuyen.filter(Q(xe__vin__icontains=keyword) | Q(xe__ten_xe__icontains=keyword) | Q(xe__phien_ban__icontains=keyword) | Q(xe__mau_sac__icontains=keyword) | Q(lenh__ma_lenh__icontains=keyword))
 
+    # Xây dựng danh sách ứng viên xe theo Tên dòng xe (từ Lệnh lưu chuyển, Chứng từ nhập, hoặc Tồn kho chi nhánh)
+    candidates_by_model = []
+    seen_vins = set()
+    for ct in xe_luu_chuyen:
+        if ct.xe_id in seen_vins:
+            continue
+        seen_vins.add(ct.xe_id)
+        cn_xuat = ct.lenh.kho_xuat.chi_nhanh.ten_cn if ct.lenh.kho_xuat and ct.lenh.kho_xuat.chi_nhanh else ct.lenh.kho_xuat_id
+        candidates_by_model.append({
+            'nguon_xe': f'luu-chuyen:{ct.pk}',
+            'ten_xe': ct.xe.ten_xe,
+            'vin': ct.xe_id,
+            'phien_ban': ct.xe.phien_ban or 'Tiêu chuẩn',
+            'mau_sac': ct.xe.mau_sac or 'Tiêu chuẩn',
+            'so_may': ct.xe.so_may,
+            'chi_nhanh': f'{cn_xuat} (Lệnh lưu chuyển {ct.lenh.ma_lenh})',
+            'kho_nhan_id': ct.lenh.kho_nhap_id or 'KHO01',
+        })
+    for line in lines:
+        if line.xe_id in seen_vins:
+            continue
+        seen_vins.add(line.xe_id)
+        cn_ten = line.hoa_don_nhap.chi_nhanh.ten_cn if line.hoa_don_nhap and line.hoa_don_nhap.chi_nhanh else 'Dana Ford Đà Nẵng'
+        candidates_by_model.append({
+            'nguon_xe': f'hang:{line.pk}',
+            'ten_xe': line.xe.ten_xe,
+            'vin': line.xe_id,
+            'phien_ban': line.xe.phien_ban or 'Tiêu chuẩn',
+            'mau_sac': line.xe.mau_sac or 'Tiêu chuẩn',
+            'so_may': line.xe.so_may,
+            'chi_nhanh': cn_ten,
+            'kho_nhan_id': 'KHO01',
+        })
+    branch_stocks = TonKho.objects.filter(
+        so_luong_ton__gt=0, xe__trang_thai=TrangThaiXe.SAN_SANG
+    ).exclude(kho__chi_nhanh_id='CN01').exclude(
+        xe__phieunhapkho__trang_thai__in=['NHAP', 'CHO_DUYET', 'DA_DUYET']
+    ).select_related('xe', 'kho__chi_nhanh').order_by('kho__chi_nhanh_id', 'xe__ten_xe')
+    for st in branch_stocks:
+        if st.xe_id in seen_vins:
+            continue
+        seen_vins.add(st.xe_id)
+        candidates_by_model.append({
+            'nguon_xe': f'chi-nhanh:{st.pk}',
+            'ten_xe': st.xe.ten_xe,
+            'vin': st.xe_id,
+            'phien_ban': st.xe.phien_ban or 'Tiêu chuẩn',
+            'mau_sac': st.xe.mau_sac or 'Tiêu chuẩn',
+            'so_may': st.xe.so_may,
+            'chi_nhanh': f'{st.kho.chi_nhanh.ten_cn} (Kho {st.kho_id})',
+            'kho_nhan_id': 'KHO01',
+        })
+
+    # Kiểm tra xem có đang mở từ nút "Lập phiếu" bên ngoài (?nguon_xe=...) hay không
+    raw_source = (request.GET.get('nguon_xe') or request.POST.get('nguon_xe') or '').strip()
+    preset_source = None
+    if raw_source and ':' in raw_source:
+        p_kind, p_id = raw_source.split(':', 1)
+        if p_kind == 'luu-chuyen' and p_id.isdigit():
+            ct_obj = ChiTietLenhLuuChuyen.objects.select_related('xe', 'lenh__kho_xuat__chi_nhanh', 'lenh__kho_nhap__chi_nhanh').filter(pk=int(p_id)).first()
+            if ct_obj:
+                cn_xuat = ct_obj.lenh.kho_xuat.chi_nhanh.ten_cn if ct_obj.lenh.kho_xuat and ct_obj.lenh.kho_xuat.chi_nhanh else ct_obj.lenh.kho_xuat_id
+                preset_source = {
+                    'nguon_xe': f'luu-chuyen:{ct_obj.pk}',
+                    'loai_hien_thi': f'Lệnh lưu chuyển {ct_obj.lenh.ma_lenh}',
+                    'chi_nhanh_nguon': cn_xuat,
+                    'vin': ct_obj.xe_id,
+                    'ten_xe': ct_obj.xe.ten_xe,
+                    'phien_ban': ct_obj.xe.phien_ban or 'Tiêu chuẩn',
+                    'mau_sac': ct_obj.xe.mau_sac or 'Tiêu chuẩn',
+                    'so_may': ct_obj.xe.so_may,
+                    'kho_nhan_mac_dinh': ct_obj.lenh.kho_nhap_id or 'KHO01',
+                }
+        elif p_kind == 'hang' and p_id.isdigit():
+            line_obj = ChiTietNhap.objects.select_related('xe', 'hoa_don_nhap__chi_nhanh').filter(pk=int(p_id)).first()
+            if line_obj:
+                cn_ten = line_obj.hoa_don_nhap.chi_nhanh.ten_cn if line_obj.hoa_don_nhap and line_obj.hoa_don_nhap.chi_nhanh else 'Dana Ford Đà Nẵng'
+                preset_source = {
+                    'nguon_xe': f'hang:{line_obj.pk}',
+                    'loai_hien_thi': f'Chứng từ {line_obj.hoa_don_nhap.so_hoa_don or line_obj.hoa_don_nhap_id}',
+                    'chi_nhanh_nguon': cn_ten,
+                    'vin': line_obj.xe_id,
+                    'ten_xe': line_obj.xe.ten_xe,
+                    'phien_ban': line_obj.xe.phien_ban or 'Tiêu chuẩn',
+                    'mau_sac': line_obj.xe.mau_sac or 'Tiêu chuẩn',
+                    'so_may': line_obj.xe.so_may,
+                    'kho_nhan_mac_dinh': 'KHO01',
+                }
+
     if request.method == 'POST':
         try:
-            source = request.POST['nguon_xe']
-            kind, line_id = source.split(':', 1)
+            source = (request.POST.get('nguon_xe') or '').strip()
+            ten_dong_xe = (request.POST.get('ten_dong_xe') or '').strip()
             ma_phieu = request.POST.get('ma_phieu', '').strip() or 'PN-' + uuid4().hex[:12].upper()
-            kho_id = request.POST['kho_id']
+            kho_id = (request.POST.get('kho_id') or (warehouses[0].pk if warehouses else 'KHO01')).strip()
             ngay_nhap = date.fromisoformat(request.POST['ngay_nhap']) if request.POST.get('ngay_nhap') else timezone.localdate()
+
+            # Nếu lập phiếu thủ công bằng Tên dòng xe (không truyền nguon_xe cố định)
+            if not source and ten_dong_xe:
+                q_lower = ten_dong_xe.lower()
+                matched_cand = next(
+                    (c for c in candidates_by_model if q_lower in c['ten_xe'].lower() or q_lower == c['vin'].lower()),
+                    None
+                )
+                if matched_cand:
+                    source = matched_cand['nguon_xe']
+                else:
+                    # Tìm trong bảng Xe theo tên dòng xe và tự động khởi tạo chứng từ tiếp nhận tại Đà Nẵng
+                    car_found = Xe.objects.exclude(
+                        tonkho__so_luong_ton__gt=0, tonkho__kho__chi_nhanh_id='CN01'
+                    ).exclude(
+                        phieunhapkho__trang_thai__in=['NHAP', 'CHO_DUYET', 'DA_DUYET']
+                    ).filter(
+                        Q(ten_xe__icontains=ten_dong_xe) | Q(loai_xe__icontains=ten_dong_xe) | Q(vin__iexact=ten_dong_xe)
+                    ).first()
+                    if not car_found:
+                        raise ValidationError(f'Không tìm thấy xe khả dụng thuộc dòng xe "{ten_dong_xe}" tại các chi nhánh hoặc nguồn chờ nhập.')
+                    existing_line = ChiTietNhap.objects.filter(xe=car_found, phieunhapkho__isnull=True, so_luong_nhap=1).first()
+                    if not existing_line:
+                        cn_dn, _ = ChiNhanh.objects.get_or_create(ma_cn='CN01', defaults={'ten_cn': 'Dana Ford Đà Nẵng', 'dia_chi_cn': 'Đà Nẵng'})
+                        ncc, _ = NhaCungCap.objects.get_or_create(ma_ncc='NCC_FORD_VN', defaults={'ten_ncc': 'Ford Việt Nam', 'dia_chi_ncc': 'Hà Nội', 'mst': '0100109998'})
+                        dvvc, _ = DonViVanChuyen.objects.get_or_create(ma_dvvc='DVVC_FORD_VN', defaults={'ten_dvvc': 'Ford Việt Nam', 'dia_chi_dvvc': 'Việt Nam'})
+                        hdn, _ = HoaDonNhap.objects.get_or_create(
+                            ma_hdn=f'HDN-AUTO-{car_found.vin[-8:]}',
+                            defaults={'nha_cung_cap': ncc, 'chi_nhanh': cn_dn, 'don_vi_van_chuyen': dvvc, 'ngay_nhap': timezone.now(), 'so_hoa_don': f'HD-{car_found.vin[-6:]}'}
+                        )
+                        existing_line, _ = ChiTietNhap.objects.get_or_create(
+                            hoa_don_nhap=hdn, xe=car_found, defaults={'so_luong_nhap': 1, 'don_gia': Decimal('0')}
+                        )
+                    source = f'hang:{existing_line.pk}'
+
+            if not source or ':' not in source:
+                raise ValueError('Vui lòng nhập tên dòng xe cần lập phiếu nhập kho.')
+
+            kind, line_id = source.split(':', 1)
 
             if kind == 'hang':
                 if not line_id.isdigit():
@@ -428,21 +566,51 @@ def receipt_create_page(request):
                     kho_id=kho_id,
                     ngay_nhap=ngay_nhap,
                 )
+            elif kind == 'chi-nhanh':
+                if not line_id.isdigit():
+                    raise ValueError('Mã tồn kho chi nhánh không hợp lệ.')
+                st_obj = TonKho.objects.select_related('xe', 'kho__chi_nhanh').get(pk=int(line_id))
+                kho_dich = Kho.objects.get(pk=kho_id)
+                from transfers.services import tao_lenh_luu_chuyen, gui_lenh_luu_chuyen, duyet_lenh_luu_chuyen
+                lenh_auto = tao_lenh_luu_chuyen(request.user, st_obj.kho, kho_dich, ds_xe=[st_obj.xe])
+                lenh_auto = gui_lenh_luu_chuyen(request.user, lenh_auto.pk)
+                lenh_auto = duyet_lenh_luu_chuyen(request.user, lenh_auto.pk)
+                obj = services.create_receipt(
+                    request.user,
+                    ma_phieu=ma_phieu,
+                    lenh_luu_chuyen_id=lenh_auto.pk,
+                    xe_id=st_obj.xe_id,
+                    kho_id=kho_id,
+                    ngay_nhap=ngay_nhap,
+                )
             else:
                 raise ValueError('Nguồn xe không hợp lệ.')
 
-            messages.success(request, 'Đã lưu phiếu nhập ở trạng thái Nháp.')
+            messages.success(request, f'Đã lưu phiếu nhập {obj.ma_phieu} (Xe {obj.xe.ten_xe} - VIN {obj.xe_id}) ở trạng thái Nháp.')
             return redirect('warehouse:receipt_detail', pk=obj.pk)
         except (KeyError, ValueError, TypeError) as err:
             messages.error(request, f'Vui lòng nhập đầy đủ và đúng định dạng: {err}')
-        except (ChiTietNhap.DoesNotExist, ChiTietLenhLuuChuyen.DoesNotExist, Kho.DoesNotExist):
+        except (ChiTietNhap.DoesNotExist, ChiTietLenhLuuChuyen.DoesNotExist, Kho.DoesNotExist, TonKho.DoesNotExist):
             messages.error(request, 'Chứng từ hoặc kho không còn tồn tại.')
         except ValidationError as exc:
             messages.error(request, ' '.join(exc.messages))
 
+    ds_ten_dong_xe = sorted({c['ten_xe'] for c in candidates_by_model if c.get('ten_xe')})
+    default_kho_id = (preset_source['kho_nhan_mac_dinh'] if preset_source else (warehouses[0].pk if warehouses else 'KHO01'))
+    form_data = request.POST if request.method == 'POST' else {
+        'nguon_xe': raw_source,
+        'kho_id': default_kho_id,
+        'ten_dong_xe': request.GET.get('ten_dong_xe', ''),
+    }
     return render(request, 'warehouse/receipt_form.html', {
-        'page_title': 'Lập phiếu nhập kho', 'xe_co_the_nhap': lines, 'kho': warehouses, 'xe_luu_chuyen': xe_luu_chuyen,
-        'form_data': request.POST if request.method == 'POST' else {'nguon_xe': request.GET.get('nguon_xe', '')},
+        'page_title': 'Lập phiếu nhập kho',
+        'xe_co_the_nhap': lines,
+        'kho': warehouses,
+        'xe_luu_chuyen': xe_luu_chuyen,
+        'preset_source': preset_source,
+        'candidates_by_model': candidates_by_model,
+        'ds_ten_dong_xe': ds_ten_dong_xe,
+        'form_data': form_data,
         'ngay_nhap_mac_dinh': request.POST.get('ngay_nhap', '') if request.method == 'POST' else timezone.localdate().isoformat(),
     })
 

@@ -31,6 +31,11 @@ def lay_dong_xe(ten_xe):
         if cac_tu[0].casefold() == dong_xe.casefold():
             return dong_xe
 
+    chuoi = (ten_xe or "").casefold()
+    for dong_xe in cac_dong_xe:
+        if dong_xe.casefold() in chuoi:
+            return dong_xe
+
     return ""
 
 
@@ -190,6 +195,12 @@ def cap_nhat_canh_bao_thieu_hang():
                 con_hieu_luc=True,
                 defaults=du_lieu,
             )
+        elif (
+            canh_bao.loai != loai_canh_bao
+            or canh_bao.so_luong_hien_tai != so_luong
+        ):
+            du_lieu["ngay_phat_sinh"] = timezone.now()
+            du_lieu["trang_thai"] = CanhBao.TrangThai.CHUA_XU_LY
 
         luu_khi_thay_doi(canh_bao, du_lieu)
 

@@ -30,7 +30,7 @@
   <input type="hidden" name="ma_hd" value="{{ ma_hd }}"><input type="hidden" name="kho" value="{{ ma_kho }}">
   <h3>2. Đối chiếu hóa đơn</h3>
   {% if doi_chieu.hop_le %}
-    <p><span class="badge badge--ok">Khớp</span> Hóa đơn {{ doi_chieu.ma_hdb }} · {{ doi_chieu.so_tien|floatformat:"0g" }} đ · khách {{ doi_chieu.khach_hang }}</p>
+    <p><span class="badge badge--ok">Khớp</span> Hóa đơn {{ doi_chieu.ma_hdb }} · {{ doi_chieu.so_tien|tien_vn }} đ · khách {{ doi_chieu.khach_hang }}</p>
   {% else %}
     <p><span class="badge badge--bad">Chưa khớp</span> {{ doi_chieu.canh_bao }}</p>
   {% endif %}

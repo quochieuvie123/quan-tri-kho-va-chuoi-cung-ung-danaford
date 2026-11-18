@@ -47,6 +47,16 @@
           {% endfor %}
         </select>
       </div>
+      <div class="field">
+        <label>Tháng nhập kho</label>
+        <select class="select" name="thang">
+          <option value="">-- Tất cả các tháng --</option>
+          <option value="2026-11"{% if request.GET.thang == '2026-11' %} selected{% endif %}>Tháng 11/2026</option>
+          <option value="2026-10"{% if request.GET.thang == '2026-10' %} selected{% endif %}>Tháng 10/2026</option>
+          <option value="2026-09"{% if request.GET.thang == '2026-09' %} selected{% endif %}>Tháng 09/2026</option>
+          <option value="2026-08"{% if request.GET.thang == '2026-08' %} selected{% endif %}>Tháng 08/2026</option>
+        </select>
+      </div>
       <div style="display: flex; gap: 8px; align-items: flex-end; padding-bottom: 2px;">
         <button class="btn btn--primary" type="submit">
           <i class="bi bi-search"></i> Lọc dữ liệu

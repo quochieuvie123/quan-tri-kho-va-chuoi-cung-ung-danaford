@@ -58,6 +58,12 @@ def get_trim(text):
     return t
 
 
+def trims_match(tr1, tr2):
+    if not tr1 or not tr2:
+        return True
+    return tr1 == tr2
+
+
 def car_matches_criterion(car, req, strict_color=False):
     """
     Kiểm tra xem xe có thỏa mãn tiêu chí dòng xe, phiên bản và màu sắc không.
@@ -81,7 +87,7 @@ def car_matches_criterion(car, req, strict_color=False):
     # 2. Khớp Phiên bản (Trim: Trend, Titanium X, Titanium, Wildtrak, Sport, Active, ...)
     tr_req = get_trim(req_phien_ban) or get_trim(req_dong)
     tr_car = get_trim(car_phien_ban) or get_trim(car_name)
-    if tr_req and tr_car and tr_req != tr_car:
+    if not trims_match(tr_req, tr_car):
         return False, False
 
     # 3. Khớp Màu sắc

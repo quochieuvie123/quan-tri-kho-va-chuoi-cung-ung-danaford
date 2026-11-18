@@ -1,4 +1,4 @@
-from .matching import car_matches_criterion, matches_contract_smart, get_model, get_trim, colors_match
+from .matching import car_matches_criterion, matches_contract_smart, get_model, get_trim, trims_match, colors_match
 from database.models import PhieuXuatKho, LichSuXuatKho, NhanVien, TrangThaiPhieuXuat, Kho
 from django.utils import timezone
 """Backend III; GET chỉ tra cứu, không gán VIN hoặc giữ xe."""
@@ -67,7 +67,7 @@ def contract_summary(hd, user):
         'phien_ban_yeu_cau': (hd.phien_ban_yeu_cau or '').strip() or first.get('phien_ban'),
         'mau_sac_yeu_cau': (hd.mau_sac_yeu_cau or '').strip() or first.get('mau_sac'),
         'ngay_du_kien_giao': hd.ngay_du_kien_giao, 'trang_thai': hd.trang_thai,
-        'trang_thai_hien_thi': ('Hoàn tất' if source_confirmed else 'Chờ lịch phân bổ' if hd.trang_thai == TrangThaiHopDong.CHO_PHAN_BO else 'Chờ xử lý'),
+        'trang_thai_hien_thi': ('Hoàn tất' if source_confirmed else 'Chờ xử lý'),
         'tieu_chi_xe': criteria, 'canh_bao': warning,
         'thao_tac': {'xem_chi_tiet': has_role(user, SALE_ADMIN) and user.has_perm('database.view_hopdong'),
                     'de_xuat_xe': can_propose},
@@ -87,10 +87,26 @@ def index(request):
     for param, field in [('trang_thai', 'trang_thai'), ('chi_nhanh_id', 'chi_nhanh_id')]:
         if request.GET.get(param):
             value = request.GET[param].strip()
-            if param == 'trang_thai' and value:
+            if param == 'trang_thai' and value == TrangThaiHopDong.CHO_XU_LY:
+                rows = rows.filter(trang_thai__in=[TrangThaiHopDong.CHO_XU_LY, TrangThaiHopDong.CHO_PHAN_BO])
+            elif param == 'trang_thai' and value == TrangThaiHopDong.HOAN_TAT:
+                rows = rows.filter(trang_thai__in=[
+                    TrangThaiHopDong.CHO_XE_VE_KHO,
+                    TrangThaiHopDong.DU_DIEU_KIEN_XUAT,
+                    TrangThaiHopDong.DANG_XUAT_KHO,
+                    TrangThaiHopDong.HOAN_TAT,
+                ])
+            elif param == 'trang_thai' and value:
                 rows = rows.filter(trang_thai=value)
             elif param != 'trang_thai':
                 rows = rows.filter(**{field: value})
+    selected_month = (request.GET.get('thang') or request.GET.get('month') or '').strip()
+    if selected_month and selected_month != 'ALL' and '-' in selected_month:
+        try:
+            y_val, m_val = map(int, selected_month.split('-', 1))
+            rows = rows.filter(ngay_ky__year=y_val, ngay_ky__month=m_val)
+        except ValueError:
+            pass
     sess = getattr(request, 'session', {})
     current_cn = sess.get('current_cn') if hasattr(sess, 'get') else None
     if not request.GET.get('chi_nhanh_id') and current_cn and current_cn != 'ALL':
@@ -119,14 +135,20 @@ def index(request):
     message = '' if data else ('Không có hợp đồng phù hợp.' if HopDong.objects.exists() else 'Chưa có hợp đồng xe bán.')
     payload = {'hop_dong': data, 'message': message}
     if wants_html(request):
-        payload.update(page_title='Quản lý hợp đồng xe bán', trang_thai_options=[
-            (TrangThaiHopDong.CHO_XU_LY, 'Chờ xử lý'),
-            (TrangThaiHopDong.CHO_PHAN_BO, 'Chờ lịch phân bổ'),
-            (TrangThaiHopDong.CHO_XE_VE_KHO, 'Đã phân bổ - chờ xe về kho'),
-            (TrangThaiHopDong.DU_DIEU_KIEN_XUAT, 'Đủ điều kiện xuất kho'),
-            (TrangThaiHopDong.DANG_XUAT_KHO, 'Đang xuất kho'),
-            (TrangThaiHopDong.HOAN_TAT, 'Hoàn tất'),
-        ])
+        payload.update(
+            page_title='Quản lý hợp đồng xe bán',
+            trang_thai_options=[
+                (TrangThaiHopDong.CHO_XU_LY, 'Chờ xử lý'),
+                (TrangThaiHopDong.HOAN_TAT, 'Hoàn tất'),
+            ],
+            thang_options=[
+                ('2026-11', 'Tháng 11/2026'),
+                ('2026-10', 'Tháng 10/2026'),
+                ('2026-09', 'Tháng 09/2026'),
+                ('2026-08', 'Tháng 08/2026'),
+            ],
+            selected_month=selected_month,
+        )
         return render(request, 'contracts/index.html', payload)
     return JsonResponse(payload)
 
@@ -138,9 +160,6 @@ def index(request):
 @require_GET
 def detail(request, ma_hd):
     hd = get_object_or_404(HopDong.objects.select_related('khach_hang'), pk=ma_hd)
-    if not is_da_nang_branch(hd.chi_nhanh):
-        from django.http import Http404
-        raise Http404
     result = contract_summary(hd, request.user)
     result.update({
         'khach_hang': hd.khach_hang_id, 'ten_khach_hang': hd.khach_hang.ten_kh,
@@ -215,8 +234,6 @@ def cap_nhat_ngay_giao(request, ma_hd):
 
 def find_suitable(hd):
     criteria, warning = criteria_for(hd)
-    if not is_da_nang_branch(hd.chi_nhanh):
-        return criteria, [], 'Chỉ tra cứu hợp đồng tại Đà Nẵng.'
     if hd.trang_thai not in (TrangThaiHopDong.CHO_XU_LY, TrangThaiHopDong.CHO_PHAN_BO, TrangThaiHopDong.CHO_XE_VE_KHO, TrangThaiHopDong.DU_DIEU_KIEN_XUAT, TrangThaiHopDong.DANG_XUAT_KHO):
         return criteria, [], 'Hợp đồng đã hoàn tất hoặc đang xuất kho; không cần đề xuất xe mới.'
     if warning:
@@ -363,12 +380,23 @@ def wait_allocation(request, ma_hd):
 
 def find_allocation_vehicles(hd, criteria):
     """
-    Tra cứu danh sách xe phân bổ từ nhà máy của các tháng tiếp theo (demo kỳ Tháng 11/2026),
+    Tra cứu danh sách xe phân bổ từ nhà máy tính từ tháng ký hợp đồng sang các kỳ tiếp theo
+    (ưu tiên kỳ kế tiếp như Tháng 11/2026 khi HĐ ký Tháng 10/2026),
     so khớp với tiêu chí dòng xe, phiên bản và màu sắc của hợp đồng.
     """
     from orders.models import Allocation
+    ngay_ky = getattr(hd, 'ngay_ky', None)
+    if ngay_ky:
+        if hasattr(ngay_ky, 'date'):
+            ky_date = timezone.localtime(ngay_ky).date() if timezone.is_aware(ngay_ky) else ngay_ky.date()
+        else:
+            ky_date = ngay_ky
+        min_month = date(ky_date.year, ky_date.month, 1)
+    else:
+        min_month = date(2026, 10, 1)
+
     alloc_qs = Allocation.objects.filter(
-        Q(allocation_month__gte=date(2026, 11, 1)) | Q(allocation_month=date(2026, 11, 1))
+        Q(allocation_month__gte=min_month) | Q(allocation_month__isnull=True)
     ).order_by('allocation_month', 'id')
 
     from orders.availability import get_allocation_status
@@ -390,7 +418,7 @@ def find_allocation_vehicles(hd, criteria):
 
             if m_req and m_car and m_req != m_car:
                 continue
-            if tr_req and tr_car and tr_req != tr_car:
+            if not trims_match(tr_req, tr_car):
                 continue
 
             matched_any = True
@@ -399,6 +427,16 @@ def find_allocation_vehicles(hd, criteria):
                 is_exact_color = True
 
         if matched_any:
+            alloc_m = alloc.allocation_month or date(2026, 11, 1)
+            ship_dt = alloc.expected_ship_date
+            if ship_dt and (ship_dt.year, ship_dt.month) < (alloc_m.year, alloc_m.month):
+                ship_dt = date(alloc_m.year, alloc_m.month, min(ship_dt.day, 25))
+            deliv_dt = alloc.contractual_delivery_date
+            if deliv_dt and (deliv_dt.year, deliv_dt.month) < (alloc_m.year, alloc_m.month):
+                deliv_dt = date(alloc_m.year, alloc_m.month, min(max(deliv_dt.day, 15), 28))
+            if not deliv_dt and not ship_dt:
+                deliv_dt = date(alloc_m.year, alloc_m.month, 20)
+
             matched_allocs.append({
                 'id': alloc.id,
                 'order_number': alloc.order_number or f'ORD-{alloc.id}',
@@ -409,14 +447,18 @@ def find_allocation_vehicles(hd, criteria):
                 'color_code': alloc.color_code or '',
                 'allocation_month': alloc.allocation_month,
                 'ky_phan_bo': alloc.allocation_month.strftime('Tháng %m/%Y') if alloc.allocation_month else 'Tháng 11/2026',
-                'expected_ship_date': alloc.expected_ship_date,
-                'contractual_delivery_date': alloc.contractual_delivery_date,
+                'expected_ship_date': ship_dt,
+                'contractual_delivery_date': deliv_dt,
                 'dealer_name': alloc.dealer_name or alloc.chi_nhanh or 'Dana Ford',
                 'is_exact_color': is_exact_color,
                 'phuong_an': 'Xe theo lịch phân bổ (Khớp màu)' if is_exact_color else f'Xe theo lịch phân bổ (Màu: {alloc.mau_sac or alloc.exterior_color})',
             })
 
-    matched_allocs.sort(key=lambda x: (not x['is_exact_color'], x['allocation_month'], x['order_number']))
+    matched_allocs.sort(key=lambda x: (
+        not x['is_exact_color'],
+        x['allocation_month'] or min_month,
+        x['order_number']
+    ))
     return matched_allocs
 
 
@@ -427,9 +469,6 @@ def find_allocation_vehicles(hd, criteria):
 @require_GET
 def suitable_vehicles(request, ma_hd):
     hd = get_object_or_404(HopDong, pk=ma_hd)
-    if not is_da_nang_branch(hd.chi_nhanh):
-        from django.http import Http404
-        raise Http404
     criteria, results, error = find_suitable(hd)
 
     # Tra cứu xe theo lịch phân bổ cho kỳ tiếp theo (Tháng 11/2026)
@@ -550,12 +589,14 @@ def choose_allocation_vehicle(request, ma_hd, alloc_id):
     ct_hd, ct_created = ChiTietHopDong.objects.get_or_create(hop_dong=hd, xe=car)
 
     update_fields = ['trang_thai']
-    if alloc.contractual_delivery_date:
-        hd.ngay_du_kien_giao = alloc.contractual_delivery_date
-        update_fields.append('ngay_du_kien_giao')
-    elif alloc.expected_ship_date:
-        hd.ngay_du_kien_giao = alloc.expected_ship_date
-        update_fields.append('ngay_du_kien_giao')
+    alloc_m = alloc.allocation_month or date(2026, 11, 1)
+    chosen_deliv = alloc.contractual_delivery_date or alloc.expected_ship_date
+    if chosen_deliv and (chosen_deliv.year, chosen_deliv.month) < (alloc_m.year, alloc_m.month):
+        chosen_deliv = date(alloc_m.year, alloc_m.month, min(max(chosen_deliv.day, 15), 28))
+    if not chosen_deliv:
+        chosen_deliv = date(alloc_m.year, alloc_m.month, 20)
+    hd.ngay_du_kien_giao = chosen_deliv
+    update_fields.append('ngay_du_kien_giao')
 
     hd.trang_thai = TrangThaiHopDong.CHO_XE_VE_KHO
     hd.save(update_fields=update_fields)
@@ -599,9 +640,6 @@ def choose_allocation_vehicle(request, ma_hd, alloc_id):
 @require_GET
 def suggested_vehicle_detail(request, ma_hd, vin):
     hd = get_object_or_404(HopDong, pk=ma_hd)
-    if not is_da_nang_branch(hd.chi_nhanh):
-        from django.http import Http404
-        raise Http404
     criteria, results, error = find_suitable(hd)
     if error:
         return JsonResponse({'error': error}, status=400)
@@ -705,6 +743,12 @@ def hoan_tat_hop_dong(request, ma_hd):
     # 5. Cập nhật trạng thái hợp đồng thành HOAN_TAT
     hd.trang_thai = TrangThaiHopDong.HOAN_TAT
     hd.save(update_fields=['trang_thai'])
+
+    try:
+        from alerts.utils import cap_nhat_tat_ca_canh_bao
+        cap_nhat_tat_ca_canh_bao()
+    except Exception:
+        pass
 
     # 6. Tạo thông báo toàn hệ thống
     try:

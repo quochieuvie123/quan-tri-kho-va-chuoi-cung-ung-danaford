@@ -29,7 +29,7 @@
   <div class="stats">
     <div class="card stat"><small>Tổng số lượng xe dự kiến đặt</small><strong id="tk-sl">{{ tk.tong_sl }}</strong></div>
     <div class="card stat"><small>Tỷ lệ so với chỉ tiêu hãng</small><strong id="tk-tl">{% if tk.ty_le is not None %}{{ tk.ty_le }}% ({{ tk.tong_sl }}/{{ tk.tong_chi_tieu }}){% else %}chưa có chỉ tiêu{% endif %}</strong></div>
-    <div class="card stat"><small>Tổng giá trị vốn nhập dự kiến</small><strong id="tk-von">{{ tk.tong_von|floatformat:"0g" }} đ</strong></div>
+    <div class="card stat"><small>Tổng giá trị vốn nhập dự kiến</small><strong id="tk-von">{{ tk.tong_von|tien_vn }} đ</strong></div>
   </div>
   <div id="canh-bao-vuot" class="msg msg--error" {% if not tk.vuot %}hidden{% endif %}>
     Tổng số lượng xe vượt quá hạn mức phân bổ được giao [<span id="vuot-sl">{{ tk.tong_sl }}</span>/<span id="vuot-ct">{{ tk.tong_chi_tieu }}</span> xe].

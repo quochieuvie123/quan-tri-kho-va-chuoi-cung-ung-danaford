@@ -81,7 +81,7 @@
 <div class="card">
   <h3>Đối chiếu hợp đồng và hóa đơn bán</h3>
   {% if doi_chieu.hop_le %}
-    <p><span class="badge badge--ok"><i class="bi bi-check-lg"></i> Khớp dữ liệu</span> Hóa đơn <strong>{{ doi_chieu.ma_hdb }}</strong> · số HĐ <strong>{{ doi_chieu.so_hoa_don }}</strong> · {{ doi_chieu.so_tien|floatformat:"0g" }} đ</p>
+    <p><span class="badge badge--ok"><i class="bi bi-check-lg"></i> Khớp dữ liệu</span> Hóa đơn <strong>{{ doi_chieu.ma_hdb }}</strong> · số HĐ <strong>{{ doi_chieu.so_hoa_don }}</strong> · {{ doi_chieu.so_tien|tien_vn }} đ</p>
   {% else %}
     <p><span class="badge badge--bad">Chưa khớp</span> {{ doi_chieu.canh_bao }}</p>
   {% endif %}

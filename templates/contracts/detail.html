@@ -72,9 +72,6 @@
           </p>
         </div>
       </div>
-      <a class="btn btn--primary" href="{% url 'warehouse:xuat_chi_tiet' hop_dong.phieu_xuat.ma_pxk %}" style="font-weight: 700;">
-        <i class="bi bi-box-arrow-up-right"></i> Chuyển tới Quản lý xuất kho để duyệt
-      </a>
     </div>
   </div>
   {% elif hop_dong.lenh_luu_chuyen %}
@@ -184,7 +181,7 @@
       </dd>
 
       <dt>Số tiền đặt cọc</dt>
-      <dd style="color: #166534; font-weight: 700;">{{ hop_dong.so_tien_coc }}</dd>
+      <dd style="color: #166534; font-weight: 700;">{{ hop_dong.so_tien_coc|tien_vn }}</dd>
     </dl>
   </div>
 
@@ -200,19 +197,6 @@
   <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
       <h2 class="section-title" style="margin: 0;">Danh sách xe đã liên kết với hợp đồng</h2>
-      {% if hop_dong.phieu_xuat and hop_dong.phieu_xuat.trang_thai == 'CHO_DUYET' %}
-      <a class="btn btn--primary" href="{% url 'warehouse:xuat_chi_tiet' hop_dong.phieu_xuat.ma_pxk %}" style="font-weight: 700;">
-        <i class="bi bi-box-arrow-up-right"></i> Duyệt xuất kho tại Quản lý xuất kho
-      </a>
-      {% elif hop_dong.xe and hop_dong.trang_thai != 'HOAN_TAT' %}
-      <form method="post" action="{% url 'contracts:hoan_tat' hop_dong.ma_hd %}" style="margin: 0;"
-            onsubmit="return confirm('Xác nhận xuất xe và hoàn tất hợp đồng {{ hop_dong.ma_hd }}? Số lượng tồn kho xe sẽ được trừ và lưu vào báo cáo.');">
-        {% csrf_token %}
-        <button type="submit" class="btn btn--success" style="background: #15803d; border-color: #15803d; color: #fff; font-weight: 700;">
-          <i class="bi bi-box-arrow-up-right"></i> Xuất kho xe & Hoàn tất hợp đồng
-        </button>
-      </form>
-      {% endif %}
     </div>
 
     {% if hop_dong.xe %}

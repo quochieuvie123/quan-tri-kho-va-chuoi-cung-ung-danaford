@@ -860,12 +860,33 @@ def danh_sach_yeu_cau(request):
             .order_by("-created_at")
         )
 
+    thang = (request.GET.get("thang") or request.GET.get("month") or "").strip()
+    trang_thai = (request.GET.get("trang_thai") or "").strip()
+    if thang and thang != "ALL" and "-" in thang:
+        try:
+            y_val, m_val = map(int, thang.split("-", 1))
+            phieu_yeu_cau = phieu_yeu_cau.filter(created_at__year=y_val, created_at__month=m_val)
+        except ValueError:
+            pass
+    if trang_thai:
+        phieu_yeu_cau = phieu_yeu_cau.filter(status=trang_thai)
+
+    thang_options = [
+        ("2026-11", "Tháng 11/2026"),
+        ("2026-10", "Tháng 10/2026"),
+        ("2026-09", "Tháng 09/2026"),
+        ("2026-08", "Tháng 08/2026"),
+    ]
+
     return render(
         request,
         "danh_sach_yc.html",
         {
             "phieu_yeu_cau": phieu_yeu_cau,
             "is_sale_admin": is_admin,
+            "thang": thang,
+            "trang_thai": trang_thai,
+            "thang_options": thang_options,
         }
     )
 

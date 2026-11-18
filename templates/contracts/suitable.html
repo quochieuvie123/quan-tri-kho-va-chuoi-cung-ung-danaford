@@ -116,7 +116,7 @@
       </a>
       <a class="source-jump" href="#xe-phan-bo" id="tab-xe-phan-bo">
         <i class="bi bi-calendar2-check"></i> 3. Nguồn phân bổ & Xe chờ PDI
-        <span class="count-badge">{% with total_t3=xe_phan_bo|length|add:xe_pyc|length %}{{ total_t3 }} xe{% endwith %}</span>
+        <span class="count-badge">{{ tiers_info.PHAN_BO.count|default:xe_phan_bo|length }} xe</span>
       </a>
     </div>
 
@@ -383,15 +383,23 @@
         </table>
       </div>
       {% else %}
-        <p class="source-empty">Lịch phân bổ các kỳ tiếp theo hiện chưa có xe phù hợp với tiêu chí của hợp đồng này.</p>
+        <div class="source-empty">
+          <p style="margin: 0 0 8px; font-weight: 600; color: #334155;">Lịch phân bổ các kỳ tiếp theo hiện chưa có xe phù hợp với tiêu chí của hợp đồng này.</p>
+          <p style="margin: 0; font-size: 13px; color: #64748b;">
+            Hướng xử lý nghiệp vụ: Hợp đồng sẽ giữ ở trạng thái <strong>Chờ xử lý</strong> (nhu cầu được tự động cộng vào cột <strong>Hợp đồng chờ giao xe</strong> bên Đề xuất nhập xe POQ để xin thêm phân bổ từ Ford Việt Nam ở kỳ tiếp theo).
+          </p>
+        </div>
         {% if co_the_cho_phan_bo %}
-        <div style="text-align: center; margin-top: 16px;">
-          <form method="post" action="{% url 'contracts:wait_allocation' ma_hd %}" style="display: inline-block;">
+        <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 16px;">
+          <form method="post" action="{% url 'contracts:wait_allocation' ma_hd %}" style="display: inline-block; margin: 0;">
             {% csrf_token %}
             <button class="btn btn--light" type="submit" style="color: #475569; border-color: #cbd5e1;">
-              <i class="bi bi-clock-history"></i> Chuyển trạng thái sang Chờ lịch phân bổ
+              <i class="bi bi-clock-history"></i> Xác nhận chờ đợt phân bổ tiếp theo
             </button>
           </form>
+          <a href="{% url 'orders:proposal_list' %}" class="btn btn--primary" style="text-decoration: none;">
+            <i class="bi bi-graph-up-arrow"></i> Xem Đề xuất POQ & Đặt xe bổ sung từ hãng
+          </a>
         </div>
         {% endif %}
       {% endif %}

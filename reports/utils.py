@@ -504,10 +504,11 @@ def tao_bao_cao(
         "dong": dong,
     }
 
-    # PDI theo trạng thái hiện tại.
+    # PDI theo trạng thái hiện tại (bao gồm cả sự cố từ hóa đơn nhập hãng và từ lệnh lưu chuyển nội bộ).
     pdi = BienBanPDI.objects.filter(
-        hoa_don_nhap__chi_nhanh_id__in=chi_nhanh_ids
-    )
+        Q(hoa_don_nhap__chi_nhanh_id__in=chi_nhanh_ids)
+        | Q(lenh_luu_chuyen__kho_nhap__chi_nhanh_id__in=chi_nhanh_ids)
+    ).distinct()
 
     if ten:
         pdi = pdi.filter(
@@ -527,6 +528,7 @@ def tao_bao_cao(
         pdi.select_related(
             "xe",
             "hoa_don_nhap",
+            "lenh_luu_chuyen__kho_nhap",
         ).order_by(
             "ngay_ghi_nhan",
             "pk",
@@ -538,10 +540,15 @@ def tao_bao_cao(
         )
 
         trang_thai[state] += 1
+        cn_id = (
+            item.hoa_don_nhap.chi_nhanh_id
+            if item.hoa_don_nhap_id
+            else (item.lenh_luu_chuyen.kho_nhap.chi_nhanh_id if item.lenh_luu_chuyen_id and item.lenh_luu_chuyen.kho_nhap else "CN01")
+        )
 
         dong.append([
             item.pk,
-            item.hoa_don_nhap.chi_nhanh_id,
+            cn_id,
             dinh_dang_ngay(item.ngay_ghi_nhan),
             item.xe_id,
             item.xe.ten_xe,

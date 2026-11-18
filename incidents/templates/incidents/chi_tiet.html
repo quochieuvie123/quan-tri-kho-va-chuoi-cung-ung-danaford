@@ -164,7 +164,7 @@
   <h3>Kết quả xử lý</h3>
   <dl class="kv">
     <dt>Hình thức khắc phục</dt><dd>{{ ho_so.get_hinh_thuc_khac_phuc_display }}</dd>
-    {% if ho_so.so_tien_boi_thuong is not None %}<dt>Số tiền bồi thường</dt><dd>{{ ho_so.so_tien_boi_thuong|floatformat:"0g" }} đ</dd>{% endif %}
+    {% if ho_so.so_tien_boi_thuong is not None %}<dt>Số tiền bồi thường</dt><dd>{{ ho_so.so_tien_boi_thuong|tien_vn }} đ</dd>{% endif %}
     <dt>Ngày xác nhận</dt><dd>{{ ho_so.ngay_xac_nhan|date:"d/m/Y" }}</dd>
     {% if ho_so.bien_ban_thoa_thuan %}<dt>Biên bản thỏa thuận</dt><dd><a href="{% url 'incidents:tep_thoa_thuan' bb.ma_pdi %}">Tải về</a></dd>{% endif %}
   </dl>

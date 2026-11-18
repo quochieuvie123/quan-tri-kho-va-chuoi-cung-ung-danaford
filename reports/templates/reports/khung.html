@@ -173,7 +173,17 @@
     </div>
 </div>
 <section class="bc">
-    <form method="get">
+    <form method="get" id="form-bao-cao">
+        <div class="truong">
+            <label for="chon-nhanh-thang">Kỳ tháng (Đồng bộ)</label>
+            <select id="chon-nhanh-thang" onchange="chonNhanhThangBaoCao(this.value);">
+                <option value="">-- Chọn nhanh theo tháng --</option>
+                <option value="2026-11" {% if request.GET.tu_ngay == '2026-11-01' %}selected{% endif %}>Tháng 11/2026</option>
+                <option value="2026-10" {% if request.GET.tu_ngay == '2026-10-01' %}selected{% endif %}>Tháng 10/2026</option>
+                <option value="2026-09" {% if request.GET.tu_ngay == '2026-09-01' %}selected{% endif %}>Tháng 09/2026</option>
+                <option value="2026-08" {% if request.GET.tu_ngay == '2026-08-01' %}selected{% endif %}>Tháng 08/2026</option>
+            </select>
+        </div>
         {% for field in form %}
         <div class="truong">
             {{ field.label_tag }}
@@ -182,17 +192,37 @@
         </div>
         {% endfor %}
 
-        <button class="nut" type="submit">
+        <button class="nut" type="submit" style="align-self: flex-end;">
             Áp dụng bộ lọc
         </button>
 
         <a
             class="nut phu"
             href="{% url 'dashboard:index' %}"
+            style="align-self: flex-end;"
         >
             Xóa bộ lọc
         </a>
     </form>
+    <script>
+    function chonNhanhThangBaoCao(ym) {
+        const tu = document.getElementById('id_tu_ngay');
+        const den = document.getElementById('id_den_ngay');
+        if (!tu || !den) return;
+        if (!ym) {
+            tu.value = '';
+            den.value = '';
+        } else {
+            const parts = ym.split('-');
+            const y = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10);
+            const lastDay = new Date(y, m, 0).getDate();
+            tu.value = `${ym}-01`;
+            den.value = `${ym}-${String(lastDay).padStart(2, '0')}`;
+        }
+        document.getElementById('form-bao-cao').submit();
+    }
+    </script>
 
     {{ form.non_field_errors }}
 

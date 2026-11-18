@@ -97,6 +97,9 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.layout'
             ],
+            'builtins': [
+                'core.templatetags.tien_filters',
+            ],
         },
     },
 ]

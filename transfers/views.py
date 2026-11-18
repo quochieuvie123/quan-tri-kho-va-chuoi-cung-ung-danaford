@@ -58,7 +58,8 @@ def link_callback(uri, rel):
 @login_required
 def danh_sach_ton_kho(request):
     """Màn hình danh sách xe tồn kho sẵn sàng lập lệnh lưu chuyển."""
-    ds_kho = Kho.objects.select_related('chi_nhanh').all()
+    from database.models import ChiTietHopDong, BienBanPDI, TrangThaiXe
+    ds_kho = Kho.objects.select_related('chi_nhanh').all().order_by('ma_kho')
     ds_ton_kho = TonKho.objects.select_related(
         'kho',
         'kho__chi_nhanh',
@@ -66,6 +67,10 @@ def danh_sach_ton_kho(request):
     ).filter(
         so_luong_ton__gt=0
     )
+
+    kho_filter = request.GET.get('kho', '').strip()
+    if kho_filter:
+        ds_ton_kho = ds_ton_kho.filter(kho_id=kho_filter)
 
     tu_khoa = request.GET.get('q', '').strip()
     if tu_khoa:
@@ -76,12 +81,43 @@ def danh_sach_ton_kho(request):
             Q(kho__chi_nhanh__ten_cn__icontains=tu_khoa)
         )
 
-    ds_ton_kho = ds_ton_kho.order_by('kho__ma_kho')
+    ds_ton_kho = list(ds_ton_kho.order_by('kho__ma_kho', 'xe__ten_xe'))
+
+    # Đánh dấu trạng thái điều chuyển thực tế và kiểm tra xe nào Đà Nẵng đang hết
+    dn_models = set(
+        TonKho.objects.filter(kho__chi_nhanh_id='CN01', so_luong_ton__gt=0, xe__trang_thai=TrangThaiXe.SAN_SANG)
+        .values_list('xe__ten_xe', flat=True)
+    )
+    open_transfer_vins = set(
+        ChiTietLenhLuuChuyen.objects.filter(lenh__trang_thai__in=services.ACTIVE_TRANSFER_STATUSES)
+        .values_list('xe_id', flat=True)
+    )
+    contract_vins = set(ChiTietHopDong.objects.values_list('xe_id', flat=True))
+    pdi_err_vins = set(
+        BienBanPDI.objects.exclude(trang_thai_claim='Đã xử lý').values_list('xe_id', flat=True)
+    )
+
+    for item in ds_ton_kho:
+        vin = item.xe_id
+        if vin in open_transfer_vins:
+            item.co_the_dieu_chuyen = False
+            item.nhan_trang_thai = "Đang trong lệnh lưu chuyển"
+        elif vin in contract_vins or item.xe.trang_thai != TrangThaiXe.SAN_SANG:
+            item.co_the_dieu_chuyen = False
+            item.nhan_trang_thai = "Đang giữ chỗ Hợp đồng"
+        elif vin in pdi_err_vins:
+            item.co_the_dieu_chuyen = False
+            item.nhan_trang_thai = "Đang xử lý sự cố PDI"
+        else:
+            item.co_the_dieu_chuyen = True
+            item.nhan_trang_thai = "Sẵn sàng điều chuyển"
+        item.da_nang_het_xe = (item.kho.chi_nhanh_id != 'CN01' and item.xe.ten_xe not in dn_models)
 
     context = {
         'ds_kho': ds_kho,
         'ds_ton_kho': ds_ton_kho,
         'tu_khoa': tu_khoa,
+        'kho_filter': kho_filter,
     }
 
     ds_da_chon = request.session.get("ds_xe_luu_chuyen", [])
@@ -110,15 +146,30 @@ def danh_sach_ton_kho(request):
 @login_required
 def chi_tiet_xe(request, id):
     """Chi tiết xe trước khi thêm vào danh sách điều chuyển."""
+    from database.models import HopDong, ChiTietHopDong, TrangThaiHopDong
+    from contracts.matching import matches_contract_smart
     ton_kho = get_object_or_404(
         TonKho.objects.select_related("xe", "kho", "kho__chi_nhanh"),
         pk=id
     )
 
-    ds_kho_nhan = Kho.objects.exclude(pk=ton_kho.kho_id).select_related("chi_nhanh")
+    ds_kho_nhan = Kho.objects.exclude(pk=ton_kho.kho_id).select_related("chi_nhanh").order_by("ma_kho")
+
+    # Tìm các hợp đồng khách hàng tại Đà Nẵng đang chờ xe phù hợp với chiếc xe này
+    ds_hop_dong_da_nang = []
+    if ton_kho.kho.chi_nhanh_id != "CN01":
+        waiting_hds = HopDong.objects.filter(
+            chi_nhanh_id="CN01",
+            trang_thai__in=[TrangThaiHopDong.CHO_XU_LY, TrangThaiHopDong.CHO_PHAN_BO],
+            chitiethopdong__isnull=True,
+        ).select_related("khach_hang").order_by("ngay_ky", "ma_hd")
+        for hd in waiting_hds:
+            if matches_contract_smart(ton_kho.xe, hd):
+                ds_hop_dong_da_nang.append(hd)
 
     if request.method == "POST":
         kho_nhan_id = request.POST.get("kho_nhan")
+        hop_dong_id = (request.POST.get("hop_dong_id") or "").strip()
         so_luong_nhap = request.POST.get("so_luong", "1")
 
         try:
@@ -141,6 +192,22 @@ def chi_tiet_xe(request, id):
         except ValidationError as exc:
             messages.error(request, str(exc.message if hasattr(exc, "message") else exc))
             return redirect("transfers:chi_tiet_xe", id=id)
+
+        # Nếu chọn gắn trực tiếp Hợp đồng khách hàng tại Đà Nẵng -> tự động lập lệnh lưu chuyển và gán vào hợp đồng
+        if hop_dong_id:
+            hd_target = HopDong.objects.filter(pk=hop_dong_id).first()
+            if hd_target:
+                try:
+                    from contracts.workflow import choose_vehicle
+                    choose_vehicle(hd_target.pk, ton_kho.xe.vin, request.user)
+                    messages.success(
+                        request,
+                        f"Đã chốt xe {ton_kho.xe.vin} từ {ton_kho.kho.chi_nhanh.ten_cn} cho Hợp đồng {hd_target.ma_hd} (Khách hàng: {hd_target.khach_hang.ten_kh}) và tự động lập lệnh lưu chuyển về Đà Nẵng!"
+                    )
+                    return redirect("transfers:danh_sach_lenh")
+                except ValidationError as exc:
+                    messages.error(request, " ".join(exc.messages))
+                    return redirect("transfers:chi_tiet_xe", id=id)
 
         ds_da_chon = request.session.get("ds_xe_luu_chuyen", [])
         da_co = False
@@ -165,6 +232,8 @@ def chi_tiet_xe(request, id):
     return render(request, "transfers/chi_tiet_xe.html", {
         "ton_kho": ton_kho,
         "ds_kho_nhan": ds_kho_nhan,
+        "ds_hop_dong_da_nang": ds_hop_dong_da_nang,
+        "kho_nhan_mac_dinh": "KHO01" if ton_kho.kho_id != "KHO01" else "",
     })
 
 
@@ -251,6 +320,7 @@ def xac_nhan_lenh_luu_chuyen(request):
 def danh_sach_lenh_luu_chuyen(request):
     """Màn hình danh sách tất cả các lệnh lưu chuyển nội bộ."""
     trang_thai = request.GET.get("trang_thai", "").strip()
+    thang = (request.GET.get("thang") or request.GET.get("month") or "").strip()
     tu_khoa = request.GET.get("q", "").strip()
 
     ds_lenh = LenhLuuChuyen.objects.select_related(
@@ -267,6 +337,13 @@ def danh_sach_lenh_luu_chuyen(request):
         else:
             ds_lenh = ds_lenh.filter(trang_thai=trang_thai)
 
+    if thang and thang != "ALL" and "-" in thang:
+        try:
+            y_val, m_val = map(int, thang.split("-", 1))
+            ds_lenh = ds_lenh.filter(ngay_lap__year=y_val, ngay_lap__month=m_val)
+        except ValueError:
+            pass
+
     if tu_khoa:
         ds_lenh = ds_lenh.filter(
             Q(ma_lenh__icontains=tu_khoa) |
@@ -277,9 +354,18 @@ def danh_sach_lenh_luu_chuyen(request):
             Q(tai_xe__icontains=tu_khoa)
         )
 
+    thang_options = [
+        ("2026-11", "Tháng 11/2026"),
+        ("2026-10", "Tháng 10/2026"),
+        ("2026-09", "Tháng 09/2026"),
+        ("2026-08", "Tháng 08/2026"),
+    ]
+
     return render(request, "transfers/danh_sach_lenh.html", {
         "ds_lenh": ds_lenh,
         "trang_thai": trang_thai,
+        "thang": thang,
+        "thang_options": thang_options,
         "tu_khoa": tu_khoa,
     })
 

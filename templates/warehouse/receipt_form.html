@@ -11,7 +11,7 @@
   <div class="page-header">
     <div>
       <h1 class="page-header__title">Lập phiếu nhập kho mới</h1>
-      <p class="page-header__subtitle">Khởi tạo phiếu nhập xe từ chứng từ hóa đơn và phân bổ vào kho chi nhánh</p>
+      <p class="page-header__subtitle">Khởi tạo phiếu tiếp nhận xe theo tên dòng xe hoặc từ lệnh lưu chuyển về kho Đà Nẵng</p>
     </div>
     <div>
       <a class="btn btn--light" href="{% url 'warehouse:nhap' %}">
@@ -22,17 +22,13 @@
 
   <div class="card" style="max-width: 850px;">
     <h2 class="section-title">Thông tin phiếu nhập kho</h2>
-    <form method="get" class="filters">
-      <label>Tìm xe theo VIN, tên xe, phiên bản, màu hoặc mã lệnh</label>
-      <input class="input" name="q" value="{{ request.GET.q }}" placeholder="Nhập điều kiện tra cứu">
-      <button class="btn btn--light" type="submit">Tìm xe</button>
-    </form>
+
     <form method="post" class="stack">
       {% csrf_token %}
       <div class="grid">
         <div class="field">
           <label>Mã phiếu nhập</label>
-          <input class="input" name="ma_phieu" value="{{ form_data.ma_phieu }}" placeholder="Hệ thống tự sinh (PNK...) nếu để trống">
+          <input class="input" name="ma_phieu" value="{{ form_data.ma_phieu }}" placeholder="Hệ thống tự sinh (PN...) nếu để trống">
           <small style="color: #64748b; font-size: 11px;">Để trống để hệ thống tự cấp mã tự động</small>
         </div>
 
@@ -41,24 +37,59 @@
           <input class="input" type="date" name="ngay_nhap" value="{{ ngay_nhap_mac_dinh }}" required>
         </div>
 
+        {% if preset_source %}
+        <!-- TRƯỜNG HỢP 2: Đọc trực tiếp dữ liệu xe khi bấm nút "Lập phiếu" từ Lệnh lưu chuyển / Danh sách ngoài (Không hiện droplist) -->
         <div class="field" style="grid-column: 1 / -1;">
-          <label>Xe / Số khung (VIN) từ chứng từ hãng hoặc lệnh lưu chuyển *</label>
-          <select class="select" name="nguon_xe" required>
-            <option value="">-- Chọn xe theo số khung VIN từ chứng từ --</option>
-            {% for line in xe_co_the_nhap %}
-              <option value="hang:{{ line.pk }}" data-detail="{{ line.xe.phien_ban|default:'Chưa có phiên bản' }} · {{ line.xe.mau_sac }} · Số máy: {{ line.xe.so_may }}">
-                {{ line.xe_id }} — {{ line.xe.ten_xe }} (NCC: {{ line.hoa_don_nhap.nha_cung_cap.ten_ncc }})
-              </option>
-            {% endfor %}
-            {% for line in xe_luu_chuyen %}<option value="luu-chuyen:{{ line.pk }}" data-detail="{{ line.xe.phien_ban|default:'Chưa có phiên bản' }} · {{ line.xe.mau_sac }} · Số máy: {{ line.xe.so_may }} · Chờ kiểm tra PDI tại kho nhận">{{ line.xe_id }} — {{ line.xe.ten_xe }} (Lệnh {{ line.lenh.ma_lenh }})</option>{% endfor %}
-          </select>
-          <p id="source-preview" aria-live="polite"></p>
+          <label>Thông tin xe tiếp nhận từ {{ preset_source.loai_hien_thi }} *</label>
+          <input type="hidden" name="nguon_xe" value="{{ preset_source.nguon_xe }}">
+          <input type="hidden" name="ten_dong_xe" value="{{ preset_source.ten_xe }}">
+          <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-left: 4px solid #0284c7; border-radius: 8px; padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 6px;">
+              <strong style="font-size: 15px; color: #0b2a4a;">
+                <i class="bi bi-car-front-fill" style="color: #0284c7;"></i> {{ preset_source.ten_xe }}
+              </strong>
+              <span class="badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;">
+                Nguồn: {{ preset_source.chi_nhanh_nguon }} ({{ preset_source.loai_hien_thi }})
+              </span>
+            </div>
+            <div style="font-size: 13px; color: #334155; display: flex; gap: 18px; flex-wrap: wrap;">
+              <span><strong>Số khung (VIN):</strong> <code style="font-weight: 700; color: #0067c5;">{{ preset_source.vin }}</code></span>
+              <span><strong>Phiên bản:</strong> {{ preset_source.phien_ban }}</span>
+              <span><strong>Màu sắc:</strong> {{ preset_source.mau_sac }}</span>
+              <span><strong>Số máy:</strong> {{ preset_source.so_may }}</span>
+            </div>
+          </div>
         </div>
+        {% else %}
+        <!-- TRƯỜNG HỢP 1: Lập phiếu thủ công — Chỉ nhập Tên Dòng xe, hệ thống tự động tìm chi nhánh có xe (Không hiện droplist & không hiện Nhà cung cấp) -->
+        <div class="field" style="grid-column: 1 / -1;">
+          <label for="id_ten_dong_xe">Tên dòng xe cần lập phiếu nhập kho *</label>
+          <input
+            class="input"
+            type="text"
+            id="id_ten_dong_xe"
+            name="ten_dong_xe"
+            list="datalist-dong-xe"
+            value="{{ form_data.ten_dong_xe }}"
+            placeholder="Nhập tên dòng xe (Ví dụ: Ford Ranger, Ford Everest, Ford Territory...)"
+            autocomplete="off"
+            required
+          >
+          <datalist id="datalist-dong-xe">
+            {% for ten in ds_ten_dong_xe %}
+              <option value="{{ ten }}"></option>
+            {% endfor %}
+          </datalist>
+          <small style="color: #64748b; font-size: 12px; display: block; margin-top: 4px;">
+            Chỉ cần nhập tên dòng xe (không cần chọn nhà cung cấp hay tìm mã VIN thủ công). Hệ thống sẽ tự động tra cứu chi nhánh đang có xe để lập phiếu.
+          </small>
+          <div id="auto-branch-preview" aria-live="polite" style="display: none; margin-top: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #0067c5; border-radius: 8px; padding: 12px 14px; font-size: 13px; color: #1e293b;"></div>
+        </div>
+        {% endif %}
 
         <div class="field" style="grid-column: 1 / -1;">
           <label>Kho chi nhánh tiếp nhận *</label>
           <select class="select" name="kho_id" required>
-            <option value="">-- Chọn kho lưu trữ --</option>
             {% for item in kho %}
               <option value="{{ item.pk }}"{% if form_data.kho_id == item.pk %} selected{% endif %}>{{ item.ma_kho }} - {{ item.chi_nhanh.ten_cn }}</option>
             {% endfor %}
@@ -80,16 +111,49 @@
 {% endblock %}
 
 {% block extra_js %}
-{{ form_data.nguon_xe|json_script:"selected-source" }}
+{{ candidates_by_model|json_script:"candidates-by-model-data" }}
 <script>
-const sourceSelect = document.querySelector('[name="nguon_xe"]');
-const selectedSource = JSON.parse(document.getElementById('selected-source').textContent);
-if (selectedSource) sourceSelect.value = selectedSource;
-function previewSource() {
-  const option = sourceSelect.selectedOptions[0];
-  document.getElementById('source-preview').textContent = option?.dataset.detail || '';
-}
-sourceSelect.addEventListener('change', previewSource);
-previewSource();
+(function() {
+  const inputDongXe = document.getElementById('id_ten_dong_xe');
+  const previewBox = document.getElementById('auto-branch-preview');
+  const dataEl = document.getElementById('candidates-by-model-data');
+  if (!inputDongXe || !previewBox || !dataEl) return;
+
+  const candidates = JSON.parse(dataEl.textContent || '[]');
+
+  function updatePreview() {
+    const q = (inputDongXe.value || '').trim().toLowerCase();
+    if (!q) {
+      previewBox.style.display = 'none';
+      previewBox.innerHTML = '';
+      return;
+    }
+    const matched = candidates.filter(c =>
+      (c.ten_xe || '').toLowerCase().includes(q) ||
+      (c.vin || '').toLowerCase() === q
+    );
+    previewBox.style.display = 'block';
+    if (matched.length > 0) {
+      const first = matched[0];
+      previewBox.style.borderLeftColor = '#16a34a';
+      previewBox.style.background = '#f0fdf4';
+      previewBox.innerHTML =
+        `<div style="font-weight: 700; color: #166534; margin-bottom: 4px;">` +
+        `<i class="bi bi-check-circle-fill"></i> Đã tìm thấy xe phù hợp tại: <span style="color: #0067c5;">${first.chi_nhanh}</span>` +
+        `</div>` +
+        `<div><strong>Dòng xe:</strong> ${first.ten_xe} · <strong>VIN:</strong> <code>${first.vin}</code> · <strong>Màu:</strong> ${first.mau_sac} · <strong>Số máy:</strong> ${first.so_may}</div>` +
+        (matched.length > 1 ? `<div style="font-size: 11.5px; color: #475569; margin-top: 4px;">(Còn ${matched.length - 1} xe cùng dòng khác sẵn sàng tiếp nhận)</div>` : '');
+    } else {
+      previewBox.style.borderLeftColor = '#f59e0b';
+      previewBox.style.background = '#fffbeb';
+      previewBox.innerHTML =
+        `<span style="color: #b45309;"><i class="bi bi-info-circle"></i> Hệ thống sẽ tự động dò tìm dòng xe <strong>"${inputDongXe.value}"</strong> trong danh mục xe các chi nhánh khi bạn bấm Lưu phiếu.</span>`;
+    }
+  }
+
+  inputDongXe.addEventListener('input', updatePreview);
+  inputDongXe.addEventListener('change', updatePreview);
+  updatePreview();
+})();
 </script>
 {% endblock %}
