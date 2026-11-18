@@ -492,8 +492,10 @@ def dat_xe(request):
             "current_cn": current_cn,
             "current_cn_name": cn_name,
         }
-        # Lấy danh sách xe đã chọn trong Session
+        # Lấy danh sách xe đã chọn trong Session (kèm mã hợp đồng nếu được đẩy sang từ Quản lý hợp đồng)
+        from database.models import ChiTietHopDong
         danh_sach = request.session.get("selected_vehicles", {})
+        selected_contracts = request.session.get("selected_vehicle_contracts", {})
 
         xe_da_chon = []
 
@@ -501,9 +503,11 @@ def dat_xe(request):
             xe = Allocation.objects.filter(id=ma_xe).first()
 
             if xe:
+                ma_hd_link = selected_contracts.get(str(ma_xe)) or ChiTietHopDong.objects.filter(xe__vin=xe.vin).values_list("hop_dong_id", flat=True).first()
                 xe_da_chon.append({
                     "xe": xe,
-                    "quantity": so_luong
+                    "quantity": so_luong,
+                    "ma_hd": ma_hd_link,
                 })
         context["xe_da_chon"] = xe_da_chon
         return render(request, "tim_kiem_xe.html", context)
@@ -626,11 +630,18 @@ def lap_phieu_yeu_cau(request):
         hold_minutes = getattr(settings, "ORDER_DRAFT_HOLD_MINUTES", 10)
         hold_until = timezone.now() + timedelta(minutes=hold_minutes)
 
+        from database.models import ChiTietHopDong, HopDong
+        selected_contracts = request.session.get("selected_vehicle_contracts", {})
         alloc_ids = [item["xe"].id for item in xe_trong_phieu]
         locked_allocs = list(Allocation.objects.select_for_update().filter(id__in=alloc_ids))
 
+        matched_hd = None
         for alloc in locked_allocs:
-            status_info = get_allocation_status(alloc)
+            ma_hd_link = selected_contracts.get(str(alloc.id)) or ChiTietHopDong.objects.filter(xe__vin=alloc.vin).values_list("hop_dong_id", flat=True).first()
+            target_hd = HopDong.objects.filter(pk=ma_hd_link).first() if ma_hd_link else None
+            if target_hd and not matched_hd:
+                matched_hd = target_hd
+            status_info = get_allocation_status(alloc, target_hd=target_hd)
             if not status_info["is_available"]:
                 messages.error(request, f"Xe VIN {alloc.vin} không còn trống: {status_info['label']}.")
                 return redirect("orders:vehicle_orders")
@@ -638,7 +649,8 @@ def lap_phieu_yeu_cau(request):
         phieu = VehicleRequest.objects.create(
             created_by=request.user,
             status=VehicleRequest.Status.DRAFT,
-            hold_until=hold_until
+            hold_until=hold_until,
+            hop_dong=matched_hd,
         )
 
         for alloc in locked_allocs:
@@ -648,6 +660,7 @@ def lap_phieu_yeu_cau(request):
                 quantity=1
             )
         request.session["selected_vehicles"] = {}
+        request.session["selected_vehicle_contracts"] = {}
 
         # Ghi nhận phiếu nháp thành công, chờ người dùng gửi để Sale Admin duyệt trước khi chuyển sang kho.
 
@@ -738,8 +751,13 @@ def gui_phieu_yeu_cau(request, id):
         return redirect("orders:danh_sach_yeu_cau")
 
     # Kiểm tra xe có bị chiếm bởi giao dịch khác hay không
+    from database.models import ChiTietHopDong
     for item in phieu.items.select_related("allocation").all():
-        status_info = get_allocation_status(item.allocation, exclude_request_id=phieu.id)
+        target_hd = phieu.hop_dong
+        if not target_hd:
+            ct_hd = ChiTietHopDong.objects.filter(xe__vin=item.allocation.vin).select_related("hop_dong").first()
+            target_hd = ct_hd.hop_dong if ct_hd else None
+        status_info = get_allocation_status(item.allocation, target_hd=target_hd, exclude_request_id=phieu.id)
         if not status_info["is_available"]:
             messages.error(request, f"Xe VIN {item.allocation.vin} không khả dụng để gửi: {status_info['label']}.")
             return redirect("orders:phieu_yeu_cau", id=phieu.id)

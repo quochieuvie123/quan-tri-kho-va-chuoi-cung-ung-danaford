@@ -575,6 +575,10 @@ def receipt_create_page(request):
                 lenh_auto = tao_lenh_luu_chuyen(request.user, st_obj.kho, kho_dich, ds_xe=[st_obj.xe])
                 lenh_auto = gui_lenh_luu_chuyen(request.user, lenh_auto.pk)
                 lenh_auto = duyet_lenh_luu_chuyen(request.user, lenh_auto.pk)
+                st_obj.so_luong_ton = 0
+                st_obj.save(update_fields=['so_luong_ton'])
+                st_obj.xe.trang_thai = TrangThaiXe.DANG_LUU_CHUYEN
+                st_obj.xe.save(update_fields=['trang_thai'])
                 obj = services.create_receipt(
                     request.user,
                     ma_phieu=ma_phieu,

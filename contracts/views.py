@@ -175,6 +175,11 @@ def detail(request, ma_hd):
     if wants_html(request):
         ctx = dict(result)
         ctx['phieu_xuat'] = PhieuXuatKho.objects.filter(chi_tiet_hop_dong__hop_dong=hd).select_related('kho', 'nguoi_lap', 'nguoi_duyet').first()
+        ctx['co_ton_da_nang'] = TonKho.objects.filter(
+            xe_id__in=result['vin_hien_thi'],
+            kho__chi_nhanh_id='CN01',
+            so_luong_ton__gt=0,
+        ).exists() if result['vin_hien_thi'] else False
         try:
             from transfers.models import LenhLuuChuyen
             ctx['lenh_luu_chuyen'] = LenhLuuChuyen.objects.filter(chi_tiet__xe__chitiethopdong__hop_dong=hd).select_related('kho_xuat__chi_nhanh', 'kho_nhap__chi_nhanh').first()
@@ -582,7 +587,7 @@ def choose_allocation_vehicle(request, ma_hd, alloc_id):
             'mau_sac': alloc.mau_sac or alloc.exterior_color or 'Tiêu chuẩn',
             'so_may': alloc.engine_number or f"ENG-{alloc.vin[-8:]}",
             'nam_sx': 2026,
-            'trang_thai': TrangThaiXe.GIU_CHO_XUAT,
+            'trang_thai': TrangThaiXe.SAN_SANG,
         }
     )
 
@@ -601,34 +606,20 @@ def choose_allocation_vehicle(request, ma_hd, alloc_id):
     hd.trang_thai = TrangThaiHopDong.CHO_XE_VE_KHO
     hd.save(update_fields=update_fields)
 
-    # Tự động lập Phiếu yêu cầu đặt xe bên Module Đặt xe (orders) để hiển thị trong Danh sách yêu cầu đặt xe
-    try:
-        from orders.models import VehicleRequest, VehicleRequestItem
-        from warehouse.order_intake import sync_request
+    # Đưa xe vào "Danh sách xe đã chọn đặt hàng" bên Quản lý đặt xe kèm mã hợp đồng (KHÔNG tự duyệt mua ngay khi chốt xe)
+    selected_vehicles = dict(request.session.get('selected_vehicles', {}))
+    selected_vehicles[str(alloc.id)] = 1
+    request.session['selected_vehicles'] = selected_vehicles
 
-        req_item = VehicleRequestItem.objects.filter(allocation=alloc).exclude(vehicle_request__status=VehicleRequest.Status.REJECTED).first()
-        if not req_item:
-            pyc = VehicleRequest.objects.create(
-                created_by=request.user,
-                status=VehicleRequest.Status.ACCEPTED,
-                sent_at=timezone.now(),
-                hop_dong=hd,
-            )
-            VehicleRequestItem.objects.create(
-                vehicle_request=pyc,
-                allocation=alloc,
-                quantity=1
-            )
-            # Đồng bộ sang Kho để tạo phiếu nhập dự kiến (PhieuNhapKho ở trạng thái NHAP)
-            sync_request(pyc.pk)
-    except Exception as e:
-        print("Lỗi tạo VehicleRequest tự động từ Hợp đồng:", repr(e))
+    selected_contracts = dict(request.session.get('selected_vehicle_contracts', {}))
+    selected_contracts[str(alloc.id)] = hd.ma_hd
+    request.session['selected_vehicle_contracts'] = selected_contracts
 
     ky_str = alloc.allocation_month.strftime('%m/%Y') if alloc.allocation_month else '11/2026'
     messages.success(
         request,
-        f'Đã chọn xe VIN {alloc.vin} ({alloc.description}) từ lịch phân bổ Kỳ Tháng {ky_str} cho hợp đồng {hd.ma_hd}. '
-        f'Trạng thái hợp đồng: {hd.get_trang_thai_display()}.'
+        f'Đã chốt xe VIN {alloc.vin} ({alloc.description}) từ lịch phân bổ Kỳ Tháng {ky_str} cho hợp đồng {hd.ma_hd} '
+        f'và đưa vào Danh sách xe đã chọn đặt hàng. Vui lòng sang Quản lý đặt xe để lập/gửi và duyệt Phiếu yêu cầu đặt xe (PYC).'
     )
     return redirect('contracts:detail', ma_hd=ma_hd)
 

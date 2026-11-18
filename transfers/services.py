@@ -205,7 +205,8 @@ def gui_lenh_luu_chuyen(user, order_id):
 @transaction.atomic
 def duyet_lenh_luu_chuyen(user, order_id):
     """Chuyển trạng thái: CHO_DUYET (hoặc DA_GUI) -> DA_DUYET.
-    Chỉ Sale Admin được duyệt. KHÔNG trừ tồn kho nguồn.
+    Chỉ Sale Admin được duyệt phương án lưu chuyển.
+    KHÔNG trừ tồn kho nguồn và CHƯA duyệt xuất bán (tồn nguồn chỉ giảm khi kho nguồn xác nhận xuất xe).
     """
     kiem_tra_quyen_sale_admin(user)
     order = LenhLuuChuyen.objects.select_for_update().select_related("kho_xuat", "kho_nhap").get(pk=order_id)
@@ -218,30 +219,9 @@ def duyet_lenh_luu_chuyen(user, order_id):
 
     for item in lines:
         car = Xe.objects.select_for_update().get(pk=item.xe_id)
-        stock = TonKho.objects.select_for_update().filter(kho=order.kho_xuat, xe=car).first()
-        if stock and stock.so_luong_ton > 0:
-            stock.so_luong_ton = max(0, stock.so_luong_ton - 1)
-            stock.save(update_fields=["so_luong_ton"])
-        car.trang_thai = TrangThaiXe.DANG_LUU_CHUYEN
-        car.save(update_fields=["trang_thai"])
-
-        # Hợp đồng chuyển sang trạng thái HOÀN TẤT
-        linked_contracts = HopDong.objects.select_for_update().filter(
-            chitiethopdong__xe=car
-        ).distinct()
-        for hd in linked_contracts:
-            hd.trang_thai = TrangThaiHopDong.HOAN_TAT
-            hd.save(update_fields=["trang_thai"])
-            PhieuXuatKho.objects.filter(
-                chi_tiet_hop_dong__hop_dong=hd,
-                trang_thai=TrangThaiPhieuXuat.CHO_DUYET
-            ).update(trang_thai=TrangThaiPhieuXuat.DA_DUYET)
-            ghi_thong_bao(
-                user,
-                f"Hoàn tất hợp đồng {hd.ma_hd}",
-                f"Hợp đồng {hd.ma_hd} đã chuyển trạng thái Hoàn tất sau khi lệnh lưu chuyển xe {car.vin} được Sale Admin phê duyệt.",
-                loai="THANH_CONG"
-            )
+        if car.trang_thai == TrangThaiXe.SAN_SANG:
+            car.trang_thai = TrangThaiXe.GIU_CHO_XUAT
+            car.save(update_fields=["trang_thai"])
 
     order.trang_thai = LenhLuuChuyen.TrangThai.DA_DUYET
     order.nguoi_duyet = user
@@ -251,7 +231,7 @@ def duyet_lenh_luu_chuyen(user, order_id):
     ghi_thong_bao(
         user,
         f"Phê duyệt lệnh lưu chuyển {order.ma_lenh}",
-        f"Sale Admin đã phê duyệt lệnh lưu chuyển {order.ma_lenh}. Hợp đồng liên quan đã chuyển trạng thái Hoàn tất, xe đã sẵn sàng tiếp nhận tại Quản lý nhập kho.",
+        f"Sale Admin đã phê duyệt phương án lưu chuyển {order.ma_lenh}. Chờ kho nguồn ({order.kho_xuat.ma_kho}) xác nhận xuất kho bàn giao cho ĐVVC.",
         loai="THANH_CONG"
     )
     return order

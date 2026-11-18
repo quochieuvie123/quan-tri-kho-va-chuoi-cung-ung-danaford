@@ -63,6 +63,7 @@
                             <th>Mô tả phiên bản</th>
                             <th>Số khung (VIN)</th>
                             <th>Mã màu</th>
+                            <th>Hợp đồng liên kết</th>
                             <th style="text-align: center;">Số lượng yêu cầu</th>
                             <th style="text-align: right;">Thao tác</th>
                         </tr>
@@ -75,6 +76,15 @@
                             <td><strong>{{ item.xe.description }}</strong></td>
                             <td>{{ item.xe.vin }}</td>
                             <td>{{ item.xe.color_code }}</td>
+                            <td>
+                                {% if item.ma_hd %}
+                                    <span class="badge" style="background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; font-weight: 600;">
+                                        <i class="bi bi-file-earmark-text"></i> Đặt theo HĐ {{ item.ma_hd }}
+                                    </span>
+                                {% else %}
+                                    <span class="muted">—</span>
+                                {% endif %}
+                            </td>
                             <td style="text-align: center; font-weight: 700; color: #0067c5; font-size: 15px;">
                                 {{ item.quantity }}
                             </td>

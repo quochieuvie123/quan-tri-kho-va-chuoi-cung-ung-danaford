@@ -538,11 +538,25 @@ class ContractSourcingTierTests(TestCase):
         resp = self.client.post(url)
         self.assertEqual(resp.status_code, 302)
 
-        # Kiểm tra VehicleRequest được tự động tạo và có gắn ghi chú HĐ
+        # Khi vừa chốt xe phân bổ: xe được đưa vào Danh sách xe đã chọn đặt hàng (session) kèm mã HĐ, chưa tự duyệt mua ngay
+        self.assertIn(str(alloc.id), self.client.session.get("selected_vehicles", {}))
+        self.assertEqual(self.client.session.get("selected_vehicle_contracts", {}).get(str(alloc.id)), hd.ma_hd)
+        self.assertFalse(VehicleRequest.objects.filter(items__allocation=alloc, status=VehicleRequest.Status.ACCEPTED).exists())
+
+        # Nhân viên / Sale Admin bấm Lập phiếu yêu cầu đặt xe -> Gửi phiếu -> Duyệt đặt xe
+        self.client.get(reverse("orders:lap_phieu_yeu_cau"))
         pyc = VehicleRequest.objects.filter(items__allocation=alloc).first()
         self.assertIsNotNone(pyc)
-        self.assertEqual(pyc.status, VehicleRequest.Status.ACCEPTED)
+        self.assertEqual(pyc.status, VehicleRequest.Status.DRAFT)
         self.assertEqual(pyc.hop_dong_id, hd.ma_hd)
+
+        self.client.post(reverse("orders:gui_phieu_yeu_cau", args=[pyc.id]))
+        pyc.refresh_from_db()
+        self.assertEqual(pyc.status, VehicleRequest.Status.PENDING)
+
+        self.client.post(reverse("orders:xac_nhan_phieu", args=[pyc.id]))
+        pyc.refresh_from_db()
+        self.assertEqual(pyc.status, VehicleRequest.Status.ACCEPTED)
 
     def test_sourcing_tier_counts_pyc_waiting_pdi_in_tier_3(self):
         """Tầng xe từ PYC chờ PDI (uu_tien=4) được xếp cùng tầng với lịch phân bổ (Tầng 3)."""
@@ -736,8 +750,13 @@ class ContractSourcingTierTests(TestCase):
             ngay_ky=date(2026, 11, 1)
         )
 
-        # Chốt xe phân bổ cho hợp đồng
+        # Chốt xe phân bổ cho hợp đồng -> Đưa vào Danh sách xe đã chọn đặt hàng -> Lập PYC
         self.client.post(reverse("contracts:choose_allocation_vehicle", args=[hd.ma_hd, alloc.id]))
+        resp_orders = self.client.get(reverse("orders:vehicle_orders"))
+        self.assertEqual(resp_orders.status_code, 200)
+        self.assertIn("Đặt theo HĐ HD-UI-BADGE-01", resp_orders.content.decode("utf-8"))
+
+        self.client.get(reverse("orders:lap_phieu_yeu_cau"))
 
         # Mở danh sách yêu cầu bên module orders -> Phải thấy badge "Đặt theo HĐ HD-UI-BADGE-01"
         resp_list = self.client.get(reverse("orders:danh_sach_yeu_cau"))
@@ -878,6 +897,16 @@ class ContractSourcingTierTests(TestCase):
         lenh = tao_lenh_luu_chuyen(self.user, self.kho_bd, self.kho_dn, ds_xe=[car_tf])
         lenh = gui_lenh_luu_chuyen(self.user, lenh.pk)
         lenh = duyet_lenh_luu_chuyen(self.user, lenh.pk)
+        from transfers.services import xac_nhan_xuat_kho_nguon
+        dvvc_tf, _ = DonViVanChuyen.objects.get_or_create(ma_dvvc="DVVC_TF_01", defaults={"ten_dvvc": "Vận tải ĐN", "sdt_dvvc": "0905111222"})
+        lenh = xac_nhan_xuat_kho_nguon(
+            self.user,
+            lenh.pk,
+            don_vi_van_chuyen_id=dvvc_tf.pk,
+            bien_so_xe="43C-666.88",
+            tai_xe="Lê Văn Tài",
+            ngay_du_kien_den=timezone.localdate(),
+        )
         ct_tf = lenh.chi_tiet.first()
 
         resp_preset = self.client.get(
