@@ -389,28 +389,46 @@ def tao_cac_bieu_do(data):
     figure = None
 
     if rows:
-        figure = go.Figure(
-            go.Scatter(
-                x=[row[0] for row in rows],
-                y=[row[1] for row in rows],
-                mode="lines+markers",
-                line={
-                    "color": "#0866c6",
-                    "width": 3,
-                },
-                marker={"size": 8},
-                hovertemplate=(
-                    "%{x}<br>Số hợp đồng: %{y}"
-                    "<extra></extra>"
-                ),
+        if len(rows) == 1:
+            figure = go.Figure(
+                go.Bar(
+                    x=[row[0] for row in rows],
+                    y=[row[1] for row in rows],
+                    marker_color="#0866c6",
+                    text=[row[1] for row in rows],
+                    textposition="auto",
+                    hovertemplate=(
+                        "%{x}<br>Số hợp đồng: %{y}"
+                        "<extra></extra>"
+                    ),
+                )
             )
-        )
-
-        figure.update_xaxes(
-            title_text="Tháng ký",
-            type="category",
-            tickangle=-35,
-        )
+            figure.update_xaxes(
+                title_text="Tháng ký",
+                type="category",
+            )
+        else:
+            figure = go.Figure(
+                go.Scatter(
+                    x=[row[0] for row in rows],
+                    y=[row[1] for row in rows],
+                    mode="lines+markers",
+                    line={
+                        "color": "#0866c6",
+                        "width": 3,
+                    },
+                    marker={"size": 8},
+                    hovertemplate=(
+                        "%{x}<br>Số hợp đồng: %{y}"
+                        "<extra></extra>"
+                    ),
+                )
+            )
+            figure.update_xaxes(
+                title_text="Tháng ký",
+                type="category",
+                tickangle=-35,
+            )
 
         figure.update_yaxes(
             title_text="Số hợp đồng",
@@ -620,12 +638,19 @@ def xuat_excel(request):
 
         form_data = context["form"].cleaned_data
         kho = form_data.get("kho")
+        cac_thang = form_data.get("cac_thang") or []
+        if cac_thang:
+            mo_ta_thoi_gian = "Tháng: " + ", ".join(m.strftime("%m/%Y") for m in cac_thang)
+        else:
+            mo_ta_thoi_gian = (
+                f"Từ ngày: {form_data.get('tu_ngay') or 'Không giới hạn'}; "
+                f"Đến ngày: {form_data.get('den_ngay') or 'Không giới hạn'}"
+            )
 
         mo_ta = (
             f"Kho: {kho.pk if kho else 'Tất cả kho được phép xem'}; "
             f"Tên xe: {form_data.get('ten_xe') or 'Tất cả'}; "
-            f"Từ ngày: {form_data.get('tu_ngay') or 'Không giới hạn'}; "
-            f"Đến ngày: {form_data.get('den_ngay') or 'Không giới hạn'}"
+            f"{mo_ta_thoi_gian}"
         )
 
         thoi_diem = context["thoi_diem"].strftime(

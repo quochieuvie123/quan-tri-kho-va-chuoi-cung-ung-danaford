@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from django.core.exceptions import ValidationError
 from django.db.models import (
@@ -61,6 +61,21 @@ def loc_ngay(queryset, truong, bo_loc, la_datefield=False):
     else:
         ten_truong = truong + "__date"
 
+    cac_thang = bo_loc.get("cac_thang")
+    if cac_thang:
+        q_thang = Q()
+        for moc in cac_thang:
+            if moc.month == 12:
+                thang_sau = date(moc.year + 1, 1, 1)
+            else:
+                thang_sau = date(moc.year, moc.month + 1, 1)
+            ngay_cuoi = thang_sau - timedelta(days=1)
+            q_thang |= Q(**{
+                ten_truong + "__gte": moc,
+                ten_truong + "__lte": ngay_cuoi,
+            })
+        return queryset.filter(q_thang)
+
     if bo_loc.get("tu_ngay"):
         queryset = queryset.filter(**{
             ten_truong + "__gte": bo_loc["tu_ngay"],
@@ -111,6 +126,10 @@ def thong_ke_thang(queryset, truong, phep_tinh):
 
 
 def tao_truc_thang(cac_nhom, bo_loc):
+    cac_thang_chon = bo_loc.get("cac_thang")
+    if cac_thang_chon:
+        return sorted(set(m.replace(day=1) for m in cac_thang_chon))
+
     cac_moc = []
 
     for nhom in cac_nhom:
@@ -465,7 +484,9 @@ def tao_bao_cao(
         ).values("hop_dong_id")
 
         hop_dong = hop_dong.filter(
-            pk__in=ma_hd
+            Q(pk__in=ma_hd)
+            | Q(dong_xe_yeu_cau__icontains=ten)
+            | Q(phien_ban_yeu_cau__icontains=ten)
         )
 
     hop_dong = loc_ngay(
@@ -848,7 +869,7 @@ def tao_bao_cao_luu_chuyen(kho_duoc_xem, bo_loc, kem_thong_ke=False):
 
         for ct in item.chi_tiet_bao_cao:
             tong_xe += ct.so_luong
-            if item.trang_thai == "DA_XAC_NHAN":
+            if item.trang_thai in ("DA_XAC_NHAN", LenhLuuChuyen.TrangThai.HOAN_TAT):
                 xe_da_xac_nhan += ct.so_luong
 
             dong.append([

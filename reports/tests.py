@@ -331,3 +331,65 @@ class BaoCaoBoSungTest(TestCase):
         bao_cao = tao_bao_cao(Kho.objects.all(), {}, user=self.user)
         for loai in ["dat_xe", "luu_chuyen", "canh_bao"]:
             self.assertNotIn(loai, bao_cao)
+
+    def test_bo_loc_nhieu_thang_cung_luc_va_bieu_do_bi(self):
+        """Bộ lọc hỗ trợ chọn nhiều tháng (liên tiếp hoặc cách quãng) và render UI/Excel/BI chính xác."""
+        from django.contrib.auth import get_user_model
+        from django.test import Client
+        from django.urls import reverse
+        from database.models import HopDong, KhachHang
+        from transfers.models import LenhLuuChuyen, ChiTietLenhLuuChuyen
+
+        kh = KhachHang.objects.create(ma_kh="KH-REP-M", ten_kh="Khách Multi", sdt_kh="0909888777")
+        HopDong.objects.create(
+            ma_hd="HD-REP-08", khach_hang=kh, chi_nhanh=self.khos[0].chi_nhanh,
+            dong_xe_yeu_cau="Ford Ranger", ngay_ky=timezone.make_aware(timezone.datetime(2026, 8, 10, 9, 0)),
+        )
+        HopDong.objects.create(
+            ma_hd="HD-REP-09", khach_hang=kh, chi_nhanh=self.khos[0].chi_nhanh,
+            dong_xe_yeu_cau="Ford Ranger", ngay_ky=timezone.make_aware(timezone.datetime(2026, 9, 10, 9, 0)),
+        )
+        HopDong.objects.create(
+            ma_hd="HD-REP-11", khach_hang=kh, chi_nhanh=self.khos[0].chi_nhanh,
+            dong_xe_yeu_cau="Ford Everest", ngay_ky=timezone.make_aware(timezone.datetime(2026, 11, 10, 9, 0)),
+        )
+
+        # Tạo lệnh lưu chuyển ở trạng thái HOAN_TAT cũng phải được tính trong xe_da_xac_nhan
+        lenh_ht = LenhLuuChuyen.objects.create(
+            ma_lenh="LLC-HT-01", kho_xuat=self.khos[0], kho_nhap=self.khos[1],
+            nguoi_lap=self.user, trang_thai=LenhLuuChuyen.TrangThai.HOAN_TAT,
+        )
+        xe_ht = Xe.objects.create(vin="VIN-REP-HT01", ten_xe="Ford Ranger", so_may="MAY-HT01", loai_xe="Pickup", mau_sac="Đen")
+        ChiTietLenhLuuChuyen.objects.create(lenh=lenh_ht, xe=xe_ht, so_luong=1)
+
+        form = BoLocBaoCaoForm(
+            data={"thang": ["2026-11", "2026-08"]},
+            danh_sach_kho=Kho.objects.all(),
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["cac_thang"], [date(2026, 8, 1), date(2026, 11, 1)])
+
+        bao_cao = tao_bao_cao(Kho.objects.all(), form.cleaned_data, kem_thong_ke=True)
+        # Chỉ có 2 hợp đồng tháng 08 và tháng 11 (loại tháng 09)
+        self.assertEqual(bao_cao["hop_dong"]["tong"], 2)
+        self.assertEqual(bao_cao["hop_dong"]["theo_thang"], [["08/2026", 1], ["11/2026", 1]])
+
+        # Lọc theo tên xe Ranger bao gồm cả HĐ mới ghi dong_xe_yeu_cau chưa gán VIN
+        bao_cao_ranger = tao_bao_cao(Kho.objects.all(), {"ten_xe": "Ranger", "cac_thang": [date(2026, 8, 1), date(2026, 11, 1)]}, kem_thong_ke=True)
+        self.assertEqual(bao_cao_ranger["hop_dong"]["tong"], 1)
+
+        # Kiểm tra luu_chuyen đếm đúng HOAN_TAT
+        from .utils import tao_bao_cao_luu_chuyen
+        lc_rep = tao_bao_cao_luu_chuyen(Kho.objects.all(), {}, True)
+        self.assertIn("đã xác nhận: 1", lc_rep["ghi_chu"])
+
+        # Kiểm tra UI /thong-ke-bao-cao/ unbound và multi-month GET
+        admin = get_user_model().objects.create_superuser(username="rep-admin", email="r@df.vn", password="password123")
+        client = Client()
+        client.force_login(admin)
+        resp_unbound = client.get(reverse("dashboard:index"))
+        self.assertEqual(resp_unbound.status_code, 200)
+        resp_multi = client.get(reverse("dashboard:index") + "?thang=2026-11&thang=2026-10")
+        self.assertEqual(resp_multi.status_code, 200)
+        html = resp_multi.content.decode("utf-8")
+        self.assertIn("thang=2026-11&amp;thang=2026-10", html)

@@ -157,6 +157,94 @@
     border-radius: 6px;
 }
 
+.thang-multi {
+    position: relative;
+}
+
+.thang-multi__btn {
+    width: 100%;
+    padding: 10px 34px 10px 10px;
+    border: 1px solid #ccd6e1;
+    border-radius: 6px;
+    background: #fff;
+    color: #102b46;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.thang-multi__btn::after {
+    content: "\25BC";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: #52677c;
+}
+
+.thang-multi__menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    min-width: 220px;
+    max-height: 260px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ccd6e1;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.14);
+    z-index: 60;
+    padding: 6px 0;
+}
+
+.thang-multi__menu[hidden] {
+    display: none;
+}
+
+.thang-multi__actions {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 12px 8px;
+    border-bottom: 1px solid #e1e7ee;
+    font-size: 12px;
+}
+
+.thang-multi__actions button {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: #0866c6;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.thang-multi__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    margin: 0;
+}
+
+.thang-multi__item:hover {
+    background: #eef4fa;
+}
+
+.thang-multi__item input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    padding: 0;
+}
+
 @media (max-width: 1100px) {
     .bc-luoi {
         grid-template-columns: 1fr;
@@ -174,19 +262,30 @@
 </div>
 <section class="bc">
     <form method="get" id="form-bao-cao">
-        <div class="truong">
-            <label for="chon-nhanh-thang">Tháng / Năm:</label>
-            <select id="chon-nhanh-thang" onchange="chonNhanhThangBaoCao(this.value);">
-                <option value="">Tất cả các tháng</option>
-                <option value="2026-11" {% if request.GET.tu_ngay == '2026-11-01' %}selected{% endif %}>Tháng 11/2026</option>
-                <option value="2026-10" {% if request.GET.tu_ngay == '2026-10-01' %}selected{% endif %}>Tháng 10/2026</option>
-                <option value="2026-09" {% if request.GET.tu_ngay == '2026-09-01' %}selected{% endif %}>Tháng 09/2026</option>
-                <option value="2026-08" {% if request.GET.tu_ngay == '2026-08-01' %}selected{% endif %}>Tháng 08/2026</option>
-                <option value="2026-07" {% if request.GET.tu_ngay == '2026-07-01' %}selected{% endif %}>Tháng 07/2026</option>
-            </select>
+        <div class="truong thang-multi" id="thang-multi-wrap">
+            <label for="thang-multi-btn">Tháng / Năm:</label>
+            <button type="button" id="thang-multi-btn" class="thang-multi__btn" aria-expanded="false">
+                Tất cả các tháng
+            </button>
+            <div id="thang-multi-menu" class="thang-multi__menu" hidden>
+                <div class="thang-multi__actions">
+                    <button type="button" onclick="chonTatCaThangBaoCao(true);">Chọn tất cả</button>
+                    <button type="button" onclick="chonTatCaThangBaoCao(false);">Tất cả các tháng (Bỏ chọn)</button>
+                </div>
+                {% for val, lbl in form.fields.thang.choices %}
+                <label class="thang-multi__item">
+                    <input type="checkbox" name="thang" value="{{ val }}" data-label="{{ lbl }}"
+                           {% if val in form.thang.value %}checked{% endif %}
+                           onchange="capNhatNhanThangBaoCao();">
+                    <span>{{ lbl }}</span>
+                </label>
+                {% endfor %}
+            </div>
+            {{ form.thang.errors }}
         </div>
         {% for field in form %}
-        {% if field.name == 'tu_ngay' or field.name == 'den_ngay' %}
+        {% if field.name == 'thang' %}
+        {% elif field.name == 'tu_ngay' or field.name == 'den_ngay' %}
         <div style="display: none;">
             {{ field }}
             {{ field.errors }}
@@ -213,23 +312,68 @@
         </a>
     </form>
     <script>
-    function chonNhanhThangBaoCao(ym) {
-        const tu = document.getElementById('id_tu_ngay');
-        const den = document.getElementById('id_den_ngay');
-        if (!tu || !den) return;
-        if (!ym) {
-            tu.value = '';
-            den.value = '';
+    function capNhatNhanThangBaoCao() {
+        const btn = document.getElementById('thang-multi-btn');
+        const checks = Array.from(document.querySelectorAll('#thang-multi-menu input[name="thang"]:checked'));
+        if (!btn) return;
+        if (checks.length === 0) {
+            btn.textContent = 'Tất cả các tháng';
+        } else if (checks.length <= 2) {
+            btn.textContent = checks.map(c => c.dataset.label).join(', ');
         } else {
-            const parts = ym.split('-');
-            const y = parseInt(parts[0], 10);
-            const m = parseInt(parts[1], 10);
-            const lastDay = new Date(y, m, 0).getDate();
-            tu.value = `${ym}-01`;
-            den.value = `${ym}-${String(lastDay).padStart(2, '0')}`;
+            const preview = checks.slice(0, 2).map(c => c.value.split('-').reverse().join('/')).join(', ');
+            btn.textContent = `Đã chọn ${checks.length} tháng (${preview}...)`;
         }
-        document.getElementById('form-bao-cao').submit();
     }
+
+    function chonTatCaThangBaoCao(checked) {
+        document.querySelectorAll('#thang-multi-menu input[name="thang"]').forEach(cb => {
+            cb.checked = checked;
+        });
+        capNhatNhanThangBaoCao();
+    }
+
+    (function () {
+        const wrap = document.getElementById('thang-multi-wrap');
+        const btn = document.getElementById('thang-multi-btn');
+        const menu = document.getElementById('thang-multi-menu');
+        const form = document.getElementById('form-bao-cao');
+        if (!wrap || !btn || !menu) return;
+
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const isHidden = menu.hasAttribute('hidden');
+            if (isHidden) {
+                menu.removeAttribute('hidden');
+                btn.setAttribute('aria-expanded', 'true');
+            } else {
+                menu.setAttribute('hidden', '');
+                btn.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        menu.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+
+        document.addEventListener('click', function () {
+            menu.setAttribute('hidden', '');
+            btn.setAttribute('aria-expanded', 'false');
+        });
+
+        if (form) {
+            form.addEventListener('submit', function () {
+                const tu = document.getElementById('id_tu_ngay');
+                const den = document.getElementById('id_den_ngay');
+                if (document.querySelectorAll('#thang-multi-menu input[name="thang"]:checked').length > 0) {
+                    if (tu) tu.value = '';
+                    if (den) den.value = '';
+                }
+            });
+        }
+
+        capNhatNhanThangBaoCao();
+    })();
     </script>
 
     {{ form.non_field_errors }}
