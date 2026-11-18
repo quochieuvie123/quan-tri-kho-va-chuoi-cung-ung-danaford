@@ -1,3 +1,6 @@
+from datetime import date, timedelta
+import re
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied
@@ -14,6 +17,17 @@ from database.models import Kho, TonKho
 from .forms import BoLocCanhBaoForm, CapNhatTrangThaiForm
 from .models import CanhBao
 from .utils import cap_nhat_tat_ca_canh_bao
+
+
+THANG_PATTERN = re.compile(r"^(\d{4})-(0[1-9]|1[0-2])$")
+
+
+def lay_danh_sach_thang_canh_bao(queryset):
+    """Trả về danh sách (YYYY-MM, 'Tháng MM/YYYY') động từ cảnh báo thực tế và tháng hiện tại."""
+    cac_moc = {timezone.localdate().replace(day=1)}
+    for d in queryset.filter(ngay_phat_sinh__isnull=False).dates("ngay_phat_sinh", "month"):
+        cac_moc.add(d.replace(day=1))
+    return [(d.strftime("%Y-%m"), f"Tháng {d.month:02d}/{d.year}") for d in sorted(cac_moc, reverse=True)]
 
 
 def lay_kho_duoc_xem(user):
@@ -54,6 +68,24 @@ def danh_sach_canh_bao(request):
         .order_by("-ngay_phat_sinh")
     )
 
+    raw_months = request.GET.getlist("thang") or request.GET.getlist("month")
+    selected_thang = []
+    seen_months = set()
+    for val in raw_months:
+        v = str(val).strip()
+        if v and v != "ALL" and THANG_PATTERN.match(v) and v not in seen_months:
+            seen_months.add(v)
+            selected_thang.append(v)
+
+    thang_options = lay_danh_sach_thang_canh_bao(danh_sach)
+    known_keys = {k for k, _ in thang_options}
+    for v in selected_thang:
+        if v not in known_keys:
+            y_v, m_v = map(int, v.split("-", 1))
+            thang_options.append((v, f"Tháng {m_v:02d}/{y_v}"))
+            known_keys.add(v)
+    thang_options.sort(key=lambda item: item[0], reverse=True)
+
     form = BoLocCanhBaoForm(
         request.GET,
         danh_sach_kho=danh_sach_kho,
@@ -84,13 +116,16 @@ def danh_sach_canh_bao(request):
                 Q(nguong__mau_sac__icontains=mau_sac)
                 | Q(xe__mau_sac__icontains=mau_sac)
             )
-        thang = (request.GET.get("thang") or request.GET.get("month") or "").strip()
-        if thang and thang != "ALL" and "-" in thang:
-            try:
-                y_val, m_val = map(int, thang.split("-", 1))
-                danh_sach = danh_sach.filter(ngay_phat_sinh__year=y_val, ngay_phat_sinh__month=m_val)
-            except ValueError:
-                pass
+
+        if selected_thang:
+            q_months = Q()
+            for v in selected_thang:
+                y_val, m_val = map(int, v.split("-", 1))
+                moc = date(y_val, m_val, 1)
+                thang_sau = date(y_val + 1, 1, 1) if m_val == 12 else date(y_val, m_val + 1, 1)
+                ngay_cuoi = thang_sau - timedelta(days=1)
+                q_months |= Q(ngay_phat_sinh__date__gte=moc, ngay_phat_sinh__date__lte=ngay_cuoi)
+            danh_sach = danh_sach.filter(q_months)
     else:
         danh_sach = danh_sach.none()
 
@@ -113,6 +148,8 @@ def danh_sach_canh_bao(request):
         "so_tat_ca": so_tat_ca,
         "so_ton_kho": so_ton_kho,
         "so_het_hang": so_het_hang,
+        "thang_options": thang_options,
+        "selected_thang": selected_thang,
     }
 
     return render(
@@ -122,6 +159,7 @@ def danh_sach_canh_bao(request):
     )
 
 
+# Tạm ẩn nút xuất trên giao diện web (alerts/templates/alerts/danh_sach.html); giữ nguyên endpoint để mở lại khi cần.
 @login_required
 @permission_required("alerts.view_canhbao", raise_exception=True)
 def xuat_xe_het_hang(request):

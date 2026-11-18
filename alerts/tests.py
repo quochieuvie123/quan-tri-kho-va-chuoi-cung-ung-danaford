@@ -280,3 +280,37 @@ class CanhBaoTheoNhomTest(TestCase):
 
         self.assertEqual(cb.xe_id, ton.xe_id)
         self.assertEqual(cb.kho_id, ton.kho_id)
+
+    def test_bo_loc_nhieu_thang_va_an_nut_xuat_het_hang(self):
+        """Trang cảnh báo ẩn nút xuất hết hàng trên HTML (giữ URL) và hỗ trợ lọc nhiều tháng cùng lúc."""
+        from django.contrib.auth import get_user_model
+        from django.test import Client
+        from django.urls import reverse
+
+        admin = get_user_model().objects.create_superuser(username="alert-admin", email="a@df.vn", password="password123")
+        client = Client()
+        client.force_login(admin)
+
+        ng_sep = NguongCanhBao.objects.create(ten_xe="Everest", mau_sac="Trắng", ton_toi_thieu=2)
+        ng_oct = NguongCanhBao.objects.create(ten_xe="Territory", mau_sac="Đen", ton_toi_thieu=2)
+        ng_nov = NguongCanhBao.objects.create(ten_xe="Explorer", mau_sac="Bạc", ton_toi_thieu=2)
+
+        cb_sep = CanhBao.objects.create(nguong=ng_sep, loai=CanhBao.Loai.HET_HANG, so_luong_hien_tai=0, con_hieu_luc=True)
+        cb_oct = CanhBao.objects.create(nguong=ng_oct, loai=CanhBao.Loai.HET_HANG, so_luong_hien_tai=0, con_hieu_luc=True)
+        cb_nov = CanhBao.objects.create(nguong=ng_nov, loai=CanhBao.Loai.HET_HANG, so_luong_hien_tai=0, con_hieu_luc=True)
+        CanhBao.objects.filter(pk=cb_sep.pk).update(ngay_phat_sinh=timezone.make_aware(timezone.datetime(2026, 9, 10, 8, 0)))
+        CanhBao.objects.filter(pk=cb_oct.pk).update(ngay_phat_sinh=timezone.make_aware(timezone.datetime(2026, 10, 10, 8, 0)))
+        CanhBao.objects.filter(pk=cb_nov.pk).update(ngay_phat_sinh=timezone.make_aware(timezone.datetime(2026, 11, 10, 8, 0)))
+
+        resp = client.get(reverse("alerts:index") + "?thang=2026-11&thang=2026-10")
+        self.assertEqual(resp.status_code, 200)
+        html = resp.content.decode("utf-8")
+        # Nút xuất danh sách xe hết hàng bị ẩn khỏi giao diện web
+        self.assertNotIn("Xuất danh sách xe hết hàng", html)
+        # Endpoint backend vẫn hoạt động bình thường
+        self.assertEqual(client.get(reverse("alerts:xuat_het_hang")).status_code, 200)
+
+        pks = {cb.pk for cb in resp.context["danh_sach"]}
+        self.assertIn(cb_oct.pk, pks)
+        self.assertIn(cb_nov.pk, pks)
+        self.assertNotIn(cb_sep.pk, pks)

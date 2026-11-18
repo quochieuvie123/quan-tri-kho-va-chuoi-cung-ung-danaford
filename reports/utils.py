@@ -14,7 +14,9 @@ from database.models import (
     HopDong,
     Kho,
     PhieuXuatKho,
+    TrangThaiHopDong,
     TrangThaiPhieuXuat,
+    TrangThaiXe,
     TonKho,
 )
 
@@ -345,6 +347,17 @@ def tao_bao_cao(
     tong_ton = sum(
         item.so_luong_ton for item in ton
     )
+    so_san_sang = sum(
+        item.so_luong_ton for item in ton if item.xe.trang_thai == TrangThaiXe.SAN_SANG
+    )
+    so_giu_cho = sum(
+        item.so_luong_ton for item in ton if item.xe.trang_thai == TrangThaiXe.GIU_CHO_XUAT
+    )
+    so_khac = tong_ton - so_san_sang - so_giu_cho
+    ghi_chu_ton = f"Sẵn sàng: {so_san_sang}; Giữ chỗ xuất: {so_giu_cho}"
+    if so_khac:
+        ghi_chu_ton += f"; Khác: {so_khac}"
+
     data["ton_kho"] = {
         "ten": "Tồn kho hiện tại",
         "don_vi": "xe",
@@ -357,6 +370,7 @@ def tao_bao_cao(
             "Số lượng tồn",
         ],
         "dong": dong_ton,
+        "ghi_chu": ghi_chu_ton,
     }
 
     data["tuoi_ton"] = {
@@ -495,22 +509,27 @@ def tao_bao_cao(
         bo_loc,
     )
 
-    dong = [
-        [
+    dong = []
+    so_cho_xu_ly = 0
+    so_hoan_tat_hd = 0
+    for item in (
+        hop_dong.select_related(
+            "khach_hang"
+        ).order_by(
+            "ngay_ky",
+            "pk",
+        )
+    ):
+        if item.trang_thai in (TrangThaiHopDong.CHO_XU_LY, TrangThaiHopDong.CHO_PHAN_BO):
+            so_cho_xu_ly += 1
+        else:
+            so_hoan_tat_hd += 1
+        dong.append([
             item.pk,
             item.chi_nhanh_id,
             dinh_dang_ngay(item.ngay_ky),
             item.khach_hang.ten_kh,
-        ]
-        for item in (
-            hop_dong.select_related(
-                "khach_hang"
-            ).order_by(
-                "ngay_ky",
-                "pk",
-            )
-        )
-    ]
+        ])
 
     data["hop_dong"] = {
         "ten": "Hợp đồng ký trong kỳ",
@@ -523,6 +542,7 @@ def tao_bao_cao(
             "Khách hàng",
         ],
         "dong": dong,
+        "ghi_chu": f"Chờ xử lý: {so_cho_xu_ly}; Hoàn tất: {so_hoan_tat_hd}",
     }
 
     # PDI theo trạng thái hiện tại (bao gồm cả sự cố từ hóa đơn nhập hãng và từ lệnh lưu chuyển nội bộ).
@@ -577,6 +597,11 @@ def tao_bao_cao(
             state,
         ])
 
+    ghi_chu_pdi = (
+        "; ".join(f"{k}: {v}" for k, v in sorted(trang_thai.items()))
+        if trang_thai
+        else "Chưa xử lý: 0; Đã xử lý: 0"
+    )
     data["pdi"] = {
         "ten": "Biên bản PDI trong kỳ",
         "don_vi": "biên bản",
@@ -592,6 +617,7 @@ def tao_bao_cao(
         ],
         "dong": dong,
         "nhom": sorted(trang_thai.items()),
+        "ghi_chu": ghi_chu_pdi,
     }
 
     kiem_tra_khoang_ngay([

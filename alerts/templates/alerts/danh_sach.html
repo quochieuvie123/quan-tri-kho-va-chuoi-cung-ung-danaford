@@ -73,6 +73,97 @@
         padding-left: 18px;
         font-size: 13px;
     }
+
+    .cb-thang-multi {
+        position: relative;
+        margin: 0;
+        flex: 1 1 200px;
+    }
+
+    .cb-thang-multi__btn {
+        width: 100%;
+        padding: 10px 32px 10px 10px;
+        border: 1px solid #dce3eb;
+        border-radius: 6px;
+        background: #fff;
+        color: #102b46;
+        font: inherit;
+        font-size: 14px;
+        text-align: left;
+        cursor: pointer;
+        position: relative;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .cb-thang-multi__btn::after {
+        content: "\25BC";
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        color: #64748b;
+    }
+
+    .cb-thang-multi__menu {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        min-width: 220px;
+        max-height: 250px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #dce3eb;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.14);
+        z-index: 60;
+        padding: 6px 0;
+    }
+
+    .cb-thang-multi__menu[hidden] {
+        display: none;
+    }
+
+    .cb-thang-multi__actions {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 12px 8px;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 12px;
+    }
+
+    .cb-thang-multi__actions button {
+        background: none;
+        border: 0;
+        padding: 0;
+        color: #0b66c3;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .cb-thang-multi__item {
+        display: flex !important;
+        align-items: center;
+        gap: 8px;
+        padding: 7px 12px;
+        margin: 0 !important;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .cb-thang-multi__item:hover {
+        background: #f4f7fb;
+    }
+
+    .cb-thang-multi__item input[type="checkbox"] {
+        width: auto;
+        margin: 0;
+        padding: 0;
+    }
 </style>
 {% endblock %}
 
@@ -83,32 +174,90 @@
             <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #0b2a4a;">Cảnh báo hệ thống</h1>
             <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Theo dõi cảnh báo tồn kho dưới ngưỡng, xe tồn lâu ngày và danh sách dòng xe đã hết hàng (chuyển sang phân bổ kỳ sau)</p>
         </div>
+        {% comment %} TẠM ẨN nút Xuất danh sách xe hết hàng khỏi giao diện web theo yêu cầu (giữ nguyên code xử lý alerts:xuat_het_hang để mở lại khi cần): {% endcomment %}
+        {% comment %}
         <div style="display: flex; gap: 10px; align-items: center;">
             <a href="{% url 'alerts:xuat_het_hang' %}" style="display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; background: #0f766e; color: #fff; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 13px;">
                 <i class="bi bi-download"></i> Xuất danh sách xe hết hàng ({{ so_het_hang }})
             </a>
         </div>
+        {% endcomment %}
     </div>
 
     <div class="card">
         <form method="get" class="bo-loc">
             {{ form.as_p }}
-            <p>
-                <label for="id_thang_cb">Tháng phát sinh:</label>
-                <select name="thang" id="id_thang_cb" onchange="this.form.submit()">
-                    <option value="">Tất cả các tháng</option>
-                    <option value="2026-11"{% if request.GET.thang == '2026-11' %} selected{% endif %}>Tháng 11/2026</option>
-                    <option value="2026-10"{% if request.GET.thang == '2026-10' %} selected{% endif %}>Tháng 10/2026</option>
-                    <option value="2026-09"{% if request.GET.thang == '2026-09' %} selected{% endif %}>Tháng 09/2026</option>
-                    <option value="2026-08"{% if request.GET.thang == '2026-08' %} selected{% endif %}>Tháng 08/2026</option>
-                </select>
-            </p>
+            <div class="cb-thang-multi" id="cb-thang-multi-wrap">
+                <label for="cb-thang-multi-btn">Tháng phát sinh:</label>
+                <button type="button" id="cb-thang-multi-btn" class="cb-thang-multi__btn" aria-expanded="false">
+                    Tất cả các tháng
+                </button>
+                <div id="cb-thang-multi-menu" class="cb-thang-multi__menu" hidden>
+                    <div class="cb-thang-multi__actions">
+                        <button type="button" onclick="chonTatCaThangCanhBao(true);">Chọn tất cả</button>
+                        <button type="button" onclick="chonTatCaThangCanhBao(false);">Tất cả các tháng</button>
+                    </div>
+                    {% for val, lbl in thang_options %}
+                    <label class="cb-thang-multi__item">
+                        <input type="checkbox" name="thang" value="{{ val }}" data-label="{{ lbl }}"
+                               {% if val in selected_thang %}checked{% endif %}
+                               onchange="capNhatNhanThangCanhBao();">
+                        <span>{{ lbl }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
 
             <div class="thao-tac">
                 <button type="submit">Lọc</button>
                 <a href="{% url 'alerts:index' %}">Bỏ lọc</a>
             </div>
         </form>
+        <script>
+        function capNhatNhanThangCanhBao() {
+            const btn = document.getElementById('cb-thang-multi-btn');
+            const checks = Array.from(document.querySelectorAll('#cb-thang-multi-menu input[name="thang"]:checked'));
+            if (!btn) return;
+            if (checks.length === 0) {
+                btn.textContent = 'Tất cả các tháng';
+            } else if (checks.length <= 2) {
+                btn.textContent = checks.map(c => c.dataset.label).join(', ');
+            } else {
+                const preview = checks.slice(0, 2).map(c => c.value.split('-').reverse().join('/')).join(', ');
+                btn.textContent = `Đã chọn ${checks.length} tháng (${preview}...)`;
+            }
+        }
+        function chonTatCaThangCanhBao(checked) {
+            document.querySelectorAll('#cb-thang-multi-menu input[name="thang"]').forEach(cb => {
+                cb.checked = checked;
+            });
+            capNhatNhanThangCanhBao();
+        }
+        (function () {
+            const btn = document.getElementById('cb-thang-multi-btn');
+            const menu = document.getElementById('cb-thang-multi-menu');
+            if (!btn || !menu) return;
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const isHidden = menu.hasAttribute('hidden');
+                if (isHidden) {
+                    menu.removeAttribute('hidden');
+                    btn.setAttribute('aria-expanded', 'true');
+                } else {
+                    menu.setAttribute('hidden', '');
+                    btn.setAttribute('aria-expanded', 'false');
+                }
+            });
+            menu.addEventListener('click', function (e) {
+                e.stopPropagation();
+            });
+            document.addEventListener('click', function () {
+                menu.setAttribute('hidden', '');
+                btn.setAttribute('aria-expanded', 'false');
+            });
+            capNhatNhanThangCanhBao();
+        })();
+        </script>
     </div>
 
     <div class="card bang">

@@ -378,26 +378,16 @@
 
     {{ form.non_field_errors }}
 
-    <div class="thanh-tac-vu">
-        <p class="ghi-chu">
-            Tổng hợp lúc:
-            {{ thoi_diem|date:"d/m/Y H:i:s" }}.
-        </p>
-
-        {% if hop_le %}
+    {% if hop_le %}
+    <div class="thanh-tac-vu" style="justify-content: flex-end;">
         <a
             class="nut"
             href="{% url 'dashboard:reports:xuat_excel' %}?{{ tham_so }}"
         >
             Xuất Excel (6 trang tính)
         </a>
-        {% endif %}
     </div>
-
-    <p class="ghi-chu">
-        Tồn kho và tuổi tồn phản ánh thời điểm hiện tại.
-        Bộ lọc Tháng / Năm áp dụng đồng bộ cho nhập kho, xuất kho, hợp đồng, đặt xe, lưu chuyển, sự cố PDI và cảnh báo.
-    </p>
+    {% endif %}
 
     {% if kho_da_chon %}
     <p class="ghi-chu">

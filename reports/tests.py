@@ -393,3 +393,8 @@ class BaoCaoBoSungTest(TestCase):
         self.assertEqual(resp_multi.status_code, 200)
         html = resp_multi.content.decode("utf-8")
         self.assertIn("thang=2026-11&amp;thang=2026-10", html)
+        # Bỏ 2 ghi chú trên giao diện
+        self.assertNotIn("Tổng hợp lúc:", html)
+        self.assertNotIn("Tồn kho và tuổi tồn phản ánh thời điểm hiện tại.", html)
+        # Mọi khối thống kê tổng đều có ghi_chu nhỏ ở dưới
+        self.assertTrue(all(item.get("ghi_chu") for item in resp_multi.context["cac_chi_so"]))
