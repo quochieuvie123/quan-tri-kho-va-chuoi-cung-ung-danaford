@@ -70,7 +70,7 @@
                     </button>
                     {% if tu_khoa or kho_filter %}
                     <a href="{% url 'transfers:index' %}" class="transfer-btn transfer-btn--light">
-                        <i class="bi bi-x-circle"></i> Xóa lọc
+                        <i class="bi bi-x-circle"></i> Đặt lại
                     </a>
                     {% endif %}
                 </div>
@@ -93,7 +93,7 @@
                 <tbody>
                     {% for item in ds_ton_kho %}
                     <tr>
-                        <td><code style="font-weight: 700; color: #0067c5;">{{ item.xe.vin }}</code></td>
+                        <td><span class="df-code" style="color: #0067c5;">{{ item.xe.vin }}</span></td>
                         <td>
                             <strong>{{ item.xe.ten_xe }}</strong>
                             {% if item.da_nang_het_xe %}

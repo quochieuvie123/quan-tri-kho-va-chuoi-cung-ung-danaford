@@ -31,7 +31,7 @@
   </div>
   <div class="actions">
     <button class="btn btn--primary" type="submit"><i class="bi bi-search"></i> Tìm kiếm</button>
-    <a class="btn" href="{% url 'incidents:index' %}">Xóa bộ lọc</a>
+    <a class="btn" href="{% url 'incidents:index' %}">Đặt lại</a>
     <span class="spacer"></span>
     <button class="btn" type="button" id="btn-export" {% if not tong and not co_loc %}disabled{% endif %}>
       <i class="bi bi-download"></i> Xuất báo cáo</button>
@@ -46,8 +46,8 @@
     <tbody>
     {% for bb in trang %}
       <tr>
-        <td><a href="{% url 'incidents:chi_tiet' bb.ma_pdi %}" style="text-decoration: none; font-weight: 700; color: #0067c5;">{{ bb.ma_pdi }}</a></td>
-        <td><a href="{% url 'incidents:chi_tiet' bb.ma_pdi %}" style="text-decoration: none; color: inherit; font-weight: 600;">{{ bb.xe_id }}</a></td>
+        <td><a class="df-code" href="{% url 'incidents:chi_tiet' bb.ma_pdi %}">{{ bb.ma_pdi }}</a></td>
+        <td><a class="df-code" href="{% url 'incidents:chi_tiet' bb.ma_pdi %}" style="color: #243b53 !important;">{{ bb.xe_id }}</a></td>
         <td>{{ bb.loai_su_co }}</td>
         <td>{{ bb.don_vi_van_chuyen|default:bb.hoa_don_nhap.don_vi_van_chuyen.ten_dvvc }}</td>
         <td>{{ bb.ngay_ghi_nhan|date:"d/m/Y H:i" }}</td>
@@ -62,10 +62,21 @@
   </table>
   </div>
   {% if trang.paginator.num_pages > 1 %}
-  <div class="pager">
-    {% if trang.has_previous %}<a href="?{{ query }}&page={{ trang.previous_page_number }}">&laquo; Trước</a>{% endif %}
-    <span>Trang {{ trang.number }} / {{ trang.paginator.num_pages }}</span>
-    {% if trang.has_next %}<a href="?{{ query }}&page={{ trang.next_page_number }}">Sau &raquo;</a>{% endif %}
+  <div class="df-pager" aria-label="Phân trang sự cố">
+    <div class="df-pager__info">Tổng: {{ tong }} sự cố</div>
+    <div class="df-pager__controls">
+      {% if trang.has_previous %}
+        <a class="df-pager__btn" href="?{{ query }}&page={{ trang.previous_page_number }}">&laquo; Trước</a>
+      {% else %}
+        <span class="df-pager__btn is-disabled" aria-disabled="true">&laquo; Trước</span>
+      {% endif %}
+      <span class="df-pager__counter">Trang {{ trang.number }} / {{ trang.paginator.num_pages }}</span>
+      {% if trang.has_next %}
+        <a class="df-pager__btn" href="?{{ query }}&page={{ trang.next_page_number }}">Sau &raquo;</a>
+      {% else %}
+        <span class="df-pager__btn is-disabled" aria-disabled="true">Sau &raquo;</span>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
 </div>

@@ -856,3 +856,426 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* ==========================================================================
+   Round-2 UI Fixes: UI-01..UI-08 (H1, KPI, Scrollbar, Pager, Code, Dropdown)
+   ========================================================================== */
+@media screen {
+  /* Force H1 = 28/600/#102A43 inside main content only */
+  .df-content .page-header__title,
+  .df-content .page-header h1,
+  .df-content h1.df-page-title {
+    font-size: 28px !important;
+    font-weight: 600 !important;
+    line-height: 1.45 !important;
+    color: #102a43 !important;
+  }
+
+  /* UI-03: Prevent .card + .card margin from misaligning KPI cards */
+  .df-content .stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .df-content .stats > .card.stat {
+    margin: 0 !important;
+    border-radius: 12px !important;
+    padding: 20px !important;
+    border: 1px solid #dce6f0 !important;
+    background: #ffffff;
+    box-shadow: none !important;
+    min-height: 144px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .df-content .stats > .card.stat small {
+    display: block;
+    min-height: 34.8px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.45;
+    color: #243b53;
+  }
+
+  .df-content .stats > .card.stat strong {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #102a43;
+    margin-top: auto;
+  }
+
+  .df-content .stats + form.card {
+    margin-top: 0 !important;
+  }
+
+  /* UI-04: Unified Table Scroll Shell & Custom Scrollbar (max-height 560px) */
+  .df-content .df-table-wrap,
+  .df-content .table-wrap,
+  .df-content .transfer-table-wrap,
+  .df-content .scroll,
+  .df-content .bc .cuon {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    max-height: 560px;
+    overflow: auto;
+    scrollbar-gutter: stable;
+    border: 1px solid #dce6f0;
+    border-radius: 14px;
+    background: #ffffff;
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+  }
+
+  .df-content .kv-table-wrap,
+  .df-content .no-cap-scroll {
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+
+  .df-content .df-table-wrap::-webkit-scrollbar,
+  .df-content .table-wrap::-webkit-scrollbar,
+  .df-content .transfer-table-wrap::-webkit-scrollbar,
+  .df-content .scroll::-webkit-scrollbar,
+  .df-content .bc .cuon::-webkit-scrollbar,
+  .df-dropdown-portal::-webkit-scrollbar,
+  .df-content .cb-thang-multi__menu::-webkit-scrollbar,
+  .df-content .thang-multi__menu::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .df-content .df-table-wrap::-webkit-scrollbar-track,
+  .df-content .table-wrap::-webkit-scrollbar-track,
+  .df-content .transfer-table-wrap::-webkit-scrollbar-track,
+  .df-content .scroll::-webkit-scrollbar-track,
+  .df-content .bc .cuon::-webkit-scrollbar-track,
+  .df-dropdown-portal::-webkit-scrollbar-track,
+  .df-content .cb-thang-multi__menu::-webkit-scrollbar-track,
+  .df-content .thang-multi__menu::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+
+  .df-content .df-table-wrap::-webkit-scrollbar-thumb,
+  .df-content .table-wrap::-webkit-scrollbar-thumb,
+  .df-content .transfer-table-wrap::-webkit-scrollbar-thumb,
+  .df-content .scroll::-webkit-scrollbar-thumb,
+  .df-content .bc .cuon::-webkit-scrollbar-thumb,
+  .df-dropdown-portal::-webkit-scrollbar-thumb,
+  .df-content .cb-thang-multi__menu::-webkit-scrollbar-thumb,
+  .df-content .thang-multi__menu::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  .df-content .df-table-wrap::-webkit-scrollbar-thumb:hover,
+  .df-content .table-wrap::-webkit-scrollbar-thumb:hover,
+  .df-content .transfer-table-wrap::-webkit-scrollbar-thumb:hover,
+  .df-content .scroll::-webkit-scrollbar-thumb:hover,
+  .df-content .bc .cuon::-webkit-scrollbar-thumb:hover,
+  .df-dropdown-portal::-webkit-scrollbar-thumb:hover,
+  .df-content .cb-thang-multi__menu::-webkit-scrollbar-thumb:hover,
+  .df-content .thang-multi__menu::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+
+  .df-content .df-table thead th,
+  .df-content .data-table thead th,
+  .df-content .transfer-table thead th,
+  .df-content .tbl thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f4f7fb;
+  }
+
+  /* UI-05: Unified Pager Footer */
+  .df-content .df-pager {
+    margin-top: 16px;
+    min-height: 36px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .df-content .df-pager__info {
+    font-size: 13px;
+    font-weight: 400;
+    color: #243b53;
+  }
+
+  .df-content .df-pager__controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .df-content .df-pager__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid #dce6f0;
+    background: #ffffff;
+    color: #0067c5;
+    font-family: "Montserrat", system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    box-sizing: border-box;
+  }
+
+  .df-content .df-pager__btn:hover:not(.is-disabled) {
+    background: #f4f7fb;
+    border-color: #0067c5;
+    text-decoration: none;
+  }
+
+  .df-content .df-pager__btn.is-disabled {
+    background: #f4f7fb;
+    color: #627d98;
+    border-color: #dce6f0;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .df-content .df-pager__counter {
+    font-size: 13px;
+    font-weight: 400;
+    color: #243b53;
+  }
+
+  /* UI-07: Unified Identifier & VIN Typography (Montserrat 12px 600 nowrap) */
+  .df-content .df-code,
+  .df-content td code,
+  .df-content td .df-code {
+    font-family: "Montserrat", system-ui, -apple-system, sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    line-height: 1.45 !important;
+    letter-spacing: 0 !important;
+    font-style: normal !important;
+    white-space: nowrap;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  .df-content td a.df-code,
+  .df-content td a strong,
+  .df-content td a code {
+    color: #0067c5 !important;
+    font-family: "Montserrat", system-ui, -apple-system, sans-serif !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    text-decoration: none;
+  }
+
+  .df-content td a:hover {
+    text-decoration: underline;
+  }
+
+  /* UI-08: Unified Custom Dropdown Component inside .df-content */
+  .df-content .df-dropdown {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .df-content .df-dropdown__native {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
+  .df-content .df-dropdown__trigger {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    height: 45.5px;
+    padding: 0 32px 0 12px;
+    border: 1px solid #dce6f0;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #243b53;
+    font-family: "Montserrat", system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.45;
+    text-align: left;
+    cursor: pointer;
+    position: relative;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .df-content .df-dropdown__trigger--45 {
+    height: 45px;
+  }
+
+  .df-content .df-dropdown__trigger--44 {
+    height: 44px;
+  }
+
+  .df-content .df-dropdown__trigger:focus {
+    outline: none;
+    border-color: #0067c5;
+    box-shadow: 0 0 0 3px rgba(0, 103, 197, 0.15);
+  }
+
+  .df-content .df-dropdown__trigger:disabled {
+    background: #f4f7fb;
+    color: #627d98;
+    cursor: not-allowed;
+  }
+
+  .df-content .df-dropdown__label {
+    display: block;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .df-content .df-dropdown__chevron {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  /* Multi-month menus (Cảnh báo & Báo cáo) aligned to UI-08 */
+  .df-content .cb-thang-multi__menu,
+  .df-content .thang-multi__menu {
+    border: 1px solid #dce6f0;
+    border-radius: 8px;
+    padding: 6px;
+    max-height: 252px;
+    box-shadow: none;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+  }
+
+  .df-content .cb-thang-multi__item,
+  .df-content .thang-multi__item {
+    min-height: 40px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px !important;
+    font-weight: 400 !important;
+  }
+}
+
+.df-dropdown-portal {
+  position: fixed;
+  z-index: 99999;
+  background: #ffffff;
+  border: 1px solid #dce6f0;
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 252px;
+  overflow-y: auto;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.df-dropdown__option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #243b53;
+  font-family: "Montserrat", system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.df-dropdown__option:hover:not(.is-disabled) {
+  background: #f4f7fb;
+  color: #243b53;
+}
+
+.df-dropdown__option.is-selected {
+  background: #eaf4ff;
+  color: #243b53;
+}
+
+.df-dropdown__option.is-focused {
+  outline: 2px solid #0067c5;
+  outline-offset: -2px;
+}
+
+.df-dropdown__option.is-disabled {
+  color: #627d98;
+  background: #ffffff;
+  cursor: not-allowed;
+}
+
+@media screen and (max-width: 1190px) {
+  .df-content .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media screen and (max-width: 790px) {
+  .df-content .stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media print {
+  .df-content .table-wrap,
+  .df-content .transfer-table-wrap,
+  .df-content .scroll,
+  .df-content .bc .cuon {
+    max-height: none !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+  }
+
+  .df-content thead th {
+    position: static !important;
+  }
+}

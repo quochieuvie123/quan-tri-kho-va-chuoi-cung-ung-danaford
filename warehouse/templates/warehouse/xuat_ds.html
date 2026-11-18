@@ -13,50 +13,50 @@
 </div>
 
 {% if is_sale_admin and so_luong_cho_duyet > 0 %}
-<div class="card" style="border-left: 5px solid #d97706; background: #fffbeb; padding: 18px 24px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.12);">
-  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+<div class="card df-export-alert" style="border-left: 4px solid #b76e00; background: #fff4d8; padding: 20px 24px; margin-bottom: 20px; border-radius: 14px;">
+  <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
     <div style="display: flex; align-items: center; gap: 12px;">
-      <span style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: #fef3c7; color: #b45309; font-size: 18px;">
+      <span style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 999px; background: #ffffff; color: #b76e00; font-size: 18px; border: 1px solid #f5dfa8;">
         <i class="bi bi-bell-fill"></i>
       </span>
       <div>
-        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #92400e;">
+        <h3 style="margin: 0; font-size: 18px; font-weight: 600; color: #102a43;">
           Thông báo Sale Admin: Có {{ so_luong_cho_duyet }} yêu cầu xuất kho đang chờ phê duyệt
         </h3>
-        <p style="margin: 2px 0 0; font-size: 13px; color: #b45309;">
+        <p style="margin: 4px 0 0; font-size: 13px; color: #b76e00;">
           Xe chốt tại kho Đà Nẵng đã gửi yêu cầu xuất kho sang đây. Sale Admin vui lòng kiểm tra và duyệt để trừ tồn kho và hoàn tất giao xe.
         </p>
       </div>
     </div>
-    <span class="badge badge--wait" style="font-size: 13px; padding: 6px 14px; font-weight: 700;">
+    <span class="badge badge--wait" style="font-size: 12px; padding: 4px 12px; font-weight: 600;">
       {{ so_luong_cho_duyet }} yêu cầu chờ duyệt
     </span>
   </div>
 
-  <div style="background: #ffffff; border-radius: 8px; border: 1px solid #fde68a; overflow: hidden;">
-    <table class="tbl" style="margin: 0;">
+  <div class="scroll" style="background: #ffffff; border-radius: 14px; border: 1px solid #dce6f0; max-height: 560px; overflow: auto;">
+    <table class="tbl tbl--xuat-approval" style="margin: 0; min-width: 1360px;">
       <thead>
-        <tr style="background: #fef9c3;">
-          <th style="color: #854d0e;">Mã phiếu xuất</th>
-          <th style="color: #854d0e;">Hợp đồng</th>
-          <th style="color: #854d0e;">Khách hàng</th>
-          <th style="color: #854d0e;">Số khung (VIN)</th>
-          <th style="color: #854d0e;">Xe</th>
-          <th style="color: #854d0e;">Kho xuất</th>
-          <th style="text-align: right; color: #854d0e;">Thao tác</th>
+        <tr>
+          <th style="min-width: 240px;">Mã phiếu xuất</th>
+          <th style="min-width: 190px;">Hợp đồng</th>
+          <th style="min-width: 160px;">Khách hàng</th>
+          <th style="min-width: 190px;">Số khung (VIN)</th>
+          <th style="min-width: 220px;">Xe</th>
+          <th style="min-width: 140px;">Kho xuất</th>
+          <th style="min-width: 220px; text-align: right; position: sticky; right: 0; z-index: 3; background: #f4f7fb; border-left: 1px solid #dce6f0;">Thao tác</th>
         </tr>
       </thead>
       <tbody>
         {% for p in ds_cho_duyet %}
         <tr>
-          <td><a href="{% url 'warehouse:xuat_chi_tiet' p.ma_pxk %}"><strong style="color: #0067c5;">{{ p.ma_pxk }}</strong></a></td>
-          <td><strong>{{ p.chi_tiet_hop_dong.hop_dong.ma_hd }}</strong></td>
+          <td style="white-space: nowrap;"><a class="df-code" href="{% url 'warehouse:xuat_chi_tiet' p.ma_pxk %}">{{ p.ma_pxk }}</a></td>
+          <td style="white-space: nowrap;"><span class="df-code">{{ p.chi_tiet_hop_dong.hop_dong.ma_hd }}</span></td>
           <td>{{ p.chi_tiet_hop_dong.hop_dong.khach_hang.ten_kh }}</td>
-          <td><code>{{ p.chi_tiet_hop_dong.xe.vin }}</code></td>
+          <td style="white-space: nowrap;"><span class="df-code">{{ p.chi_tiet_hop_dong.xe.vin }}</span></td>
           <td>{{ p.chi_tiet_hop_dong.xe.ten_xe }}</td>
           <td><span class="badge">{{ p.kho.ten_kho }}</span></td>
-          <td style="text-align: right;">
-            <a href="{% url 'warehouse:xuat_chi_tiet' p.ma_pxk %}" class="btn btn--primary btn--sm" style="text-decoration: none;">
+          <td style="text-align: right; position: sticky; right: 0; z-index: 2; background: #ffffff; border-left: 1px solid #dce6f0;">
+            <a href="{% url 'warehouse:xuat_chi_tiet' p.ma_pxk %}" class="btn btn--primary" style="height: 36px; min-height: 36px; padding: 0 12px; font-size: 13px; font-weight: 600; gap: 6px; box-shadow: none; text-decoration: none;">
               <i class="bi bi-clipboard-check"></i> Kiểm tra & Phê duyệt
             </a>
           </td>
@@ -79,7 +79,7 @@
   </div>
   <div class="actions">
     <button class="btn btn--primary" type="submit"><i class="bi bi-search"></i> Tìm kiếm</button>
-    <a class="btn" href="{% url 'warehouse:xuat' %}">Xóa bộ lọc</a>
+    <a class="btn" href="{% url 'warehouse:xuat' %}">Đặt lại</a>
   </div>
 </form>
 <div class="card">
@@ -90,10 +90,10 @@
     <tbody>
     {% for p in trang %}
       <tr>
-        <td><a href="{% url 'warehouse:xuat_chi_tiet' p.ma_pxk %}"><strong>{{ p.ma_pxk }}</strong></a></td>
-        <td>{{ p.chi_tiet_hop_dong.hop_dong.ma_hd }}</td>
+        <td><a class="df-code" href="{% url 'warehouse:xuat_chi_tiet' p.ma_pxk %}">{{ p.ma_pxk }}</a></td>
+        <td><span class="df-code">{{ p.chi_tiet_hop_dong.hop_dong.ma_hd }}</span></td>
         <td>{{ p.chi_tiet_hop_dong.hop_dong.khach_hang.ten_kh }}</td>
-        <td>{{ p.chi_tiet_hop_dong.xe.vin }}</td>
+        <td><span class="df-code">{{ p.chi_tiet_hop_dong.xe.vin }}</span></td>
         <td>{{ p.chi_tiet_hop_dong.xe.ten_xe }}</td>
         <td>{{ p.ngay_lap|date:"d/m/Y H:i" }}</td>
         <td>{{ p.nguoi_lap.ten_nv|default:"—" }}</td>
@@ -106,10 +106,21 @@
   </table>
   </div>
   {% if trang.paginator.num_pages > 1 %}
-  <div class="pager">
-    {% if trang.has_previous %}<a href="?{{ query }}&page={{ trang.previous_page_number }}">&laquo; Trước</a>{% endif %}
-    <span>Trang {{ trang.number }} / {{ trang.paginator.num_pages }}</span>
-    {% if trang.has_next %}<a href="?{{ query }}&page={{ trang.next_page_number }}">Sau &raquo;</a>{% endif %}
+  <div class="df-pager" aria-label="Phân trang xuất kho">
+    <div class="df-pager__info">Tổng: {{ tong }} phiếu xuất kho</div>
+    <div class="df-pager__controls">
+      {% if trang.has_previous %}
+        <a class="df-pager__btn" href="?{{ query }}&page={{ trang.previous_page_number }}">&laquo; Trước</a>
+      {% else %}
+        <span class="df-pager__btn is-disabled" aria-disabled="true">&laquo; Trước</span>
+      {% endif %}
+      <span class="df-pager__counter">Trang {{ trang.number }} / {{ trang.paginator.num_pages }}</span>
+      {% if trang.has_next %}
+        <a class="df-pager__btn" href="?{{ query }}&page={{ trang.next_page_number }}">Sau &raquo;</a>
+      {% else %}
+        <span class="df-pager__btn is-disabled" aria-disabled="true">Sau &raquo;</span>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
 </div>

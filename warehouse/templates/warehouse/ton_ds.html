@@ -52,7 +52,7 @@
 
     <button class="btn btn--primary" type="submit"><i class="bi bi-search"></i> Tìm kiếm</button>
 
-    <a class="btn" href="{% url 'warehouse:ton_kho' %}">Xóa bộ lọc</a>
+    <a class="btn" href="{% url 'warehouse:ton_kho' %}">Đặt lại</a>
 
   </div>
 
@@ -74,7 +74,7 @@
 
       <tr>
 
-        <td><a href="{% url 'warehouse:ton_chi_tiet' x.vin %}?kho={{ ma_kho }}"><strong>{{ x.vin }}</strong></a></td>
+        <td><a class="df-code" href="{% url 'warehouse:ton_chi_tiet' x.vin %}?kho={{ ma_kho }}">{{ x.vin }}</a></td>
 
         <td>{{ x.ten_xe }}</td><td>{{ x.loai_xe }}</td><td>{{ x.mau_sac|default:"—" }}</td>{% if ma_kho == "ALL" %}<td><span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:600;">{{ x.kho_id }}</span></td>{% endif %}<td>{{ x.vi_tri }}</td>
 
@@ -99,17 +99,22 @@
   </div>
 
   {% if trang.paginator.num_pages > 1 %}
-
-  <div class="pager">
-
-    {% if trang.has_previous %}<a href="?{{ query }}&page={{ trang.previous_page_number }}">&laquo; Trước</a>{% endif %}
-
-    <span>Trang {{ trang.number }} / {{ trang.paginator.num_pages }}</span>
-
-    {% if trang.has_next %}<a href="?{{ query }}&page={{ trang.next_page_number }}">Sau &raquo;</a>{% endif %}
-
+  <div class="df-pager" aria-label="Phân trang tồn kho">
+    <div class="df-pager__info">Tổng: {{ tong }} dòng tồn kho</div>
+    <div class="df-pager__controls">
+      {% if trang.has_previous %}
+        <a class="df-pager__btn" href="?{{ query }}&page={{ trang.previous_page_number }}">&laquo; Trước</a>
+      {% else %}
+        <span class="df-pager__btn is-disabled" aria-disabled="true">&laquo; Trước</span>
+      {% endif %}
+      <span class="df-pager__counter">Trang {{ trang.number }} / {{ trang.paginator.num_pages }}</span>
+      {% if trang.has_next %}
+        <a class="df-pager__btn" href="?{{ query }}&page={{ trang.next_page_number }}">Sau &raquo;</a>
+      {% else %}
+        <span class="df-pager__btn is-disabled" aria-disabled="true">Sau &raquo;</span>
+      {% endif %}
+    </div>
   </div>
-
   {% endif %}
 
 </div>

@@ -5,8 +5,8 @@
     <!-- KHUNG TÌM KIẾM XE -->
     <div>
         <h2 class="section-title">Tra cứu & Đặt xe từ nguồn phân bổ</h2>
-        <form method="GET" class="filters" style="background: #f4f7fb; padding: 16px; border-radius: 12px; border: 1px solid #dce6f0; margin-bottom: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: end;">
-            <div class="field" style="grid-column: span 2; margin: 0;">
+        <form method="GET" class="filters df-order-filters">
+            <div class="field df-order-filters__kw">
                 <label for="keyword">Tra cứu số khung VIN hoặc mô tả dòng xe:</label>
                 <input
                     type="text"
@@ -15,34 +15,61 @@
                     class="input"
                     placeholder="Ví dụ: Everest, Territory, RL05..."
                     value="{{ keyword }}"
+                    style="min-width: 0; width: 100%;"
                 >
             </div>
-            <div class="field" style="margin: 0;">
+            <div class="field df-order-filters__month">
                 <label for="month-select">Kỳ phân bổ:</label>
-                <select name="month" id="month-select" class="select" onchange="this.form.submit()">
+                <select name="month" id="month-select" class="select" onchange="this.form.submit()" style="min-width: 0; width: 100%;">
                     <option value="ALL" {% if selected_month == 'ALL' %}selected{% endif %}>Tất cả các tháng (Toàn bộ)</option>
                     {% for opt in month_options %}
                         <option value="{{ opt.value }}" {% if selected_month == opt.value %}selected{% endif %}>{{ opt.label }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div style="grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <div class="df-order-filters__actions">
                 <button type="submit" class="btn btn--primary">
-                    <i class="bi bi-search"></i> Lọc & Tìm kiếm
+                    <i class="bi bi-search"></i> Tìm kiếm
                 </button>
                 {% if keyword or selected_month != 'ALL' %}
-                <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--light" title="Đặt lại bộ lọc">
+                <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--light" title="Đặt lại">
                     <i class="bi bi-arrow-counterclockwise"></i> Đặt lại
                 </a>
                 {% endif %}
             </div>
         </form>
+        <style>
+            .df-order-filters {
+                background: #f4f7fb;
+                padding: 16px;
+                border-radius: 12px;
+                border: 1px solid #dce6f0;
+                margin-bottom: 20px;
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 16px;
+                align-items: end;
+            }
+            .df-order-filters__kw { grid-column: span 2; margin: 0; min-width: 0; }
+            .df-order-filters__month { margin: 0; min-width: 0; }
+            .df-order-filters__actions {
+                grid-column: 1 / -1;
+                display: flex;
+                gap: 12px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+            @media (max-width: 780px) {
+                .df-order-filters { grid-template-columns: minmax(0, 1fr); }
+                .df-order-filters__kw { grid-column: span 1; }
+            }
+        </style>
     </div>
 
     <!-- DANH SÁCH XE ĐÃ CHỌN ĐỂ ĐẶT (ĐƯA LÊN TRƯỚC THEO YÊU CẦU) -->
     <div style="background: #ffffff; padding: 24px; border-radius: 14px; border: 1px solid #dce6f0; margin-bottom: 20px; box-shadow: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
-            <h3 style="font-size: 16px; font-weight: 700; color: #0b2a4a; margin: 0; display: flex; align-items: center; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 12px;">
+            <h3 class="section-title" style="margin: 0; display: flex; align-items: center; gap: 8px;">
                 <i class="bi bi-cart-check" style="color: #0067c5;"></i>
                 Danh sách xe đã chọn đặt hàng ({% if xe_da_chon %}{{ xe_da_chon|length }}{% else %}0{% endif %})
             </h3>
@@ -114,8 +141,8 @@
 
     <!-- KẾT QUẢ TÌM KIẾM / NGUỒN XE PHÂN BỔ KHẢ DỤNG -->
     <div style="border-top: 2px dashed #e2e8f0; padding-top: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h3 style="font-size: 15px; font-weight: 700; color: #0b2a4a; margin: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 12px;">
+            <h3 class="section-title" style="margin: 0;">
                 {% if keyword %}
                     Kết quả tra cứu phân bổ theo từ khóa "{{ keyword }}"
                 {% else %}
@@ -218,7 +245,7 @@
                             <td><strong>{{ xe.order_number|default:"—" }}</strong></td>
                             <td><span class="badge">{{ xe.vehicle_code }}</span></td>
                             <td><strong>{{ xe.description }}</strong></td>
-                            <td style="font-family: monospace; font-weight: 700; color: #0067c5;">{{ xe.vin }}</td>
+                            <td><span class="df-code" style="color: #0067c5;">{{ xe.vin }}</span></td>
                             <td>{{ xe.color_code }}</td>
                             <td>{{ xe.exterior_color }}</td>
                             <td>{{ xe.engine_number }}</td>

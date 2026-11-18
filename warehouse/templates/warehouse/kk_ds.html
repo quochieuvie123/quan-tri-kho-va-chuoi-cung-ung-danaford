@@ -34,7 +34,7 @@
     <tbody>
     {% for p in ds %}
       <tr>
-        <td><a href="{% url 'warehouse:kk_chi_tiet' p.ma_pkk %}"><strong>{{ p.ma_pkk }}</strong></a></td>
+        <td><a class="df-code" href="{% url 'warehouse:kk_chi_tiet' p.ma_pkk %}">{{ p.ma_pkk }}</a></td>
         <td>{{ p.ky_kiem_ke }}</td><td>{{ p.pham_vi }}</td><td>{{ p.ngay_kiem_ke|date:"d/m/Y" }}</td>
         <td>{{ p.nhan_vien.ten_nv }}</td><td>{{ p.nguoi_duyet.ten_nv|default:"—" }}</td>
         <td><span class="badge {% if p.trang_thai == 'HOAN_TAT' %}badge--ok{% elif p.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">{{ p.get_trang_thai_display }}</span></td>

@@ -277,8 +277,8 @@
             </div>
 
             <div class="thao-tac">
-                <button type="submit" class="df-btn df-btn--primary">Lọc</button>
-                <a href="{% url 'alerts:index' %}" class="df-btn df-btn--secondary">Bỏ lọc</a>
+                <button type="submit" class="df-btn df-btn--primary">Tìm kiếm</button>
+                <a href="{% url 'alerts:index' %}" class="df-btn df-btn--secondary">Đặt lại</a>
             </div>
         </form>
         <script>
@@ -361,7 +361,7 @@
                 {% for cb in danh_sach %}
                 <tr>
                     <td>
-                        <a href="{% url 'alerts:chi_tiet' cb.pk %}?{{ request.GET.urlencode }}">
+                        <a class="df-code" href="{% url 'alerts:chi_tiet' cb.pk %}?{{ request.GET.urlencode }}">
                             CB{{ cb.pk }}
                         </a>
                     </td>
@@ -387,7 +387,7 @@
 
                     <td>
                         {% if cb.xe %}
-                            {{ cb.xe.vin }}<br>
+                            <span class="df-code">{{ cb.xe.vin }}</span><br>
                             {{ cb.xe.ten_xe }}<br>
                             {{ cb.xe.mau_sac|default:"Chưa có màu" }}
                         {% else %}
