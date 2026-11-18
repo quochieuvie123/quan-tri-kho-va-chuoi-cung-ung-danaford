@@ -220,6 +220,114 @@ class Command(BaseCommand):
                 },
             )
 
+        # 9b. Bổ sung 25 xe tồn kho Sẵn sàng (SAN_SANG, đã duyệt nhập kho) ưu tiên dòng bán chạy:
+        # Đà Nẵng (KHO01): 15 xe (60%) | Bình Định (KHO02): 5 xe (20%) | Gia Lai (KHO03): 5 xe (20%)
+        kho_dn = Kho.objects.filter(ma_kho="KHO01").first()
+        kho_bd = Kho.objects.filter(ma_kho="KHO02").first()
+        kho_gl = Kho.objects.filter(ma_kho="KHO03").first()
+        ncc_default = NhaCungCap.objects.first()
+        dvvc_default = DonViVanChuyen.objects.first()
+
+        ds_xe_import_ton_kho = [
+            # --- 15 XE TẠI KHO ĐÀ NẴNG (KHO01 - 60%) ---
+            ("RL2FMA001TZ000101", "Ford Territory Titanium 1.5L EcoBoost", "Titanium 1.5L EcoBoost", "SUV 5 chỗ", "Trắng", "KHO01", Decimal("799000000"), date(2026, 10, 12)),
+            ("RL2FMA001TZ000102", "Ford Territory Titanium 1.5L EcoBoost", "Titanium 1.5L EcoBoost", "SUV 5 chỗ", "Đen", "KHO01", Decimal("799000000"), date(2026, 10, 14)),
+            ("RL2FMA001TZ000103", "Ford Territory Titanium X 1.5L EcoBoost", "Titanium X 1.5L EcoBoost", "SUV 5 chỗ", "Trắng", "KHO01", Decimal("889000000"), date(2026, 10, 16)),
+            ("RL2FMA001TZ000104", "Ford Territory Trend 1.5L EcoBoost", "Trend 1.5L EcoBoost", "SUV 5 chỗ", "Trắng", "KHO01", Decimal("759000000"), date(2026, 10, 18)),
+            ("RL2FMA001TZ000105", "Ford Territory Trend 1.5L EcoBoost", "Trend 1.5L EcoBoost", "SUV 5 chỗ", "Đen", "KHO01", Decimal("759000000"), date(2026, 10, 20)),
+            ("RL2FMA001TZ000106", "Ford Ranger XLS 2.0L 4x2 AT", "XLS 2.0L 4x2 AT", "Bán tải", "Trắng", "KHO01", Decimal("665000000"), date(2026, 10, 22)),
+            ("RL2FMA001TZ000107", "Ford Ranger XLS 2.0L 4x2 AT", "XLS 2.0L 4x2 AT", "Bán tải", "Đen", "KHO01", Decimal("665000000"), date(2026, 10, 24)),
+            ("RL2FMA001TZ000108", "Ford Ranger XLS 2.0L 4x4 AT", "XLS 2.0L 4x4 AT", "Bán tải", "Bạc", "KHO01", Decimal("707000000"), date(2026, 10, 25)),
+            ("RL2FMA001TZ000109", "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT", "Wildtrak 2.0L Bi-Turbo 4x4 AT", "Bán tải", "Vàng Luxe", "KHO01", Decimal("979000000"), date(2026, 10, 27)),
+            ("RL2FMA001TZ000110", "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT", "Wildtrak 2.0L Bi-Turbo 4x4 AT", "Bán tải", "Đen", "KHO01", Decimal("979000000"), date(2026, 11, 2)),
+            ("RL2FMA001TZ000111", "Ford Ranger Sport 2.0L 4x4 AT", "Sport 2.0L 4x4 AT", "Bán tải", "Đỏ Cam", "KHO01", Decimal("864000000"), date(2026, 11, 4)),
+            ("RL2FMA001TZ000112", "Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT", "Titanium+ 2.0L Bi-Turbo 4x4 AT", "SUV 7 chỗ", "Trắng Tuyết", "KHO01", Decimal("1468000000"), date(2026, 11, 5)),
+            ("RL2FMA001TZ000113", "Ford Everest Titanium 2.0L 4x2 AT", "Titanium 2.0L 4x2 AT", "SUV 7 chỗ", "Đen", "KHO01", Decimal("1299000000"), date(2026, 11, 7)),
+            ("RL2FMA001TZ000114", "Ford Everest Platinum 3.0L V6 4x4 AT", "Platinum 3.0L V6 4x4 AT", "SUV 7 chỗ", "Đen", "KHO01", Decimal("1545000000"), date(2026, 11, 9)),
+            ("RL2FMA001TZ000115", "Ford Transit Trend 16 chỗ 2.3L", "Trend 16 chỗ 2.3L", "Thương mại 16 chỗ", "Bạc", "KHO01", Decimal("905000000"), date(2026, 11, 10)),
+            # --- 5 XE TẠI KHO BÌNH ĐỊNH (KHO02 - 20%) ---
+            ("RL2FMA001TZ000116", "Ford Territory Titanium 1.5L EcoBoost", "Titanium 1.5L EcoBoost", "SUV 5 chỗ", "Trắng", "KHO02", Decimal("799000000"), date(2026, 10, 19)),
+            ("RL2FMA001TZ000117", "Ford Ranger XLS 2.0L 4x2 AT", "XLS 2.0L 4x2 AT", "Bán tải", "Trắng", "KHO02", Decimal("665000000"), date(2026, 10, 23)),
+            ("RL2FMA001TZ000118", "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT", "Wildtrak 2.0L Bi-Turbo 4x4 AT", "Bán tải", "Vàng Luxe", "KHO02", Decimal("979000000"), date(2026, 10, 28)),
+            ("RL2FMA001TZ000119", "Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT", "Titanium+ 2.0L Bi-Turbo 4x4 AT", "SUV 7 chỗ", "Đen", "KHO02", Decimal("1468000000"), date(2026, 11, 3)),
+            ("RL2FMA001TZ000120", "Ford Transit Trend 16 chỗ 2.3L", "Trend 16 chỗ 2.3L", "Thương mại 16 chỗ", "Bạc", "KHO02", Decimal("905000000"), date(2026, 11, 8)),
+            # --- 5 XE TẠI KHO GIA LAI (KHO03 - 20%) ---
+            ("RL2FMA001TZ000121", "Ford Territory Titanium 1.5L EcoBoost", "Titanium 1.5L EcoBoost", "SUV 5 chỗ", "Trắng", "KHO03", Decimal("799000000"), date(2026, 10, 17)),
+            ("RL2FMA001TZ000122", "Ford Territory Trend 1.5L EcoBoost", "Trend 1.5L EcoBoost", "SUV 5 chỗ", "Đen", "KHO03", Decimal("759000000"), date(2026, 10, 21)),
+            ("RL2FMA001TZ000123", "Ford Ranger XLS 2.0L 4x2 AT", "XLS 2.0L 4x2 AT", "Bán tải", "Bạc", "KHO03", Decimal("665000000"), date(2026, 10, 26)),
+            ("RL2FMA001TZ000124", "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT", "Wildtrak 2.0L Bi-Turbo 4x4 AT", "Bán tải", "Trắng", "KHO03", Decimal("979000000"), date(2026, 11, 1)),
+            ("RL2FMA001TZ000125", "Ford Everest Sport 2.0L 4x2 AT", "Sport 2.0L 4x2 AT", "SUV 7 chỗ", "Đen", "KHO03", Decimal("1178000000"), date(2026, 11, 6)),
+        ]
+
+        kho_map = {"KHO01": kho_dn, "KHO02": kho_bd, "KHO03": kho_gl}
+        if admin_user and ncc_default and dvvc_default and all(kho_map.values()):
+            for idx_imp, (vin_imp, ten_imp, pb_imp, loai_imp, mau_imp, ma_kho_imp, gia_imp, ngay_imp) in enumerate(ds_xe_import_ton_kho, start=101):
+                kho_obj = kho_map[ma_kho_imp]
+                xe_obj, _ = Xe.objects.update_or_create(
+                    vin=vin_imp,
+                    defaults={
+                        "ten_xe": ten_imp,
+                        "phien_ban": pb_imp,
+                        "loai_xe": loai_imp,
+                        "mau_sac": mau_imp,
+                        "so_may": f"YN2S-0{idx_imp}",
+                        "nam_sx": 2026,
+                        "hop_so": "Tự động",
+                        "nhien_lieu": "Dầu" if ("Ranger" in ten_imp or "Everest" in ten_imp or "Transit" in ten_imp) else "Xăng",
+                        "dung_tich": 2000 if ("Ranger" in ten_imp or "Everest" in ten_imp) else 1500,
+                        "trang_thai": TrangThaiXe.SAN_SANG,
+                    },
+                )
+                # Chỉ set so_luong_ton=1 nếu xe chưa bị xuất bán trong lúc test
+                if xe_obj.trang_thai == TrangThaiXe.SAN_SANG:
+                    TonKho.objects.update_or_create(
+                        kho=kho_obj,
+                        xe=xe_obj,
+                        defaults={
+                            "so_luong_ton": 1,
+                            "ngay_vao_kho": ngay_imp,
+                            "vi_tri": f"A{(idx_imp - 100):02d}",
+                        },
+                    )
+                dt_imp = aware_dt(ngay_imp.year, ngay_imp.month, ngay_imp.day, 9, 0)
+                hdn_obj, _ = HoaDonNhap.objects.update_or_create(
+                    ma_hdn=f"HDN-IMP-{idx_imp}",
+                    defaults={
+                        "nha_cung_cap": ncc_default,
+                        "chi_nhanh": kho_obj.chi_nhanh,
+                        "don_vi_van_chuyen": dvvc_default,
+                        "ngay_nhap": dt_imp,
+                        "so_hoa_don": f"VAT-IMP-{idx_imp}",
+                        "ky_hieu": "1C26TDF",
+                        "bien_so_xe": "43C-889.99",
+                        "ten_tai_xe": "Nguyễn Văn Tài",
+                    },
+                )
+                ctn_obj, _ = ChiTietNhap.objects.update_or_create(
+                    hoa_don_nhap=hdn_obj,
+                    xe=xe_obj,
+                    defaults={
+                        "so_luong_nhap": 1,
+                        "don_gia": gia_imp,
+                        "thanh_tien": gia_imp,
+                    },
+                )
+                pnk_obj, _ = PhieuNhapKho.objects.update_or_create(
+                    ma_phieu=f"PNK-IMP-{idx_imp}",
+                    defaults={
+                        "loai_nguon": PhieuNhapKho.LoaiNguon.HOA_DON,
+                        "chi_tiet_nhap": ctn_obj,
+                        "xe": xe_obj,
+                        "kho": kho_obj,
+                        "ngay_nhap": ngay_imp,
+                        "trang_thai": PhieuNhapKho.TrangThai.DA_DUYET,
+                        "nguoi_lap": admin_user,
+                        "nguoi_duyet": admin_user,
+                        "thoi_gian_duyet": dt_imp,
+                    },
+                )
+                PhieuNhapKho.objects.filter(pk=pnk_obj.pk).update(ngay_lap=dt_imp)
+
         # 10. Chuẩn hóa màu sắc Xe & thiết lập quy tắc NguongCanhBao (Mục 6)
         color_norm_map = {
             "FROZEN WHITE": "Trắng",
