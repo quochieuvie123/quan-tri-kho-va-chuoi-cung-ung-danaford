@@ -129,8 +129,64 @@
                 </span>
                 {% endif %}
                 {% if allocations %}
-                <span class="badge" style="font-size: 13px; padding: 5px 12px; background: #0067c5; color: #fff;">
-                    Có <strong>{{ available_count }}</strong> xe sẵn sàng
+                <style>
+                    .avail-note-badge {
+                        position: relative;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                        font-size: 13px;
+                        padding: 5px 12px;
+                        background: #0067c5;
+                        color: #fff;
+                    }
+                    .avail-note-icon {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        width: 16px;
+                        height: 16px;
+                        border-radius: 999px;
+                        background: rgba(255, 255, 255, 0.24);
+                        border: 1px solid rgba(255, 255, 255, 0.55);
+                        color: #fff;
+                        font-size: 11px;
+                        font-weight: 800;
+                        line-height: 1;
+                        cursor: help;
+                    }
+                    .avail-note-tooltip {
+                        position: absolute;
+                        top: calc(100% + 8px);
+                        right: 0;
+                        z-index: 30;
+                        width: max-content;
+                        max-width: 280px;
+                        padding: 7px 10px;
+                        border-radius: 6px;
+                        background: #0f172a;
+                        color: #f8fafc;
+                        font-size: 12px;
+                        font-weight: 500;
+                        line-height: 1.4;
+                        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.22);
+                        opacity: 0;
+                        visibility: hidden;
+                        pointer-events: none;
+                        transition: opacity 0.15s ease;
+                        white-space: normal;
+                        text-align: left;
+                    }
+                    .avail-note-icon:hover + .avail-note-tooltip,
+                    .avail-note-icon:focus + .avail-note-tooltip {
+                        opacity: 1;
+                        visibility: visible;
+                    }
+                </style>
+                <span class="badge avail-note-badge">
+                    <span>Có <strong>{{ available_count }}</strong> xe sẵn sàng</span>
+                    <span class="avail-note-icon" tabindex="0" title="Danh sách xe sẵn sàng đặt theo danh sách phân bổ đại lý" aria-label="Danh sách xe sẵn sàng đặt theo danh sách phân bổ đại lý">!</span>
+                    <span class="avail-note-tooltip">Danh sách xe sẵn sàng đặt theo danh sách phân bổ đại lý</span>
                 </span>
                 {% endif %}
             </div>

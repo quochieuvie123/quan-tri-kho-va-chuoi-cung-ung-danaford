@@ -608,6 +608,7 @@ def choose_allocation_vehicle(request, ma_hd, alloc_id):
             messages.error(request, f'Xe VIN {alloc.vin} đã xuất hoặc đang giữ cho nghiệp vụ khác.')
             return redirect('contracts:xe_phu_hop', ma_hd=ma_hd)
 
+        from warehouse.order_intake import resolve_unique_engine_number
         ten_xe = alloc.description or alloc.vehicle_code
         car, _ = Xe.objects.get_or_create(
             vin=alloc.vin,
@@ -616,7 +617,7 @@ def choose_allocation_vehicle(request, ma_hd, alloc_id):
                 'loai_xe': alloc.vehicle_code or ten_xe,
                 'phien_ban': alloc.description or '',
                 'mau_sac': alloc.mau_sac or alloc.exterior_color or 'Tiêu chuẩn',
-                'so_may': alloc.engine_number or f"ENG-{alloc.vin[-8:]}",
+                'so_may': resolve_unique_engine_number(alloc.engine_number, alloc.vin),
                 'nam_sx': alloc.allocation_month.year if alloc.allocation_month else min_month.year,
                 'trang_thai': TrangThaiXe.SAN_SANG,
             }

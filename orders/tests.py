@@ -325,3 +325,29 @@ class OrdersStage2Tests(TestCase):
         self.assertEqual(len(resp.context["allocations"]), 3)
         self.assertEqual(resp.context["available_count"], 1)
         self.assertIn("Có <strong>1</strong> xe sẵn sàng", resp.content.decode("utf-8"))
+        self.assertIn("Danh sách xe sẵn sàng đặt theo danh sách phân bổ đại lý", resp.content.decode("utf-8"))
+
+    def test_duyet_pyc_so_may_0_khong_bi_trung_unique_va_sinh_phieu_nhap(self):
+        """Duyệt PYC khi phân bổ có engine_number='0' (đã có xe khác so_may='0') vẫn sinh Xe và PhieuNhapKho bình thường."""
+        from warehouse.models import PhieuNhapKho
+        Xe.objects.create(vin="VIN-EXISTING-ZERO", ten_xe="Ford Territory", so_may="0")
+        alloc_zero = Allocation.objects.create(
+            vin="WF0ZEROENG0000001", vehicle_code="TERRITORY", description="Ford Territory Titanium",
+            color_code="BK", exterior_color="Đen", engine_number="0", quantity=1,
+            allocation_month=date(2026, 11, 1), chi_nhanh=self.cn_dn
+        )
+        req = VehicleRequest.objects.create(created_by=self.user1, status=VehicleRequest.Status.PENDING, sent_at=timezone.now())
+        VehicleRequestItem.objects.create(vehicle_request=req, allocation=alloc_zero, quantity=1)
+
+        User = get_user_model()
+        admin_user = User.objects.create_superuser(username="admin_sync_check", email="a@test.vn", password="password123")
+        admin_client = Client()
+        admin_client.force_login(admin_user)
+
+        resp = admin_client.post(reverse("orders:xac_nhan_phieu", args=[req.id]))
+        self.assertEqual(resp.status_code, 302)
+        req.refresh_from_db()
+        self.assertEqual(req.status, VehicleRequest.Status.ACCEPTED)
+        pnk = PhieuNhapKho.objects.filter(xe_id=alloc_zero.vin).first()
+        self.assertIsNotNone(pnk)
+        self.assertEqual(pnk.trang_thai, "NHAP")

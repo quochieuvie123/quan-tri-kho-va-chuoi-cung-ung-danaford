@@ -993,31 +993,34 @@ def xac_nhan_phieu(request, id):
         )
         return redirect("orders:phieu_yeu_cau", id=id)
 
-    phieu = get_object_or_404(
-        VehicleRequest.objects.prefetch_related("items__allocation"),
-        id=id
-    )
+    get_object_or_404(VehicleRequest, id=id)
+    try:
+        with transaction.atomic():
+            phieu = VehicleRequest.objects.select_for_update().prefetch_related("items__allocation").get(id=id)
 
-    # Chỉ cho phép xác nhận phiếu đã gửi
-    if phieu.status != VehicleRequest.Status.PENDING:
+            # Chỉ cho phép xác nhận phiếu đã gửi
+            if phieu.status != VehicleRequest.Status.PENDING:
+                messages.error(
+                    request,
+                    "Chỉ có thể xác nhận phiếu đang ở trạng thái chờ duyệt."
+                )
+                return redirect(
+                    "orders:phieu_yeu_cau",
+                    id=phieu.id
+                )
+
+            phieu.status = VehicleRequest.Status.ACCEPTED
+            phieu.save(update_fields=["status"])
+
+            # Đồng bộ sang Kho và tạo chứng từ nhập kho cho từng VIN (rollback nếu lỗi)
+            from warehouse.order_intake import sync_request
+            sync_request(phieu.pk)
+    except Exception as e:
         messages.error(
             request,
-            "Chỉ có thể xác nhận phiếu đang ở trạng thái chờ duyệt."
+            f"Không thể phê duyệt và chuyển phiếu yêu cầu sang Quản lý nhập kho: {e}"
         )
-        return redirect(
-            "orders:phieu_yeu_cau",
-            id=phieu.id
-        )
-
-    phieu.status = VehicleRequest.Status.ACCEPTED
-    phieu.save(update_fields=["status"])
-
-    # Đồng bộ sang Kho và tạo chứng từ nhập kho cho từng VIN
-    try:
-        from warehouse.order_intake import sync_request
-        sync_request(phieu.pk)
-    except Exception as e:
-        print("Lỗi sync_request sang kho:", repr(e))
+        return redirect("orders:phieu_yeu_cau", id=id)
 
     # Phát thông báo toàn hệ thống đã phê duyệt
     try:
