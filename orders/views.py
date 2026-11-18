@@ -737,6 +737,52 @@ def lap_phieu_yeu_cau(request):
     )
 
 @login_required
+def chinh_sua_phieu_yeu_cau(request, id):
+    """Nạp lại các xe từ phiếu đặt xe bản nháp vào danh sách chọn xe để chỉnh sửa."""
+    role_info = get_user_role_info(request.user)
+    is_admin = request.user.is_superuser or (role_info and role_info.get("code") == "ADMIN")
+
+    phieu = get_object_or_404(
+        VehicleRequest.objects.prefetch_related("items__allocation"),
+        id=id,
+    )
+
+    if phieu.status != VehicleRequest.Status.DRAFT:
+        messages.error(request, "Chỉ có thể chỉnh sửa phiếu ở trạng thái Bản nháp.")
+        return redirect("orders:phieu_yeu_cau", id=phieu.id)
+
+    if not (is_admin or phieu.created_by == request.user):
+        messages.error(request, "Bạn không có quyền chỉnh sửa phiếu này.")
+        return redirect("orders:phieu_yeu_cau", id=phieu.id)
+
+    if phieu.hold_until and phieu.hold_until < timezone.now():
+        phieu.items.all().delete()
+        phieu.status = VehicleRequest.Status.REJECTED
+        phieu.rejection_reason = "Phiếu nháp đã quá thời hạn giữ chỗ."
+        phieu.save(update_fields=["status", "rejection_reason"])
+        messages.error(request, "Phiếu nháp đã hết thời hạn giữ chỗ và đã tự động giải phóng xe.")
+        return redirect("orders:danh_sach_yeu_cau")
+
+    danh_sach = dict(request.session.get("selected_vehicles", {}))
+    selected_contracts = dict(request.session.get("selected_vehicle_contracts", {}))
+
+    with transaction.atomic():
+        for item in phieu.items.select_related("allocation").all():
+            alloc_id_str = str(item.allocation_id)
+            danh_sach[alloc_id_str] = item.quantity or 1
+            if phieu.hop_dong_id and alloc_id_str not in selected_contracts:
+                selected_contracts[alloc_id_str] = phieu.hop_dong_id
+
+        phieu.items.all().delete()
+        phieu.delete()
+
+    request.session["selected_vehicles"] = danh_sach
+    request.session["selected_vehicle_contracts"] = selected_contracts
+    messages.success(request, "Đã nạp lại xe từ bản nháp vào danh sách. Bạn có thể tiếp tục chỉnh sửa.")
+    return redirect("orders:vehicle_orders")
+
+
+@login_required
 def phieu_yeu_cau(request, id):
     role_info = get_user_role_info(request.user)
     is_admin = request.user.is_superuser or (role_info and role_info.get("code") == "ADMIN")

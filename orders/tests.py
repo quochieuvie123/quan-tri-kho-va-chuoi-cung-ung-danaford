@@ -90,6 +90,23 @@ class OrdersStage1Tests(TestCase):
         self.assertIsNotNone(item)
         self.assertEqual(item.quantity, 1)
 
+    def test_chinh_sua_phieu_yeu_cau_restores_session_vehicles(self):
+        """Bấm Quay lại và chỉnh sửa trên phiếu nháp phải khôi phục xe vào danh sách đã chọn."""
+        session = self.client.session
+        session["selected_vehicles"] = {str(self.alloc1.id): 1}
+        session.save()
+
+        self.client.get(reverse("orders:lap_phieu_yeu_cau"))
+        phieu = VehicleRequest.objects.filter(created_by=self.user).last()
+        self.assertIsNotNone(phieu)
+        self.assertEqual(self.client.session.get("selected_vehicles"), {})
+
+        edit_url = reverse("orders:chinh_sua_phieu_yeu_cau", args=[phieu.id])
+        resp = self.client.get(edit_url)
+        self.assertRedirects(resp, reverse("orders:vehicle_orders"))
+        self.assertEqual(self.client.session.get("selected_vehicles"), {str(self.alloc1.id): 1})
+        self.assertFalse(VehicleRequest.objects.filter(id=phieu.id).exists())
+
     def test_import_excel_quantity_greater_than_one(self):
         # Tạo file Excel có một dòng quantity = 2
         wb = openpyxl.Workbook()

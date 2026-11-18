@@ -31,6 +31,11 @@ urlpatterns = [
         name="lap_phieu_yeu_cau"
     ),
     path(
+        "phieu-yeu-cau/<int:id>/chinh-sua/",
+        views.chinh_sua_phieu_yeu_cau,
+        name="chinh_sua_phieu_yeu_cau",
+    ),
+    path(
         "phieu-yeu-cau/<int:id>/gui/",
         views.gui_phieu_yeu_cau,
         name="gui_phieu_yeu_cau",

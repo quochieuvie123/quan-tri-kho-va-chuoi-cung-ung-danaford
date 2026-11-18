@@ -37,7 +37,7 @@
     <div class="toolbar no-print">
         <div style="display: flex; gap: 10px; align-items: center;">
             {% if phieu.status == "DRAFT" %}
-                <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--light">
+                <a href="{% url 'orders:chinh_sua_phieu_yeu_cau' phieu.id %}" class="btn btn--light">
                     <i class="bi bi-arrow-left"></i> Quay lại chọn xe
                 </a>
             {% else %}
@@ -193,6 +193,9 @@
     <!-- CÁC NÚT THAO TÁC XỬ LÝ -->
     <div class="toolbar no-print" style="justify-content: center; gap: 12px; margin-top: 10px;">
         {% if phieu.status == "DRAFT" %}
+            <a href="{% url 'orders:chinh_sua_phieu_yeu_cau' phieu.id %}" class="btn btn--light">
+                <i class="bi bi-pencil-square"></i> Quay lại và chỉnh sửa
+            </a>
             <form method="POST" action="{% url 'orders:gui_phieu_yeu_cau' phieu.id %}" style="margin: 0;">
                 {% csrf_token %}
                 <button type="submit" class="btn btn--primary">
