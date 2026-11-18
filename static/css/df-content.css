@@ -52,7 +52,7 @@
   cursor: pointer;
 }
 
-.df-content a:not(.btn):not(.df-btn):not(.nut):not(.transfer-btn):not(.quay-lai) {
+:where(.df-content) a:not([class]) {
   color: var(--df-primary);
 }
 
@@ -534,12 +534,20 @@
     padding: 0 16px;
     border-radius: 8px;
     border: 1px solid var(--df-border);
+    background: #ffffff;
+    color: var(--df-ink);
     font-family: "Montserrat", system-ui, -apple-system, sans-serif;
     font-size: 13px;
     font-weight: 600;
     line-height: 1.45;
     box-sizing: border-box;
     white-space: nowrap;
+  }
+
+  .df-content .btn:hover {
+    background: var(--df-bg);
+    border-color: var(--df-primary);
+    color: var(--df-primary);
   }
 
   .df-content .btn--sm {
@@ -573,6 +581,30 @@
     color: var(--df-primary);
   }
 
+  .df-content .btn--success {
+    background: #0a7a45;
+    border-color: #0a7a45;
+    color: #ffffff;
+  }
+
+  .df-content .btn--success:hover {
+    background: #086337;
+    border-color: #086337;
+    color: #ffffff;
+  }
+
+  .df-content .btn--warning {
+    background: #b76e00;
+    border-color: #b76e00;
+    color: #ffffff;
+  }
+
+  .df-content .btn--warning:hover {
+    background: #965b00;
+    border-color: #965b00;
+    color: #ffffff;
+  }
+
   .df-content .btn--danger {
     background: var(--df-danger);
     border-color: var(--df-danger);
@@ -582,6 +614,13 @@
   .df-content .btn--danger:hover {
     background: var(--df-danger-hover);
     border-color: var(--df-danger-hover);
+    color: #ffffff;
+  }
+
+  .df-content .order-page-tab.active,
+  .df-content .transfer-tab.active,
+  .df-content .source-jump.active,
+  .df-content .btn-action-primary {
     color: #ffffff;
   }
 

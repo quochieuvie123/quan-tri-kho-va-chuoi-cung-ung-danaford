@@ -67,7 +67,7 @@
       <form method="post" action="{% url 'contracts:hoan_tat' hop_dong.ma_hd %}" style="margin: 0;"
             onsubmit="return confirm('Xác nhận xuất xe và hoàn tất hợp đồng {{ hop_dong.ma_hd }}? Số lượng tồn kho xe sẽ được trừ và lưu vào báo cáo.');">
         {% csrf_token %}
-        <button type="submit" class="btn btn--primary">
+        <button type="submit" class="btn btn--success">
           <i class="bi bi-check2-circle"></i> Xác nhận xuất kho & Hoàn tất hợp đồng
         </button>
       </form>

@@ -170,17 +170,27 @@
   color: var(--df-blue);
 }
 
-.df-workflow .btn--success,
-.df-workflow .btn--warning {
-  background: var(--df-blue);
-  border: 1px solid var(--df-blue);
+.df-workflow .btn--success {
+  background: #0a7a45;
+  border: 1px solid #0a7a45;
   color: #ffffff;
 }
 
-.df-workflow .btn--success:hover,
+.df-workflow .btn--success:hover {
+  background: #086337;
+  border-color: #086337;
+  color: #ffffff;
+}
+
+.df-workflow .btn--warning {
+  background: #b76e00;
+  border: 1px solid #b76e00;
+  color: #ffffff;
+}
+
 .df-workflow .btn--warning:hover {
-  background: #0056a6;
-  border-color: #0056a6;
+  background: #965b00;
+  border-color: #965b00;
   color: #ffffff;
 }
 

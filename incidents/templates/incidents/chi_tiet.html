@@ -17,7 +17,7 @@
     {% endif %}
     {% if co_the_gui %}<a class="btn btn--primary" href="{% url 'incidents:gui_yeu_cau' bb.ma_pdi %}"><i class="bi bi-send"></i> Gửi yêu cầu xử lý cho ĐVVC</a>{% endif %}
     {% if co_the_cap_nhat %}
-      <a class="btn btn--primary" href="{% url 'incidents:cap_nhat' bb.ma_pdi %}">
+      <a class="btn btn--success" href="{% url 'incidents:cap_nhat' bb.ma_pdi %}">
         <i class="bi bi-check2-circle"></i> Xác nhận đã xử lý xong sự cố (Đóng sự cố)
       </a>
     {% endif %}

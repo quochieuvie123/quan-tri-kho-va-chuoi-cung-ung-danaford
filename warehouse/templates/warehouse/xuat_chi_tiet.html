@@ -45,6 +45,13 @@
 </div>
 {% endif %}
 
+<div class="actions">
+  <a class="btn" href="{% url 'warehouse:xuat' %}?kho={{ phieu.kho_id }}"><i class="bi bi-arrow-left"></i> Danh sách</a>
+  <span class="badge {% if phieu.trang_thai == 'DA_DUYET' %}badge--ok{% elif phieu.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">{{ phieu.get_trang_thai_display }}</span>
+  <span class="spacer"></span>
+  {% if co_the_in %}<a class="btn" href="{% url 'warehouse:xuat_in' phieu.ma_pxk %}" target="_blank"><i class="bi bi-printer"></i> In / xuất file</a>{% endif %}
+</div>
+
 <div class="grid2">
   <div class="card">
     <h3>Thông tin phiếu</h3>
@@ -84,7 +91,7 @@
     {% csrf_token %}
     {% include "warehouse/_chon_nv.html" %}
     {% if co_the_duyet %}
-      <button class="btn btn--primary" type="submit" formaction="{% url 'warehouse:xuat_duyet' phieu.ma_pxk %}">
+      <button class="btn btn--success" type="submit" formaction="{% url 'warehouse:xuat_duyet' phieu.ma_pxk %}">
         <i class="bi bi-check2-circle"></i> Phê duyệt xuất kho
       </button>
     {% endif %}

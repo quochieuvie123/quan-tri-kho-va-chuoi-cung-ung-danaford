@@ -193,6 +193,9 @@
     <!-- CÁC NÚT THAO TÁC XỬ LÝ -->
     <div class="toolbar no-print" style="justify-content: center; gap: 12px; margin-top: 10px;">
         {% if phieu.status == "DRAFT" %}
+            <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--light">
+                <i class="bi bi-arrow-left"></i> Quay lại chọn xe
+            </a>
             <form method="POST" action="{% url 'orders:gui_phieu_yeu_cau' phieu.id %}" style="margin: 0;">
                 {% csrf_token %}
                 <button type="submit" class="btn btn--primary">
@@ -203,7 +206,7 @@
             {% if is_sale_admin %}
             <form method="POST" action="{% url 'orders:xac_nhan_phieu' phieu.id %}" style="margin: 0;">
                 {% csrf_token %}
-                <button type="submit" class="btn btn--primary"
+                <button type="submit" class="btn btn--success"
                         onclick="return confirm('Bạn xác nhận tiếp nhận và phê duyệt phiếu đặt xe này để chuyển tiếp sang kho và các quy trình tiếp theo?');">
                     <i class="bi bi-check2-circle"></i> Xác nhận & Phê duyệt phiếu (Quốc Hiếu)
                 </button>

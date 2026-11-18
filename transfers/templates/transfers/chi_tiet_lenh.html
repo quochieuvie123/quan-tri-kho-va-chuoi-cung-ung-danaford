@@ -269,7 +269,7 @@
             {% if is_sale_admin %}
                 <form method="POST" action="{% url 'transfers:phe_duyet_lenh' lenh.pk %}" onsubmit="return confirm('Xác nhận phê duyệt lệnh lưu chuyển này?');" style="margin: 0;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn--primary">
+                    <button type="submit" class="btn btn--success">
                         <i class="bi bi-check-lg"></i> Phê duyệt lệnh (Sale Admin)
                     </button>
                 </form>
