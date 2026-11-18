@@ -489,7 +489,7 @@ class ContractSourcingTierTests(TestCase):
             phien_ban_yeu_cau="Titanium",
             mau_sac_yeu_cau="Nâu Ánh Kim",
             trang_thai=TrangThaiHopDong.CHO_XU_LY,
-            ngay_ky=date(2026, 11, 1)
+            ngay_ky=date(2026, 10, 15)
         )
 
         can_pb, reason_pb = check_can_source_from_tier(hd, SourcingTier.PHAN_BO)
@@ -528,7 +528,7 @@ class ContractSourcingTierTests(TestCase):
             phien_ban_yeu_cau="Trend",
             mau_sac_yeu_cau="Đỏ",
             trang_thai=TrangThaiHopDong.CHO_XU_LY,
-            ngay_ky=date(2026, 11, 1)
+            ngay_ky=date(2026, 10, 15)
         )
 
         can_pb, _ = check_can_source_from_tier(hd, SourcingTier.PHAN_BO)
@@ -747,7 +747,7 @@ class ContractSourcingTierTests(TestCase):
             phien_ban_yeu_cau="Titanium",
             mau_sac_yeu_cau="Trắng",
             trang_thai=TrangThaiHopDong.CHO_XU_LY,
-            ngay_ky=date(2026, 11, 1)
+            ngay_ky=date(2026, 10, 15)
         )
 
         # Chốt xe phân bổ cho hợp đồng -> Đưa vào Danh sách xe đã chọn đặt hàng -> Lập PYC
@@ -1106,7 +1106,7 @@ class ContractSourcingTierTests(TestCase):
             phien_ban_yeu_cau="Limited",
             mau_sac_yeu_cau="Trắng",
             trang_thai=TrangThaiHopDong.CHO_XU_LY,
-            ngay_ky=date(2026, 11, 1),
+            ngay_ky=date(2026, 10, 15),
         )
         self.client.post(reverse("contracts:choose_allocation_vehicle", args=[hd_pb.ma_hd, alloc.id]))
 
@@ -1129,3 +1129,92 @@ class ContractSourcingTierTests(TestCase):
         vr_b = VehicleRequest.objects.filter(items__allocation=alloc, hop_dong=hd_pb).first()
         self.assertIsNotNone(vr_b)
         self.assertEqual(vr_b.status, VehicleRequest.Status.DRAFT)
+
+    def test_spec_4_images_strict_color_no_hardcode_and_idempotency(self):
+        """Kiểm tra toàn bộ 4 ảnh đặc tả: ẩn xe khác màu, 'Không có xe phù hợp', kỳ phân bổ liền sau tháng ký, chống bấm trùng."""
+        from orders.models import Allocation
+        from transfers.models import LenhLuuChuyen
+
+        # 1. Xe khác màu ở Đà Nẵng (Trắng), Bình Định (Bạc) và Phân bổ (Trắng) đều KHÔNG được xuất hiện
+        car_dn_wrong = Xe.objects.create(
+            vin="VN-WRONG-DN-01", ten_xe="Ford Everest Titanium+", phien_ban="Titanium+",
+            mau_sac="Trắng", so_may="SM-WDN01", trang_thai=TrangThaiXe.SAN_SANG
+        )
+        TonKho.objects.create(kho=self.kho_dn, xe=car_dn_wrong, so_luong_ton=1, ngay_vao_kho=timezone.localdate())
+
+        car_bd_wrong = Xe.objects.create(
+            vin="VN-WRONG-BD-01", ten_xe="Ford Everest Titanium+", phien_ban="Titanium+",
+            mau_sac="Bạc", so_may="SM-WBD01", trang_thai=TrangThaiXe.SAN_SANG
+        )
+        TonKho.objects.create(kho=self.kho_bd, xe=car_bd_wrong, so_luong_ton=1, ngay_vao_kho=timezone.localdate())
+
+        # Hợp đồng ký Tháng 11/2026 đòi màu Đen -> chỉ tìm phân bổ từ Tháng 12/2026 trở đi
+        hd_black = HopDong.objects.create(
+            ma_hd="HD-STRICT-BLACK", khach_hang=self.kh, chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Everest Titanium+", phien_ban_yeu_cau="Titanium+",
+            mau_sac_yeu_cau="Đen", trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=date(2026, 11, 10),
+        )
+        # Phân bổ tháng 11/2026 (cùng tháng ký) và khác màu tháng 12 đều bị loại
+        Allocation.objects.create(
+            order_number="ORD-SAME-11", vehicle_code="EVEREST", description="Ford Everest Titanium+",
+            vin="RL2SAME11BLACK001", mau_sac="Đen", exterior_color="Đen",
+            allocation_month=date(2026, 11, 1), quantity=1, chi_nhanh=self.cn_dn,
+        )
+        alloc_wrong_color = Allocation.objects.create(
+            order_number="ORD-DIFF-12", vehicle_code="EVEREST", description="Ford Everest Titanium+",
+            vin="RL2DIFF12WHITE001", mau_sac="Trắng", exterior_color="Trắng",
+            allocation_month=date(2026, 12, 1), quantity=1, chi_nhanh=self.cn_dn,
+        )
+
+        resp_empty = self.client.get(reverse("contracts:xe_phu_hop", args=[hd_black.ma_hd]), HTTP_ACCEPT="text/html")
+        self.assertEqual(resp_empty.status_code, 200)
+        html_empty = resp_empty.content.decode("utf-8")
+        self.assertNotIn("VN-WRONG-DN-01", html_empty)
+        self.assertNotIn("VN-WRONG-BD-01", html_empty)
+        self.assertNotIn("RL2SAME11BLACK001", html_empty)
+        self.assertNotIn("RL2DIFF12WHITE001", html_empty)
+        self.assertEqual(html_empty.count("Không có xe phù hợp"), 3)
+
+        # Cố tình POST chọn phân bổ khác màu hoặc cùng tháng ký -> bị chặn
+        self.client.post(reverse("contracts:choose_allocation_vehicle", args=[hd_black.ma_hd, alloc_wrong_color.id]))
+        hd_black.refresh_from_db()
+        self.assertEqual(hd_black.trang_thai, TrangThaiHopDong.CHO_XU_LY)
+
+        # Tháng 12 không có, sang Tháng 01/2027 có xe Đen -> tự động tìm thấy kỳ Tháng 01/2027 (không hardcode 11/2026)
+        alloc_jan = Allocation.objects.create(
+            order_number="ORD-JAN-27", vehicle_code="EVEREST", description="Ford Everest Titanium+",
+            vin="RL2JAN27BLACK0001", mau_sac="Đen", exterior_color="Đen",
+            allocation_month=date(2027, 1, 1), quantity=1, chi_nhanh=self.cn_dn,
+        )
+        resp_jan = self.client.get(reverse("contracts:xe_phu_hop", args=[hd_black.ma_hd]), HTTP_ACCEPT="text/html")
+        html_jan = resp_jan.content.decode("utf-8")
+        self.assertIn("RL2JAN27BLACK0001", html_jan)
+        self.assertIn("Tháng 01/2027", html_jan)
+        self.assertNotIn("(Tháng 11/2026)", html_jan)
+
+        # Chốt 2 lần liên tiếp cùng hợp đồng -> chỉ giữ 1 ChiTietHopDong, không trùng
+        self.client.post(reverse("contracts:choose_allocation_vehicle", args=[hd_black.ma_hd, alloc_jan.id]))
+        self.client.post(reverse("contracts:choose_allocation_vehicle", args=[hd_black.ma_hd, alloc_jan.id]))
+        self.assertEqual(ChiTietHopDong.objects.filter(hop_dong=hd_black).count(), 1)
+
+        # Kiểm tra chống chốt trùng cho nguồn Bình Định/Gia Lai (CHO_XE_VE_KHO)
+        car_bd_ok = Xe.objects.create(
+            vin="VN-OK-BD-01", ten_xe="Ford Everest Titanium+", phien_ban="Titanium+",
+            mau_sac="Đen", so_may="SM-OBD01", trang_thai=TrangThaiXe.SAN_SANG
+        )
+        car_bd_ok2 = Xe.objects.create(
+            vin="VN-OK-BD-02", ten_xe="Ford Everest Titanium+", phien_ban="Titanium+",
+            mau_sac="Đen", so_may="SM-OBD02", trang_thai=TrangThaiXe.SAN_SANG
+        )
+        TonKho.objects.create(kho=self.kho_bd, xe=car_bd_ok, so_luong_ton=1, ngay_vao_kho=timezone.localdate())
+        TonKho.objects.create(kho=self.kho_bd, xe=car_bd_ok2, so_luong_ton=1, ngay_vao_kho=timezone.localdate())
+        hd_bd = HopDong.objects.create(
+            ma_hd="HD-STRICT-BD", khach_hang=self.kh, chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Everest Titanium+", phien_ban_yeu_cau="Titanium+",
+            mau_sac_yeu_cau="Đen", trang_thai=TrangThaiHopDong.CHO_XU_LY, ngay_ky=date(2026, 11, 10),
+        )
+        choose_vehicle(hd_bd.ma_hd, car_bd_ok.vin, self.user)
+        with self.assertRaises(ValidationError):
+            choose_vehicle(hd_bd.ma_hd, car_bd_ok2.vin, self.user)
+        self.assertEqual(LenhLuuChuyen.objects.filter(chi_tiet__xe__chitiethopdong__hop_dong=hd_bd).count(), 1)

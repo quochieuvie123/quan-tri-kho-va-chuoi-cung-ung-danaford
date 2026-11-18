@@ -523,3 +523,34 @@ class TransferToIntakeWorkflowTests(TestCase):
                 ngay_nhap=timezone.localdate()
             )
         self.assertIn("chính xác một nguồn", str(ctx.exception))
+
+    def test_07_luu_chuyen_nhap_da_nang_khong_can_pdi_lai(self):
+        """Xe lưu chuyển từ chi nhánh về Đà Nẵng: nhập kho trực tiếp không cần PDI lại."""
+        from transfers.models import LenhLuuChuyen
+        from warehouse import nhap_services as services
+        from warehouse.presentation import receipt_data
+
+        receipt = services.create_receipt(
+            self.user,
+            ma_phieu="PN-LC-NO-PDI",
+            kho_id=self.kho_dn.pk,
+            ngay_nhap=timezone.localdate(),
+            lenh_luu_chuyen_id=self.lenh.pk,
+            xe_id=self.xe.vin
+        )
+        self.assertFalse(services.requires_pdi(receipt))
+        self.assertTrue(services.ready_pdi(receipt))
+
+        rdata = receipt_data(receipt, self.user)
+        self.assertFalse(rdata["requires_pdi"])
+        self.assertFalse(rdata["thao_tac"]["cap_nhat_pdi"])
+        self.assertTrue(rdata["thao_tac"]["gui_duyet"])
+
+        services.submit_receipt(self.user, receipt.pk)
+        services.approve_receipt(self.user, receipt.pk)
+
+        receipt.refresh_from_db()
+        self.assertEqual(receipt.trang_thai, "DA_DUYET")
+        self.assertEqual(TonKho.objects.get(kho=self.kho_dn, xe=self.xe).so_luong_ton, 1)
+        self.lenh.refresh_from_db()
+        self.assertEqual(self.lenh.trang_thai, LenhLuuChuyen.TrangThai.HOAN_TAT)

@@ -520,7 +520,7 @@ def xac_nhan_den_da_nang(request, id):
         lenh = services.xac_nhan_den_da_nang(request.user, id)
         messages.success(
             request,
-            f"Lệnh {lenh.ma_lenh}: Xe đã đến bãi Đà Nẵng (chờ nhập kho). Vui lòng chuyển sang module Quản lý nhập kho để lập phiếu nhập và kiểm tra PDI."
+            f"Lệnh {lenh.ma_lenh}: Xe đã đến bãi Đà Nẵng (chờ nhập kho). Vui lòng chuyển sang module Quản lý nhập kho để lập và duyệt phiếu nhập (không cần PDI lại)."
         )
     except (PermissionDenied, ValidationError) as exc:
         messages.error(request, f"Lỗi tiếp nhận: {exc.message if hasattr(exc, 'message') else exc}")

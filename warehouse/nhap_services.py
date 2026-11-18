@@ -66,10 +66,20 @@ def pdi_warnings(pdi):
     return warnings
 
 
+def requires_pdi(receipt):
+    """Xe lưu chuyển nội bộ từ chi nhánh về Đà Nẵng không phải kiểm định PDI lại."""
+    return (
+        getattr(receipt, 'loai_nguon', PhieuNhapKho.LoaiNguon.HOA_DON) != PhieuNhapKho.LoaiNguon.LUU_CHUYEN
+        and not getattr(receipt, 'lenh_luu_chuyen_id', None)
+    )
+
+
 def ready_pdi(receipt, pdi=None):
     pdi = pdi or latest_pdi(receipt)
     if incident_warnings(receipt, pdi):
         return False
+    if not requires_pdi(receipt):
+        return True
     return bool(pdi and pdi.ket_qua == 'DAT' and pdi.nguoi_duyet_id and pdi.thoi_gian_duyet and not pdi_warnings(pdi))
 
 
@@ -261,14 +271,19 @@ def approve_pdi(user, receipt_id, *, pdi_id):
 
 
 @transaction.atomic
-def submit_receipt(user, receipt_id, *, pdi_id):
+def submit_receipt(user, receipt_id, *, pdi_id=None):
     require_role(user, WAREHOUSE)
     require_permission(user, 'warehouse.change_phieunhapkho')
     receipt = lock_receipt(receipt_id)
     require_branch(user, receipt.kho)
     if receipt.trang_thai != 'NHAP' or not ready_pdi(receipt):
-        raise ValidationError('Chỉ gửi phiếu nháp có PDI mới nhất đạt và đã duyệt.')
-    check_pdi_version(latest_pdi(receipt), pdi_id)
+        if requires_pdi(receipt):
+            raise ValidationError('Chỉ gửi phiếu nháp có PDI mới nhất đạt và đã duyệt.')
+        raise ValidationError('Phiếu nháp chưa đủ điều kiện gửi duyệt (kiểm tra trạng thái phiếu hoặc sự cố vận chuyển).')
+    if requires_pdi(receipt):
+        check_pdi_version(latest_pdi(receipt), pdi_id)
+    elif pdi_id is not None and latest_pdi(receipt) is not None:
+        check_pdi_version(latest_pdi(receipt), pdi_id)
     validate_receipt_data(receipt)
     receipt.trang_thai = 'CHO_DUYET'
     receipt.save(update_fields=['trang_thai'])
@@ -276,7 +291,7 @@ def submit_receipt(user, receipt_id, *, pdi_id):
 
 
 @transaction.atomic
-def approve_receipt(user, receipt_id, *, pdi_id):
+def approve_receipt(user, receipt_id, *, pdi_id=None):
     require_role(user, SALE_ADMIN)
     require_permission(user, 'warehouse.approve_phieunhapkho')
     receipt = lock_receipt(receipt_id)
@@ -284,7 +299,10 @@ def approve_receipt(user, receipt_id, *, pdi_id):
         raise ValidationError('Kho nhận phải là Dana Ford Đà Nẵng.')
     if receipt.trang_thai != 'CHO_DUYET' or not ready_pdi(receipt):
         raise ValidationError('Phiếu chưa đủ điều kiện duyệt hoặc đã duyệt.')
-    check_pdi_version(latest_pdi(receipt), pdi_id)
+    if requires_pdi(receipt):
+        check_pdi_version(latest_pdi(receipt), pdi_id)
+    elif pdi_id is not None and latest_pdi(receipt) is not None:
+        check_pdi_version(latest_pdi(receipt), pdi_id)
     validate_receipt_data(receipt)
     if receipt.loai_nguon == PhieuNhapKho.LoaiNguon.HOA_DON:
         line = ChiTietNhap.objects.select_for_update().get(pk=receipt.chi_tiet_nhap_id)

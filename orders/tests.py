@@ -298,3 +298,30 @@ class OrdersStage2Tests(TestCase):
         found = find_allocation_vehicles(hd, criteria)
         found_vins = [x["vin"] for x in found]
         self.assertNotIn(self.alloc.vin, found_vins)
+
+    def test_dat_xe_available_count_chi_dem_xe_con_trong(self):
+        """Menu Đặt xe hiển thị 'Có X xe sẵn sàng' chỉ đếm các xe ở trạng thái Còn trống."""
+        alloc_ordered = Allocation.objects.create(
+            vin="WF0AVAILTEST00002", vehicle_code="EVEREST", description="Everest Titanium 4x4",
+            color_code="BK", exterior_color="Đen", engine_number="ENG002", quantity=1,
+            allocation_month=date(2026, 11, 1), chi_nhanh=self.cn_dn
+        )
+        req = VehicleRequest.objects.create(created_by=self.user1, status=VehicleRequest.Status.PENDING, sent_at=timezone.now())
+        VehicleRequestItem.objects.create(vehicle_request=req, allocation=alloc_ordered, quantity=1)
+
+        alloc_contract = Allocation.objects.create(
+            vin="WF0AVAILTEST00003", vehicle_code="EVEREST", description="Everest Titanium 4x4",
+            color_code="SL", exterior_color="Bạc", engine_number="ENG003", quantity=1,
+            allocation_month=date(2026, 11, 1), chi_nhanh=self.cn_dn
+        )
+        kh = KhachHang.objects.create(ma_kh="KH-CNT", ten_kh="Khách Count", sdt_kh="0901112233")
+        hd = HopDong.objects.create(ma_hd="HD-CNT-01", khach_hang=kh, chi_nhanh=self.cn_dn, ngay_ky=timezone.now())
+        car = Xe.objects.create(vin=alloc_contract.vin, ten_xe=alloc_contract.description, so_may="ENG003")
+        ChiTietHopDong.objects.create(hop_dong=hd, xe=car)
+
+        self.client1.force_login(self.user1)
+        resp = self.client1.get(reverse("orders:vehicle_orders") + "?month=2026-11")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.context["allocations"]), 3)
+        self.assertEqual(resp.context["available_count"], 1)
+        self.assertIn("Có <strong>1</strong> xe sẵn sàng", resp.content.decode("utf-8"))

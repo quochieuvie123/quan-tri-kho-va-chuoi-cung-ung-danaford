@@ -23,8 +23,8 @@ def get_sourcing_counts_by_tier(hd):
         so_chi_nhanh = 0
         so_pyc = 0
     else:
-        so_da_nang = len([r for r in results if r.get('uu_tien') in (0, 2)])
-        so_chi_nhanh = len([r for r in results if r.get('uu_tien') in (1, 3)])
+        so_da_nang = len([r for r in results if r.get('uu_tien') == 0])
+        so_chi_nhanh = len([r for r in results if r.get('uu_tien') == 1])
         # Tầng "xe từ PYC chờ PDI" (uu_tien=4) được xếp cùng tầng với lịch phân bổ (Tầng 3)
         so_pyc = len([r for r in results if r.get('uu_tien') == 4 or r.get('nguon_pyc')])
 
@@ -41,11 +41,11 @@ def get_sourcing_counts_by_tier(hd):
 def check_can_source_from_tier(hd, tier):
     """
     Kiểm tra xem hợp đồng có được phép chốt xe từ tầng nguồn cung `tier` hay không.
-    Quy tắc nghiệp vụ (Phương án 2):
-    - Vẫn hiển thị xe khác màu ở các kho để tham khảo (nếu khách đồng ý đổi màu).
-    - NHƯNG chỉ khi Kho Đà Nẵng còn xe ĐÚNG MÀU hợp đồng (`uu_tien == 0`) thì mới khóa tầng Chi nhánh và Phân bổ.
-    - Nếu Kho Đà Nẵng hết xe đúng màu (chỉ có xe khác màu `uu_tien == 2` hoặc 0 xe), mở khóa cho phép chốt xe tại Chi nhánh (Bình Định / Gia Lai).
-    - Nếu cả Kho Đà Nẵng và Kho Chi nhánh đều không còn xe ĐÚNG MÀU hợp đồng (`uu_tien in (0, 1)`), mở khóa cho phép chốt từ Lịch phân bổ / PYC.
+    Quy tắc nghiệp vụ (Single Source of Truth):
+    - Chỉ tính xe khớp đủ dòng xe, phiên bản và màu sắc (`uu_tien == 0` tại Đà Nẵng, `uu_tien == 1` tại Chi nhánh).
+    - Nếu Kho Đà Nẵng còn xe phù hợp -> khóa chốt từ Chi nhánh và Lịch phân bổ.
+    - Nếu Kho Đà Nẵng hết và Kho Chi nhánh còn xe phù hợp -> mở Chi nhánh, khóa Lịch phân bổ.
+    - Nếu cả Kho Đà Nẵng và Kho Chi nhánh đều không có xe phù hợp -> mở Lịch phân bổ / PYC.
 
     Trả về: (duoc_chon: bool, ly_do_khoa: str)
     """

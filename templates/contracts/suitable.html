@@ -188,7 +188,7 @@
         </table>
       </div>
       {% else %}
-        <p class="source-empty">Kho Đà Nẵng hiện chưa có xe phù hợp tiêu chí hợp đồng này.</p>
+        <p class="source-empty">Không có xe phù hợp</p>
       {% endif %}
     </section>
 
@@ -250,7 +250,7 @@
         </table>
       </div>
       {% else %}
-        <p class="source-empty">Kho Bình Định và Gia Lai hiện không có xe phù hợp tiêu chí.</p>
+        <p class="source-empty">Không có xe phù hợp</p>
       {% endif %}
     </section>
 
@@ -384,9 +384,9 @@
       </div>
       {% else %}
         <div class="source-empty">
-          <p style="margin: 0 0 8px; font-weight: 600; color: #334155;">Lịch phân bổ các kỳ tiếp theo hiện chưa có xe phù hợp với tiêu chí của hợp đồng này.</p>
+          <p style="margin: 0 0 8px; font-weight: 600; color: #334155;">Không có xe phù hợp</p>
           <p style="margin: 0; font-size: 13px; color: #64748b;">
-            Hướng xử lý nghiệp vụ: Hợp đồng sẽ giữ ở trạng thái <strong>Chờ xử lý</strong> (nhu cầu được tự động cộng vào cột <strong>Hợp đồng chờ giao xe</strong> bên Đề xuất nhập xe POQ để xin thêm phân bổ từ Ford Việt Nam ở kỳ tiếp theo).
+            Hướng xử lý nghiệp vụ: Hợp đồng giữ ở trạng thái <strong>Chờ xử lý</strong> (nhu cầu được cộng vào cột <strong>Hợp đồng chờ giao xe</strong> bên Đề xuất nhập xe POQ để xin thêm phân bổ từ Ford Việt Nam ở kỳ tiếp theo).
           </p>
         </div>
         {% if co_the_cho_phan_bo %}
@@ -437,5 +437,15 @@ if (tabCn) {
   tabCn.click();
 }
 {% endif %}
+
+document.querySelectorAll('.source-section form[method="post"]').forEach(form => {
+  form.addEventListener('submit', () => {
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+    }
+  });
+});
 </script>
 {% endblock %}

@@ -397,7 +397,7 @@ def xac_nhan_den_da_nang(user, order_id):
     """Chuyển trạng thái: DANG_VAN_CHUYEN -> DA_GIAO_DEN_DA_NANG.
     Xe đã đến bãi Đà Nẵng:
     - BƯỚC NÀY TUYỆT ĐỐI KHÔNG CỘNG TỒN (KHO01 vẫn chưa có tồn).
-    - Trạng thái xe vẫn là DANG_LUU_CHUYEN (chờ tạo Phiếu nhập kho & kiểm tra PDI).
+    - Trạng thái xe vẫn là DANG_LUU_CHUYEN (chờ lập Phiếu nhập kho Đà Nẵng, không PDI lại).
     - Quyền: Chi nhánh Đà Nẵng hoặc Sale Admin.
     """
     order = LenhLuuChuyen.objects.select_for_update().select_related("kho_nhap", "kho_xuat").get(pk=order_id)
@@ -414,7 +414,7 @@ def xac_nhan_den_da_nang(user, order_id):
     ghi_thong_bao(
         user,
         f"Xe lưu chuyển đã đến Đà Nẵng {order.ma_lenh}",
-        f"Lệnh {order.ma_lenh} đã giao đến kho Đà Nẵng ({order.kho_nhap.ma_kho}). Đang chờ Thủ kho lập Phiếu nhập kho và kiểm tra PDI.",
+        f"Lệnh {order.ma_lenh} đã giao đến kho Đà Nẵng ({order.kho_nhap.ma_kho}). Đang chờ Thủ kho lập Phiếu nhập kho Đà Nẵng (không cần PDI lại).",
         loai="THANH_CONG"
     )
     return order

@@ -69,8 +69,10 @@ def choose_vehicle(contract_id, vin, user):
     """
     contract = HopDong.objects.select_for_update().select_related('chi_nhanh', 'khach_hang').get(pk=contract_id)
     car = Xe.objects.select_for_update().get(pk=vin)
-    if contract.trang_thai in (TrangThaiHopDong.DANG_XUAT_KHO, TrangThaiHopDong.HOAN_TAT):
+    if contract.trang_thai in (TrangThaiHopDong.DU_DIEU_KIEN_XUAT, TrangThaiHopDong.DANG_XUAT_KHO, TrangThaiHopDong.HOAN_TAT):
         raise ValidationError('Hợp đồng đang xuất kho hoặc đã hoàn tất.')
+    if contract.trang_thai == TrangThaiHopDong.CHO_XE_VE_KHO or ChiTietHopDong.objects.filter(hop_dong=contract).exists():
+        raise ValidationError('Hợp đồng đã chốt nguồn xe (đang chờ xe về kho), không thể chốt trùng lần hai.')
     if not matches_contract(car, contract):
         raise ValidationError('VIN không khớp dòng xe, phiên bản và màu sắc của hợp đồng.')
 

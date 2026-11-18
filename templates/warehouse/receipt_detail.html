@@ -296,6 +296,21 @@
   {% endif %}
 
   <!-- Bảng Lịch sử PDI -->
+  {% if not phieu_nhap.requires_pdi %}
+  <div class="card" style="border-left: 4px solid #16a34a; background: #f0fdf4;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <strong style="color: #15803d; font-size: 14px;"><i class="bi bi-check-circle-fill"></i> Xe lưu chuyển nội bộ — Không cần kiểm định PDI lại</strong>
+        <p style="margin: 4px 0 0; color: #166534; font-size: 13px;">Xe điều chuyển từ chi nhánh về Đà Nẵng không phải thực hiện kiểm định PDI lại. Thủ kho có thể gửi duyệt và Sale Admin duyệt nhập kho trực tiếp để xuất bán.</p>
+      </div>
+      {% if phieu_nhap.trang_thai != 'DA_DUYET' and not phieu_nhap.incident_info %}
+      <a class="btn btn--light" style="font-weight: 600; white-space: nowrap;" href="{% url 'incidents:ghi_nhan' %}?xe={{ phieu_nhap.vin|urlencode }}{% if phieu_nhap.lenh_luu_chuyen_id %}&amp;lenh_luu_chuyen={{ phieu_nhap.lenh_luu_chuyen_id }}{% endif %}">
+        <i class="bi bi-exclamation-triangle"></i> Báo sự cố vận chuyển (nếu có)
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
   <div class="card">
     <h2 class="section-title">Lịch sử kiểm định PDI</h2>
     {% if pdi %}

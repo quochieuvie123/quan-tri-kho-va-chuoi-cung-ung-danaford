@@ -49,7 +49,12 @@
       {% elif hop_dong.xe and not hop_dong.co_ton_da_nang or hop_dong.co_phieu_nhap_chua_xong %}
       <div style="display: flex; gap: 10px; align-items: center;">
         <span class="badge badge--CHO_DUYET" style="padding: 9px 16px; font-size: 13px;">
-          <i class="bi bi-hourglass-split"></i> Chờ hoàn tất nhập kho &amp; PDI tại Đà Nẵng trước khi xuất bán
+          <i class="bi bi-hourglass-split"></i>
+          {% if hop_dong.lenh_luu_chuyen %}
+            Chờ hoàn tất nhập kho tại Đà Nẵng trước khi xuất bán
+          {% else %}
+            Chờ hoàn tất nhập kho &amp; PDI tại Đà Nẵng trước khi xuất bán
+          {% endif %}
         </span>
       </div>
       {% elif hop_dong.xe %}

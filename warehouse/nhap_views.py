@@ -268,9 +268,9 @@ def receipt_action(request, action, pk=None):
         elif action == 'duyet-pdi':
             obj = services.approve_pdi(request.user, pk, pdi_id=data['pdi_id'])
         elif action == 'gui-duyet':
-            obj = services.submit_receipt(request.user, pk, pdi_id=data['pdi_id'])
+            obj = services.submit_receipt(request.user, pk, pdi_id=data.get('pdi_id'))
         else:
-            obj = services.approve_receipt(request.user, pk, pdi_id=data['pdi_id'])
+            obj = services.approve_receipt(request.user, pk, pdi_id=data.get('pdi_id'))
         receipt = obj.phieu_nhap if isinstance(obj, KetQuaPDI) else obj
         return JsonResponse({'id': obj.pk, 'message': 'Thành công.',
                              'phieu_nhap': receipt_data(receipt, request.user),

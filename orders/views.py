@@ -528,12 +528,17 @@ def dat_xe(request):
 
         release_expired_draft_requests()
         avail_map = get_allocations_availability_map(allocations)
+        available_count = 0
         for xe_item in allocations:
-            xe_item.availability_info = avail_map.get(xe_item.id)
+            info = avail_map.get(xe_item.id)
+            xe_item.availability_info = info
+            if info and info.get("is_available"):
+                available_count += 1
 
         context = {
             "keyword": keyword,
             "allocations": allocations,
+            "available_count": available_count,
             "selected_month": selected_month,
             "month_options": month_options,
             "current_cn": current_cn,

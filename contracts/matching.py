@@ -99,11 +99,11 @@ def car_matches_criterion(car, req, strict_color=False):
 
 
 def matches_contract_smart(car, contract):
-    """Thay thế matches_contract cứng nhắc cũ."""
+    """So khớp xe với hợp đồng theo đủ Dòng xe, Phiên bản và Màu sắc."""
     req = {
         'dong_xe': contract.dong_xe_yeu_cau,
         'phien_ban': contract.phien_ban_yeu_cau,
         'mau_sac': contract.mau_sac_yeu_cau,
     }
-    match, _ = car_matches_criterion(car, req, strict_color=False)
+    match, _ = car_matches_criterion(car, req, strict_color=True)
     return match
