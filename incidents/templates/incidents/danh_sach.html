@@ -33,7 +33,6 @@
     <button class="btn btn--primary" type="submit"><i class="bi bi-search"></i> Tìm kiếm</button>
     <a class="btn" href="{% url 'incidents:index' %}">Xóa bộ lọc</a>
     <span class="spacer"></span>
-    <a class="btn btn--primary" href="{% url 'incidents:ghi_nhan' %}"><i class="bi bi-plus-lg"></i> Ghi nhận sự cố</a>
     <button class="btn" type="button" id="btn-export" {% if not tong and not co_loc %}disabled{% endif %}>
       <i class="bi bi-download"></i> Xuất báo cáo</button>
   </div>

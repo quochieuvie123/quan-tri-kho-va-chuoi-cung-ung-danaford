@@ -455,6 +455,53 @@ def allocation_list(request):
 
 # Đặt xe
 
+def _get_pending_contract_alloc_map():
+    """Trả về dict {alloc_id: ma_hd} cho các xe phân bổ đã chốt từ Hợp đồng nhưng chưa lập PYC."""
+    from database.models import ChiTietHopDong, TrangThaiHopDong, TonKho
+    from transfers.models import ChiTietLenhLuuChuyen
+    from warehouse.models import PhieuNhapKho
+
+    pending_cts = ChiTietHopDong.objects.filter(
+        hop_dong__trang_thai=TrangThaiHopDong.CHO_XE_VE_KHO,
+    ).select_related("xe", "hop_dong")
+
+    vin_to_hd = {}
+    for ct in pending_cts:
+        vin = ct.xe_id
+        if TonKho.objects.filter(xe_id=vin, so_luong_ton__gt=0).exists():
+            continue
+        if PhieuNhapKho.objects.filter(xe_id=vin).exists():
+            continue
+        if ChiTietLenhLuuChuyen.objects.filter(xe_id=vin).exists():
+            continue
+        if VehicleRequestItem.objects.filter(
+            allocation__vin=vin
+        ).exclude(vehicle_request__status=VehicleRequest.Status.REJECTED).exists():
+            continue
+        vin_to_hd[vin] = ct.hop_dong_id
+
+    if not vin_to_hd:
+        return {}
+
+    res = {}
+    for alloc in Allocation.objects.filter(vin__in=list(vin_to_hd.keys())).order_by("id"):
+        res[str(alloc.id)] = vin_to_hd[alloc.vin]
+    return res
+
+
+def _merge_selected_vehicles(request):
+    from database.models import ChiTietHopDong
+    danh_sach = dict(request.session.get("selected_vehicles", {}))
+    selected_contracts = dict(request.session.get("selected_vehicle_contracts", {}))
+    db_pending = _get_pending_contract_alloc_map()
+    for alloc_id_str, ma_hd in db_pending.items():
+        if alloc_id_str not in danh_sach:
+            danh_sach[alloc_id_str] = 1
+        if alloc_id_str not in selected_contracts:
+            selected_contracts[alloc_id_str] = ma_hd
+    return danh_sach, selected_contracts
+
+
 @login_required
 def dat_xe(request):
         keyword = request.GET.get("keyword", "").strip()
@@ -492,10 +539,9 @@ def dat_xe(request):
             "current_cn": current_cn,
             "current_cn_name": cn_name,
         }
-        # Lấy danh sách xe đã chọn trong Session (kèm mã hợp đồng nếu được đẩy sang từ Quản lý hợp đồng)
+        # Lấy danh sách xe đã chọn trong Session kết hợp từ DB (không mất khi đổi tài khoản / trình duyệt)
         from database.models import ChiTietHopDong
-        danh_sach = request.session.get("selected_vehicles", {})
-        selected_contracts = request.session.get("selected_vehicle_contracts", {})
+        danh_sach, selected_contracts = _merge_selected_vehicles(request)
 
         xe_da_chon = []
 
@@ -558,17 +604,33 @@ from django.views.decorators.http import require_POST
 @require_POST
 def xoa_xe_da_chon(request, xe_id):
     # Lấy danh sách xe đã chọn từ Session
-    danh_sach = request.session.get("selected_vehicles", {})
+    danh_sach = dict(request.session.get("selected_vehicles", {}))
+    selected_contracts = dict(request.session.get("selected_vehicle_contracts", {}))
 
     # ID trong Session được lưu dưới dạng chuỗi
     ma_xe = str(xe_id)
+    removed = False
 
     if ma_xe in danh_sach:
         del danh_sach[ma_xe]
-
-        # Cập nhật lại Session
+        selected_contracts.pop(ma_xe, None)
         request.session["selected_vehicles"] = danh_sach
+        request.session["selected_vehicle_contracts"] = selected_contracts
+        removed = True
 
+    db_pending = _get_pending_contract_alloc_map()
+    if ma_xe in db_pending:
+        from database.models import ChiTietHopDong, HopDong, TrangThaiHopDong
+        alloc_obj = Allocation.objects.filter(pk=xe_id).first()
+        if alloc_obj:
+            ma_hd = db_pending[ma_xe]
+            ChiTietHopDong.objects.filter(hop_dong_id=ma_hd, xe__vin=alloc_obj.vin).delete()
+            HopDong.objects.filter(pk=ma_hd, trang_thai=TrangThaiHopDong.CHO_XE_VE_KHO).update(
+                trang_thai=TrangThaiHopDong.CHO_XU_LY
+            )
+            removed = True
+
+    if removed:
         messages.success(request, "Đã xóa xe khỏi danh sách.")
     else:
         messages.error(request, "Xe không tồn tại trong danh sách đã chọn.")
@@ -579,8 +641,8 @@ def xoa_xe_da_chon(request, xe_id):
 @login_required
 def lap_phieu_yeu_cau(request):
 
-    # 1. Lấy danh sách xe đã chọn từ Session
-    danh_sach = request.session.get("selected_vehicles", {})
+    # 1. Lấy danh sách xe đã chọn từ Session + Hợp đồng phân bổ đang chờ lập PYC
+    danh_sach, selected_contracts = _merge_selected_vehicles(request)
 
     if not danh_sach:
         messages.error(
@@ -631,7 +693,6 @@ def lap_phieu_yeu_cau(request):
         hold_until = timezone.now() + timedelta(minutes=hold_minutes)
 
         from database.models import ChiTietHopDong, HopDong
-        selected_contracts = request.session.get("selected_vehicle_contracts", {})
         alloc_ids = [item["xe"].id for item in xe_trong_phieu]
         locked_allocs = list(Allocation.objects.select_for_update().filter(id__in=alloc_ids))
 

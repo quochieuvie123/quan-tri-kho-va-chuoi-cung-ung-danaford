@@ -187,9 +187,6 @@
     <!-- CÁC NÚT THAO TÁC XỬ LÝ -->
     <div class="toolbar no-print" style="justify-content: center; gap: 14px; margin-top: 10px;">
         {% if phieu.status == "DRAFT" %}
-            <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--light">
-                <i class="bi bi-pencil-square"></i> Quay lại chỉnh sửa
-            </a>
             <form method="POST" action="{% url 'orders:gui_phieu_yeu_cau' phieu.id %}" style="margin: 0;">
                 {% csrf_token %}
                 <button type="submit" class="btn btn--primary" style="background: #0067c5; border-color: #0067c5; color: #fff; font-weight: 700; padding: 9px 20px;">
@@ -197,9 +194,6 @@
                 </button>
             </form>
         {% elif phieu.status == "PENDING" %}
-            <a href="{% url 'orders:danh_sach_yeu_cau' %}" class="btn btn--light">
-                <i class="bi bi-arrow-left"></i> Quay lại danh sách
-            </a>
             {% if is_sale_admin %}
             <form method="POST" action="{% url 'orders:xac_nhan_phieu' phieu.id %}" style="margin: 0;">
                 {% csrf_token %}
@@ -221,16 +215,10 @@
             </span>
             {% endif %}
         {% elif phieu.status == "ACCEPTED" %}
-            <a href="{% url 'orders:danh_sach_yeu_cau' %}" class="btn btn--light">
-                <i class="bi bi-arrow-left"></i> Quay lại danh sách yêu cầu
-            </a>
             <a href="{% url 'warehouse:nhap' %}" class="btn btn--primary" style="background: #0067c5; color: #fff; font-weight: 700;">
                 <i class="bi bi-box-arrow-in-down"></i> Tiếp tục quy trình: Quản lý nhập kho & PDI &rarr;
             </a>
         {% elif phieu.status == "REJECTED" %}
-            <a href="{% url 'orders:danh_sach_yeu_cau' %}" class="btn btn--light">
-                <i class="bi bi-arrow-left"></i> Quay lại danh sách yêu cầu
-            </a>
             <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--primary">
                 <i class="bi bi-plus-circle"></i> Đặt xe mới từ nguồn phân bổ
             </a>

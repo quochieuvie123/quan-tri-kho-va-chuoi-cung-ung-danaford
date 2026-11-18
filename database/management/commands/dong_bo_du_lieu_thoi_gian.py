@@ -263,31 +263,31 @@ class Command(BaseCommand):
         if admin_user and ncc_default and dvvc_default and all(kho_map.values()):
             for idx_imp, (vin_imp, ten_imp, pb_imp, loai_imp, mau_imp, ma_kho_imp, gia_imp, ngay_imp) in enumerate(ds_xe_import_ton_kho, start=101):
                 kho_obj = kho_map[ma_kho_imp]
-                xe_obj, _ = Xe.objects.update_or_create(
-                    vin=vin_imp,
-                    defaults={
-                        "ten_xe": ten_imp,
-                        "phien_ban": pb_imp,
-                        "loai_xe": loai_imp,
-                        "mau_sac": mau_imp,
-                        "so_may": f"YN2S-0{idx_imp}",
-                        "nam_sx": 2026,
-                        "hop_so": "Tự động",
-                        "nhien_lieu": "Dầu" if ("Ranger" in ten_imp or "Everest" in ten_imp or "Transit" in ten_imp) else "Xăng",
-                        "dung_tich": 2000 if ("Ranger" in ten_imp or "Everest" in ten_imp) else 1500,
-                        "trang_thai": TrangThaiXe.SAN_SANG,
-                    },
-                )
-                # Chỉ set so_luong_ton=1 nếu xe chưa bị xuất bán trong lúc test
-                if xe_obj.trang_thai == TrangThaiXe.SAN_SANG:
-                    TonKho.objects.update_or_create(
+                existing_xe = Xe.objects.filter(vin=vin_imp).first()
+                if existing_xe:
+                    xe_obj = existing_xe
+                else:
+                    xe_obj = Xe.objects.create(
+                        vin=vin_imp,
+                        ten_xe=ten_imp,
+                        phien_ban=pb_imp,
+                        loai_xe=loai_imp,
+                        mau_sac=mau_imp,
+                        so_may=f"YN2S-0{idx_imp}",
+                        nam_sx=2026,
+                        hop_so="Tự động",
+                        nhien_lieu="Dầu" if ("Ranger" in ten_imp or "Everest" in ten_imp or "Transit" in ten_imp) else "Xăng",
+                        dung_tich=2000 if ("Ranger" in ten_imp or "Everest" in ten_imp) else 1500,
+                        trang_thai=TrangThaiXe.SAN_SANG,
+                    )
+                # Chỉ tạo tồn kho ban đầu nếu xe chưa phát sinh xuất/lưu chuyển trong quá trình test
+                if xe_obj.trang_thai == TrangThaiXe.SAN_SANG and not TonKho.objects.filter(xe=xe_obj).exists():
+                    TonKho.objects.create(
                         kho=kho_obj,
                         xe=xe_obj,
-                        defaults={
-                            "so_luong_ton": 1,
-                            "ngay_vao_kho": ngay_imp,
-                            "vi_tri": f"A{(idx_imp - 100):02d}",
-                        },
+                        so_luong_ton=1,
+                        ngay_vao_kho=ngay_imp,
+                        vi_tri=f"A{(idx_imp - 100):02d}",
                     )
                 dt_imp = aware_dt(ngay_imp.year, ngay_imp.month, ngay_imp.day, 9, 0)
                 hdn_obj, _ = HoaDonNhap.objects.update_or_create(
@@ -383,5 +383,42 @@ class Command(BaseCommand):
                 ngay_phat_sinh=dt,
                 ngay_cap_nhat=dt,
             )
+
+        # 11. Chuẩn hóa trạng thái Xe cho các xe hết tồn ở toàn bộ các kho + hoàn thiện PYC lịch sử
+        for xe_err in Xe.objects.filter(trang_thai=TrangThaiXe.SAN_SANG):
+            if TonKho.objects.filter(xe=xe_err, so_luong_ton__gt=0).exists():
+                continue
+            if not TonKho.objects.filter(xe=xe_err).exists():
+                continue
+            if PhieuXuatKho.objects.filter(chi_tiet_hop_dong__xe=xe_err, trang_thai=TrangThaiPhieuXuat.DA_DUYET).exists() or ChiTietHopDong.objects.filter(xe=xe_err, hop_dong__trang_thai=TrangThaiHopDong.HOAN_TAT).exists():
+                xe_err.trang_thai = TrangThaiXe.DA_XUAT
+                xe_err.save(update_fields=["trang_thai"])
+
+        # Đảm bảo các hợp đồng phân bổ mẫu lịch sử đã có VehicleRequest để giỏ Đặt xe khởi đầu sạch
+        from warehouse.order_intake import sync_request
+        historical_pb_hds = [
+            "T09-002", "T10-001", "HD-CHO-PB-T10-02", "HD-CHO-PB-T10-04",
+            "HD-T09-GL-039", "HD-T10-EV-57228", "HD-T10-EV-57467", "HD-T10-EV-46501", "HD-T10-PB-46326",
+        ]
+        for ma_hd_hist in historical_pb_hds:
+            hd_h = HopDong.objects.filter(pk=ma_hd_hist, trang_thai=TrangThaiHopDong.CHO_XE_VE_KHO).first()
+            if not hd_h or not admin_user:
+                continue
+            ct_h = hd_h.chitiethopdong_set.first()
+            if not ct_h:
+                continue
+            alloc_h = Allocation.objects.filter(vin=ct_h.xe_id).first()
+            if not alloc_h:
+                continue
+            if not VehicleRequestItem.objects.filter(allocation=alloc_h).exclude(vehicle_request__status=VehicleRequest.Status.REJECTED).exists():
+                vr_h = VehicleRequest.objects.create(
+                    created_by=admin_user,
+                    status=VehicleRequest.Status.ACCEPTED,
+                    sent_at=hd_h.ngay_ky,
+                    hop_dong=hd_h,
+                )
+                VehicleRequestItem.objects.create(vehicle_request=vr_h, allocation=alloc_h, quantity=1)
+                VehicleRequest.objects.filter(pk=vr_h.pk).update(created_at=hd_h.ngay_ky)
+                sync_request(vr_h.pk)
 
         self.stdout.write(self.style.SUCCESS("Đã đồng bộ dữ liệu thời gian, kỳ phân bổ, hợp đồng và quy tắc cảnh báo tồn kho!"))

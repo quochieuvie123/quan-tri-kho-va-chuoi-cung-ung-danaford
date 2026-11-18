@@ -74,10 +74,6 @@
     </div>
 
     <div style="display: flex; gap: 12px; align-items: center; margin-top: 10px; flex-wrap: wrap;">
-        <a href="{% url 'orders:proposal_list' %}" class="btn btn--light">
-            <i class="bi bi-arrow-left"></i> Quay lại danh sách đề xuất
-        </a>
-
         {% if so_phan_bo > 0 and de_xuat_nhap > 0 %}
         <a href="{% url 'orders:vehicle_orders' %}?keyword={{ ten_xe|urlencode }}" class="btn btn--primary">
             <i class="bi bi-cart-plus"></i> Đặt xe cho dòng xe này

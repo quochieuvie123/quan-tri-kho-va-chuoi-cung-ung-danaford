@@ -225,14 +225,15 @@ def choose_vehicle(contract_id, vin, user):
 
 @transaction.atomic
 def sync_contract_for_vin(vin):
-    """After PDI/receipt puts a chosen VIN in Đà Nẵng stock, enable export."""
+    """After PDI/receipt puts a chosen VIN in Đà Nẵng stock, enable export via Quản lý xuất kho."""
     from django.conf import settings
     car = Xe.objects.select_for_update().get(pk=vin)
     dn_branch_ids = getattr(settings, 'III_IV_DA_NANG_BRANCH_IDS', ['CN01'])
-    if not TonKho.objects.filter(
+    dn_stock = TonKho.objects.filter(
         xe=car, so_luong_ton__gt=0, xe__trang_thai=TrangThaiXe.SAN_SANG,
         kho__chi_nhanh_id__in=dn_branch_ids
-    ).exists():
+    ).select_related('kho').first()
+    if not dn_stock:
         return 0
     updated = 0
     for contract in HopDong.objects.select_for_update().filter(
@@ -241,8 +242,23 @@ def sync_contract_for_vin(vin):
     ).distinct():
         contract.trang_thai = TrangThaiHopDong.DU_DIEU_KIEN_XUAT
         contract.save(update_fields=['trang_thai'])
-        # Đảm bảo có hóa đơn bán hàng sẵn sàng
+        # Đảm bảo có hóa đơn bán hàng & phiếu xuất kho chờ duyệt để hoàn tất tại Quản lý xuất kho
         ensure_invoice_for_contract(contract, car)
+        ct_hd = ChiTietHopDong.objects.filter(hop_dong=contract, xe=car).first()
+        if ct_hd:
+            nv = NhanVien.objects.filter(chi_nhanh=contract.chi_nhanh).first() or NhanVien.objects.first()
+            ma_pxk = f"PXK-{contract.ma_hd}-{car.vin[-6:]}"[:50]
+            pxk = PhieuXuatKho.objects.filter(chi_tiet_hop_dong=ct_hd).first()
+            if not pxk:
+                PhieuXuatKho.objects.create(
+                    ma_pxk=ma_pxk,
+                    chi_tiet_hop_dong=ct_hd,
+                    kho=dn_stock.kho,
+                    nguoi_nhan=contract.khach_hang.ten_kh,
+                    nguoi_lap=nv,
+                    trang_thai=TrangThaiPhieuXuat.CHO_DUYET,
+                    ghi_chu=f"Xe {car.vin} đã hoàn tất nhập kho & PDI tại Đà Nẵng. Chờ Sale Admin duyệt xuất kho cho HĐ {contract.ma_hd}."
+                )
         updated += 1
     return updated
 

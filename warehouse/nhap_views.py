@@ -163,11 +163,7 @@ def receipt_list(request):
 
         from transfers.models import ChiTietLenhLuuChuyen, LenhLuuChuyen
         arrived_transfers = ChiTietLenhLuuChuyen.objects.filter(
-            lenh__trang_thai__in=[
-                LenhLuuChuyen.TrangThai.DA_DUYET,
-                LenhLuuChuyen.TrangThai.DANG_VAN_CHUYEN,
-                LenhLuuChuyen.TrangThai.DA_GIAO_DEN_DA_NANG,
-            ],
+            lenh__trang_thai=LenhLuuChuyen.TrangThai.DA_GIAO_DEN_DA_NANG,
             lenh__kho_nhap__chi_nhanh_id='CN01'
         ).exclude(
             xe_id__in=known_vins

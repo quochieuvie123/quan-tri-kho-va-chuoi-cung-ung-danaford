@@ -180,6 +180,11 @@ def detail(request, ma_hd):
             kho__chi_nhanh_id='CN01',
             so_luong_ton__gt=0,
         ).exists() if result['vin_hien_thi'] else False
+        from warehouse.models import PhieuNhapKho
+        ctx['co_phieu_nhap_chua_xong'] = PhieuNhapKho.objects.filter(
+            xe_id__in=result['vin_hien_thi'],
+            trang_thai__in=['NHAP', 'CHO_DUYET'],
+        ).exists() if result['vin_hien_thi'] else False
         try:
             from transfers.models import LenhLuuChuyen
             ctx['lenh_luu_chuyen'] = LenhLuuChuyen.objects.filter(chi_tiet__xe__chitiethopdong__hop_dong=hd).select_related('kho_xuat__chi_nhanh', 'kho_nhap__chi_nhanh').first()
@@ -661,6 +666,20 @@ def hoan_tat_hop_dong(request, ma_hd):
     if not lines:
         messages.error(request, f'Hợp đồng {ma_hd} chưa được chốt xe. Vui lòng chọn xe đề xuất trước khi hoàn tất.')
         return redirect('contracts:detail', ma_hd=ma_hd)
+
+    from database.models import BienBanPDI
+    from warehouse.models import PhieuNhapKho
+    for line in lines:
+        car_chk = line.xe
+        if PhieuNhapKho.objects.filter(xe=car_chk, trang_thai__in=['NHAP', 'CHO_DUYET']).exists():
+            messages.error(request, f'Xe {car_chk.vin} chưa hoàn tất kiểm định PDI và duyệt nhập kho Đà Nẵng nên chưa thể xuất xe bán.')
+            return redirect('contracts:detail', ma_hd=ma_hd)
+        if BienBanPDI.objects.filter(xe=car_chk).exclude(trang_thai_claim='Đã xử lý').exists():
+            messages.error(request, f'Xe {car_chk.vin} đang có sự cố PDI chưa xử lý xong nên không thể xuất xe bán.')
+            return redirect('contracts:detail', ma_hd=ma_hd)
+        if not TonKho.objects.filter(xe=car_chk, kho__chi_nhanh_id=hd.chi_nhanh_id, so_luong_ton__gt=0).exists():
+            messages.error(request, f'Xe {car_chk.vin} chưa có tồn kho hợp lệ tại {hd.chi_nhanh.ten_cn} (chưa hoàn tất lưu chuyển / nhập kho & PDI).')
+            return redirect('contracts:detail', ma_hd=ma_hd)
 
     nv = getattr(request.user, 'nhan_vien', None)
     if not nv and request.user.username in ('hieu', 'admin', 'phanquochieu'):

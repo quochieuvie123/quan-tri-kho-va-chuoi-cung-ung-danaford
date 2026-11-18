@@ -1059,3 +1059,73 @@ class ContractSourcingTierTests(TestCase):
         resp_csv = self.client.get(reverse("alerts:xuat_het_hang"))
         self.assertEqual(resp_csv.status_code, 200)
         self.assertIn("Ranger", resp_csv.content.decode("utf-8-sig"))
+
+    def test_big_update_3_hardening_fixes(self):
+        """Kiểm tra import Excel hợp đồng linh hoạt, giỏ Đặt xe bền vững qua DB (khác session) và chặn xuất bán khi chưa nhập kho/PDI."""
+        import io
+        import openpyxl
+        from decimal import Decimal
+        from orders.models import Allocation, VehicleRequest
+        from . import contract_import
+
+        # 1. Import Excel hợp đồng với tên cột tiếng Việt, đổi thứ tự cột, ngày dạng text dd/mm/yyyy, tiền 600.000.000
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.append([
+            "Mã hợp đồng", "Mã khách hàng", "Tên khách hàng", "SĐT", "MST",
+            "Mã chi nhánh", "Ngày ký", "Tiền đặt cọc", "Dòng xe", "Phiên bản", "Màu sắc"
+        ])
+        ws.append([
+            "HD-IMP-FLEX-01", "KH-FLEX-01", "Nguyễn Flex", "0905123456", "",
+            self.cn_dn.pk, "15/10/2026", "600.000.000", "Ford Ranger", "Wildtrak", "Đen"
+        ])
+        buf = io.BytesIO()
+        wb.save(buf)
+        parsed = contract_import.read_file(buf.getvalue())
+        self.assertEqual(len(parsed), 1)
+        self.assertEqual(parsed[0]["ngay_ky"], date(2026, 10, 15))
+        self.assertEqual(parsed[0]["so_tien_coc"], Decimal("600000000"))
+
+        # 2. Chốt xe phân bổ -> đăng nhập ở Client mới (khác session) vẫn thấy trong /dat-xe/ và lập PYC được
+        alloc = Allocation.objects.create(
+            order_number="ORD-CROSS-01",
+            vehicle_code="EXPLORER",
+            description="Ford Explorer Limited",
+            vin="RL2CROSSSESS00001",
+            mau_sac="Trắng",
+            exterior_color="Trắng",
+            allocation_month=date(2026, 11, 1),
+            quantity=1,
+            chi_nhanh=self.cn_dn,
+        )
+        hd_pb = HopDong.objects.create(
+            ma_hd="HD-CROSS-SESS-01",
+            khach_hang=self.kh,
+            chi_nhanh=self.cn_dn,
+            dong_xe_yeu_cau="Ford Explorer Limited",
+            phien_ban_yeu_cau="Limited",
+            mau_sac_yeu_cau="Trắng",
+            trang_thai=TrangThaiHopDong.CHO_XU_LY,
+            ngay_ky=date(2026, 11, 1),
+        )
+        self.client.post(reverse("contracts:choose_allocation_vehicle", args=[hd_pb.ma_hd, alloc.id]))
+
+        # Cố tình bấm Hoàn tất xuất bán khi xe CHƯA nhập kho Đà Nẵng / chưa PDI -> Bị chặn cứng
+        self.client.post(reverse("contracts:hoan_tat", args=[hd_pb.ma_hd]))
+        hd_pb.refresh_from_db()
+        self.assertEqual(hd_pb.trang_thai, TrangThaiHopDong.CHO_XE_VE_KHO)
+
+        # Mở trình duyệt / session mới hoàn toàn với 1 tài khoản khác
+        User = get_user_model()
+        user_b = User.objects.create_superuser(username="order_staff_b", password="password123", email="b@danaford.vn")
+        client_b = Client()
+        client_b.force_login(user_b)
+        resp_orders_b = client_b.get(reverse("orders:vehicle_orders"))
+        self.assertEqual(resp_orders_b.status_code, 200)
+        self.assertIn("RL2CROSSSESS00001", resp_orders_b.content.decode("utf-8"))
+        self.assertIn("Đặt theo HĐ HD-CROSS-SESS-01", resp_orders_b.content.decode("utf-8"))
+
+        client_b.get(reverse("orders:lap_phieu_yeu_cau"))
+        vr_b = VehicleRequest.objects.filter(items__allocation=alloc, hop_dong=hd_pb).first()
+        self.assertIsNotNone(vr_b)
+        self.assertEqual(vr_b.status, VehicleRequest.Status.DRAFT)

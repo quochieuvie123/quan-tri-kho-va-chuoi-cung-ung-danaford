@@ -155,9 +155,10 @@ def chi_tiet_xe(request, id):
 
     ds_kho_nhan = Kho.objects.exclude(pk=ton_kho.kho_id).select_related("chi_nhanh").order_by("ma_kho")
 
-    # Tìm các hợp đồng khách hàng tại Đà Nẵng đang chờ xe phù hợp với chiếc xe này
+    # Tìm các hợp đồng khách hàng tại Đà Nẵng đang chờ xe phù hợp với chiếc xe này (chỉ gợi ý khi Đà Nẵng hết xe đúng màu)
     ds_hop_dong_da_nang = []
     if ton_kho.kho.chi_nhanh_id != "CN01":
+        from contracts.sourcing import check_can_source_from_tier, SourcingTier
         waiting_hds = HopDong.objects.filter(
             chi_nhanh_id="CN01",
             trang_thai__in=[TrangThaiHopDong.CHO_XU_LY, TrangThaiHopDong.CHO_PHAN_BO],
@@ -165,7 +166,9 @@ def chi_tiet_xe(request, id):
         ).select_related("khach_hang").order_by("ngay_ky", "ma_hd")
         for hd in waiting_hds:
             if matches_contract_smart(ton_kho.xe, hd):
-                ds_hop_dong_da_nang.append(hd)
+                can_branch, _ = check_can_source_from_tier(hd, SourcingTier.CHI_NHANH)
+                if can_branch:
+                    ds_hop_dong_da_nang.append(hd)
 
     if request.method == "POST":
         kho_nhan_id = request.POST.get("kho_nhan")
