@@ -9,7 +9,8 @@
     <h1 class="page-header__title">Phiếu xuất kho {{ phieu.ma_pxk }}</h1>
     <p class="page-header__subtitle">Chi tiết hợp đồng, thông tin phương tiện và quy trình phê duyệt bàn giao xe</p>
   </div>
-  <div class="actions" style="margin: 0;">
+  <div class="actions actions--top">
+    <span class="badge {% if phieu.trang_thai == 'DA_DUYET' %}badge--ok{% elif phieu.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">{{ phieu.get_trang_thai_display }}</span>
     <a class="btn" href="{% url 'warehouse:xuat' %}?kho={{ phieu.kho_id }}"><i class="bi bi-arrow-left"></i> Danh sách phiếu xuất</a>
     {% if co_the_in %}<a class="btn" href="{% url 'warehouse:xuat_in' phieu.ma_pxk %}" target="_blank"><i class="bi bi-printer"></i> In phiếu xuất</a>{% endif %}
   </div>
@@ -43,13 +44,6 @@
   </div>
 </div>
 {% endif %}
-
-<div class="actions">
-  <a class="btn" href="{% url 'warehouse:xuat' %}?kho={{ phieu.kho_id }}"><i class="bi bi-arrow-left"></i> Danh sách</a>
-  <span class="badge {% if phieu.trang_thai == 'DA_DUYET' %}badge--ok{% elif phieu.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">{{ phieu.get_trang_thai_display }}</span>
-  <span class="spacer"></span>
-  {% if co_the_in %}<a class="btn" href="{% url 'warehouse:xuat_in' phieu.ma_pxk %}" target="_blank"><i class="bi bi-printer"></i> In / xuất file</a>{% endif %}
-</div>
 
 <div class="grid2">
   <div class="card">
@@ -90,13 +84,13 @@
     {% csrf_token %}
     {% include "warehouse/_chon_nv.html" %}
     {% if co_the_duyet %}
-      <button class="btn btn--primary" type="submit" formaction="{% url 'warehouse:xuat_duyet' phieu.ma_pxk %}" style="background: #16a34a; border-color: #16a34a; font-weight: 700; padding: 9px 20px;">
+      <button class="btn btn--primary" type="submit" formaction="{% url 'warehouse:xuat_duyet' phieu.ma_pxk %}">
         <i class="bi bi-check2-circle"></i> Phê duyệt xuất kho
       </button>
     {% endif %}
     {% if co_the_huy %}
-      <input class="inp" name="ly_do" placeholder="Lý do hủy phiếu (nếu hủy)">
-      <button class="btn" type="submit" formaction="{% url 'warehouse:xuat_huy' phieu.ma_pxk %}" onclick="return confirm('Hủy phiếu xuất kho này?')"><i class="bi bi-x-circle"></i> Hủy phiếu</button>
+      <input class="inp" name="ly_do" placeholder="Lý do hủy phiếu (nếu hủy)" style="max-width: 320px;">
+      <button class="btn btn--danger" type="submit" formaction="{% url 'warehouse:xuat_huy' phieu.ma_pxk %}" onclick="return confirm('Hủy phiếu xuất kho này?')"><i class="bi bi-x-circle"></i> Hủy phiếu</button>
     {% endif %}
   </form>
   {% endif %}

@@ -9,10 +9,10 @@
         </p>
     </div>
     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-        <form method="GET" style="display: flex; gap: 8px; align-items: center; margin: 0;">
-            <label for="month-select" style="font-size: 13px; font-weight: 600; color: #102a43; margin: 0;">Kỳ phân bổ:</label>
-            <select name="month" id="month-select" onchange="this.form.submit()" style="padding: 7px 12px; font-size: 13px; font-weight: 600; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; color: #102a43; cursor: pointer;">
-                <option value="ALL" {% if selected_month == 'ALL' %}selected{% endif %}>📅 Tất cả các tháng</option>
+        <form method="GET" style="display: flex; gap: 12px; align-items: center; margin: 0;">
+            <label for="month-select" style="font-size: 12px; font-weight: 500; color: #243b53; margin: 0; white-space: nowrap;">Kỳ phân bổ:</label>
+            <select name="month" id="month-select" class="select" onchange="this.form.submit()" style="min-width: 220px; height: 45.5px; padding: 0 12px; font-size: 13px; font-weight: 400; border-radius: 8px; border: 1px solid #dce6f0; background: #ffffff; color: #243b53; cursor: pointer;">
+                <option value="ALL" {% if selected_month == 'ALL' %}selected{% endif %}>Tất cả các tháng</option>
                 {% for opt in month_options %}
                     <option value="{{ opt.value }}" {% if selected_month == opt.value %}selected{% endif %}>{{ opt.label }}</option>
                 {% endfor %}

@@ -42,34 +42,43 @@
     <!-- TAB 1: DANH SÁCH TỒN KHO -->
     <div id="ton-kho" class="transfer-content active card">
         <div style="margin-bottom: 18px;">
-            <h3 style="margin: 0 0 14px; font-size: 16px; font-weight: 600; color: #0b2a4a;">Tìm kiếm & Lọc xe tồn kho tại các chi nhánh</h3>
-            <form method="GET" action="{% url 'transfers:index' %}" class="transfer-search-form" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <select name="kho" class="select" onchange="this.form.submit()" style="min-width: 220px; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 600;">
-                    <option value="">🏢 Tất cả kho chi nhánh</option>
-                    {% for k in ds_kho %}
-                    <option value="{{ k.pk }}" {% if kho_filter == k.pk %}selected{% endif %}>{{ k.ma_kho }} - {{ k.chi_nhanh.ten_cn }}</option>
-                    {% endfor %}
-                </select>
-                <input
-                    class="transfer-search-input"
-                    type="text"
-                    name="q"
-                    value="{{ tu_khoa }}"
-                    placeholder="Nhập mã VIN, tên xe, loại xe hoặc mã kho..."
-                >
-                <button class="transfer-btn transfer-btn--primary" type="submit">
-                    <i class="bi bi-search"></i> Tìm kiếm
-                </button>
-                {% if tu_khoa or kho_filter %}
-                <a href="{% url 'transfers:index' %}" class="transfer-btn transfer-btn--light">
-                    <i class="bi bi-x-circle"></i> Xóa lọc
-                </a>
-                {% endif %}
+            <h3 style="margin: 0 0 14px; font-size: 18px; font-weight: 600; color: #102a43;">Tìm kiếm & Lọc xe tồn kho tại các chi nhánh</h3>
+            <form method="GET" action="{% url 'transfers:index' %}" class="transfer-search-form" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: end; background: #f4f7fb; padding: 16px; border: 1px solid #dce6f0; border-radius: 12px;">
+                <div class="df-field">
+                    <label class="df-label" for="transfer-kho-filter">Kho chi nhánh</label>
+                    <select id="transfer-kho-filter" name="kho" class="df-control df-control--44" onchange="this.form.submit()">
+                        <option value="">Tất cả kho chi nhánh</option>
+                        {% for k in ds_kho %}
+                        <option value="{{ k.pk }}" {% if kho_filter == k.pk %}selected{% endif %}>{{ k.ma_kho }} - {{ k.chi_nhanh.ten_cn }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="df-field df-field--span-2">
+                    <label class="df-label" for="transfer-q-filter">Từ khóa tìm kiếm</label>
+                    <input
+                        id="transfer-q-filter"
+                        class="transfer-search-input df-control df-control--44"
+                        type="text"
+                        name="q"
+                        value="{{ tu_khoa }}"
+                        placeholder="Nhập mã VIN, tên xe, loại xe hoặc mã kho..."
+                    >
+                </div>
+                <div style="grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+                    <button class="transfer-btn transfer-btn--primary" type="submit">
+                        <i class="bi bi-search"></i> Tìm kiếm
+                    </button>
+                    {% if tu_khoa or kho_filter %}
+                    <a href="{% url 'transfers:index' %}" class="transfer-btn transfer-btn--light">
+                        <i class="bi bi-x-circle"></i> Xóa lọc
+                    </a>
+                    {% endif %}
+                </div>
             </form>
         </div>
 
         <div class="transfer-table-wrap">
-            <table class="transfer-table">
+            <table class="transfer-table" style="min-width: 1510px;">
                 <thead>
                     <tr>
                         <th>Số khung (VIN)</th>

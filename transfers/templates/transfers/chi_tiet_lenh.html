@@ -60,6 +60,12 @@
 
 {% block content %}
 <div class="stack">
+    <div class="page-header no-print">
+        <div>
+            <h1 class="page-header__title">Chi tiết lệnh lưu chuyển {{ lenh.ma_lenh|default:"" }}</h1>
+            <p class="page-header__subtitle">Chứng từ điều phối và theo dõi tiến trình vận chuyển xe giữa các chi nhánh</p>
+        </div>
+    </div>
     <!-- Thanh điều hướng và in ấn -->
     <div class="toolbar no-print">
         <a href="{% url 'transfers:danh_sach_lenh' %}" class="btn btn--light">
@@ -263,7 +269,7 @@
             {% if is_sale_admin %}
                 <form method="POST" action="{% url 'transfers:phe_duyet_lenh' lenh.pk %}" onsubmit="return confirm('Xác nhận phê duyệt lệnh lưu chuyển này?');" style="margin: 0;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn--success" style="background: #15803d; border-color: #15803d; color: #fff;">
+                    <button type="submit" class="btn btn--primary">
                         <i class="bi bi-check-lg"></i> Phê duyệt lệnh (Sale Admin)
                     </button>
                 </form>

@@ -27,6 +27,12 @@
 
 {% block content %}
 <div class="stack">
+    <div class="page-header no-print">
+        <div>
+            <h1 class="page-header__title">Phiếu yêu cầu đặt xe PYC{{ phieu.id|stringformat:"05d" }}</h1>
+            <p class="page-header__subtitle">Chi tiết chứng từ đặt xe theo lịch phân bổ và phê duyệt</p>
+        </div>
+    </div>
     <!-- Thanh điều hướng và in ấn -->
     <div class="toolbar no-print">
         <div style="display: flex; gap: 10px; align-items: center;">
@@ -185,11 +191,11 @@
     </div>
 
     <!-- CÁC NÚT THAO TÁC XỬ LÝ -->
-    <div class="toolbar no-print" style="justify-content: center; gap: 14px; margin-top: 10px;">
+    <div class="toolbar no-print" style="justify-content: center; gap: 12px; margin-top: 10px;">
         {% if phieu.status == "DRAFT" %}
             <form method="POST" action="{% url 'orders:gui_phieu_yeu_cau' phieu.id %}" style="margin: 0;">
                 {% csrf_token %}
-                <button type="submit" class="btn btn--primary" style="background: #0067c5; border-color: #0067c5; color: #fff; font-weight: 700; padding: 9px 20px;">
+                <button type="submit" class="btn btn--primary">
                     <i class="bi bi-send-check"></i> Gửi phiếu yêu cầu (Trình Quốc Hiếu duyệt)
                 </button>
             </form>
@@ -197,7 +203,7 @@
             {% if is_sale_admin %}
             <form method="POST" action="{% url 'orders:xac_nhan_phieu' phieu.id %}" style="margin: 0;">
                 {% csrf_token %}
-                <button type="submit" class="btn btn--success" style="background: #16a34a; border-color: #16a34a; color: #fff; font-weight: 700; padding: 9px 20px;"
+                <button type="submit" class="btn btn--primary"
                         onclick="return confirm('Bạn xác nhận tiếp nhận và phê duyệt phiếu đặt xe này để chuyển tiếp sang kho và các quy trình tiếp theo?');">
                     <i class="bi bi-check2-circle"></i> Xác nhận & Phê duyệt phiếu (Quốc Hiếu)
                 </button>
@@ -205,7 +211,7 @@
             <form method="POST" action="{% url 'orders:tu_choi_phieu' phieu.id %}" style="margin: 0;" onsubmit="var r = prompt('Nhập lý do từ chối:'); if (!r) return false; this.ly_do.value = r;">
                 {% csrf_token %}
                 <input type="hidden" name="ly_do" value="">
-                <button type="submit" class="btn btn--danger" style="background: #dc2626; border-color: #dc2626; color: #fff; font-weight: 700; padding: 9px 20px;">
+                <button type="submit" class="btn btn--danger">
                     <i class="bi bi-x-circle"></i> Từ chối phiếu
                 </button>
             </form>

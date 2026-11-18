@@ -9,21 +9,30 @@
   <div class="page-header"><div><h1 class="page-header__title">Import PDI từ xưởng dịch vụ</h1>
     <p class="page-header__subtitle">Kiểm tra kết quả cho từng VIN trước khi cập nhật phiếu nhập kho.</p></div>
     <a class="btn btn--light" href="{% url 'warehouse:nhap' %}">Quay lại nhập kho</a></div>
-  <div class="card"><p>Chọn file PDI .xlsx đúng tên và thứ tự cột trong mẫu đã chuẩn bị.</p>
-    <form method="post" enctype="multipart/form-data" class="df-actions">{% csrf_token %}
+  <div class="card" style="max-width: 850px;"><p style="margin: 0 0 16px; font-size: 13px; color: #627d98;">Chọn file PDI .xlsx đúng tên và thứ tự cột trong mẫu đã chuẩn bị.</p>
+    <form method="post" enctype="multipart/form-data" class="stack">{% csrf_token %}
+      <div class="grid">
       {% if employees %}
-      <label for="nhan-vien-pdi">Nhân viên kho ghi nhận</label>
-      <select class="select" id="nhan-vien-pdi" name="nhan_vien" required style="max-width:300px">
-        <option value="">-- Chọn nhân viên --</option>
-        {% for employee in employees %}<option value="{{ employee.pk }}">{{ employee.ten_nv }} · {{ employee.chi_nhanh.ten_cn }}</option>{% endfor %}
-      </select>
+      <div class="field">
+        <label for="nhan-vien-pdi">Nhân viên kho ghi nhận</label>
+        <select class="select" id="nhan-vien-pdi" name="nhan_vien" required>
+          <option value="">-- Chọn nhân viên --</option>
+          {% for employee in employees %}<option value="{{ employee.pk }}">{{ employee.ten_nv }} · {{ employee.chi_nhanh.ten_cn }}</option>{% endfor %}
+        </select>
+      </div>
       {% endif %}
-      <input class="input" type="file" name="file" accept=".xlsx" required style="max-width:440px">
-      <button class="btn btn--primary" type="submit">Kiểm tra file</button>
+      <div class="field">
+        <label for="file-pdi-excel">File kết quả PDI (.xlsx)</label>
+        <input id="file-pdi-excel" class="input" type="file" name="file" accept=".xlsx" required>
+      </div>
+      </div>
+      <div class="df-actions">
+        <button class="btn btn--primary" type="submit">Kiểm tra file</button>
+      </div>
     </form>
   </div>
   {% if preview %}
-  <div class="card"><h2>Xem trước {{ preview|length }} xe</h2>
+  <div class="card"><h2 class="section-title">Xem trước {{ preview|length }} xe</h2>
     <p>Xe đạt sẽ được duyệt nhập và cộng tồn kho. Xe không đạt sẽ tạo biên bản sự cố và chờ xử lý.</p>
     <div class="table-wrap"><table class="data-table"><thead><tr><th>Phiếu nhập</th><th>VIN</th><th>Mã PDI</th><th>Ngày kiểm định</th><th>Kết quả</th><th>Sự cố</th></tr></thead><tbody>
     {% for row in preview %}<tr><td>{{ row.ma_phieu }}</td><td>{{ row.vin }}</td><td>{{ row.ma_pdi }}</td><td>{{ row.ngay_kiem_dinh }}</td><td>{% if row.ket_qua == 'DAT' %}Đạt{% else %}Không đạt{% endif %}</td><td>{{ row.loai_su_co|default:'—' }} {{ row.mo_ta_su_co }}</td></tr>{% endfor %}

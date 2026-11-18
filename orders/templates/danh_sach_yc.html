@@ -15,37 +15,39 @@
     </div>
 </div>
 
-<form method="GET" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: #f8fafc; padding: 12px 16px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 16px;">
-    <label for="yc-thang" style="font-weight: 600; font-size: 13px; color: #102a43; margin: 0;">
-        <i class="bi bi-calendar3"></i> Tháng lập phiếu:
-    </label>
-    <select id="yc-thang" name="thang" class="input" onchange="this.form.submit()" style="min-width: 175px; padding: 7px 12px; font-size: 13px; font-weight: 600; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; cursor: pointer;">
-        <option value="" {% if not thang %}selected{% endif %}>📅 Tất cả các tháng</option>
-        {% for val, lbl in thang_options %}
-        <option value="{{ val }}" {% if thang == val %}selected{% endif %}>{{ lbl }}</option>
-        {% endfor %}
-    </select>
+<form method="GET" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: end; background: #f4f7fb; padding: 16px; border-radius: 12px; border: 1px solid #dce6f0; margin-bottom: 20px;">
+    <div class="field" style="margin: 0;">
+        <label for="yc-thang">Tháng lập phiếu</label>
+        <select id="yc-thang" name="thang" class="select" onchange="this.form.submit()">
+            <option value="" {% if not thang %}selected{% endif %}>Tất cả các tháng</option>
+            {% for val, lbl in thang_options %}
+            <option value="{{ val }}" {% if thang == val %}selected{% endif %}>{{ lbl }}</option>
+            {% endfor %}
+        </select>
+    </div>
 
-    <label for="yc-status" style="font-weight: 600; font-size: 13px; color: #102a43; margin: 0 0 0 8px;">
-        <i class="bi bi-funnel"></i> Trạng thái:
-    </label>
-    <select id="yc-status" name="trang_thai" class="input" onchange="this.form.submit()" style="min-width: 175px; padding: 7px 12px; font-size: 13px; font-weight: 600; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; cursor: pointer;">
-        <option value="" {% if not trang_thai %}selected{% endif %}>📋 Tất cả trạng thái</option>
-        <option value="DRAFT" {% if trang_thai == 'DRAFT' %}selected{% endif %}>Bản nháp</option>
-        <option value="PENDING" {% if trang_thai == 'PENDING' %}selected{% endif %}>Chờ phê duyệt</option>
-        <option value="ACCEPTED" {% if trang_thai == 'ACCEPTED' %}selected{% endif %}>Đã phê duyệt</option>
-        <option value="REJECTED" {% if trang_thai == 'REJECTED' %}selected{% endif %}>Đã từ chối</option>
-    </select>
+    <div class="field" style="margin: 0;">
+        <label for="yc-status">Trạng thái</label>
+        <select id="yc-status" name="trang_thai" class="select" onchange="this.form.submit()">
+            <option value="" {% if not trang_thai %}selected{% endif %}>Tất cả trạng thái</option>
+            <option value="DRAFT" {% if trang_thai == 'DRAFT' %}selected{% endif %}>Bản nháp</option>
+            <option value="PENDING" {% if trang_thai == 'PENDING' %}selected{% endif %}>Chờ phê duyệt</option>
+            <option value="ACCEPTED" {% if trang_thai == 'ACCEPTED' %}selected{% endif %}>Đã phê duyệt</option>
+            <option value="REJECTED" {% if trang_thai == 'REJECTED' %}selected{% endif %}>Đã từ chối</option>
+        </select>
+    </div>
 
     {% if thang or trang_thai %}
-    <a href="{% url 'orders:danh_sach_yeu_cau' %}" class="btn btn--light" style="padding: 7px 12px; font-size: 13px;">
-        <i class="bi bi-arrow-counterclockwise"></i> Đặt lại
-    </a>
+    <div style="display: flex; align-items: flex-end;">
+        <a href="{% url 'orders:danh_sach_yeu_cau' %}" class="btn btn--light">
+            <i class="bi bi-arrow-counterclockwise"></i> Đặt lại
+        </a>
+    </div>
     {% endif %}
 </form>
 
 <div class="table-wrap">
-    <table class="data-table">
+    <table class="data-table" style="min-width: 876px;">
         <thead>
             <tr>
                 <th style="width: 50px; text-align: center;">STT</th>

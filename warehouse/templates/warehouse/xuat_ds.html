@@ -56,7 +56,7 @@
           <td>{{ p.chi_tiet_hop_dong.xe.ten_xe }}</td>
           <td><span class="badge">{{ p.kho.ten_kho }}</span></td>
           <td style="text-align: right;">
-            <a href="{% url 'warehouse:xuat_chi_tiet' p.ma_pxk %}" class="btn btn--primary" style="padding: 5px 12px; font-size: 13px; text-decoration: none;">
+            <a href="{% url 'warehouse:xuat_chi_tiet' p.ma_pxk %}" class="btn btn--primary btn--sm" style="text-decoration: none;">
               <i class="bi bi-clipboard-check"></i> Kiểm tra & Phê duyệt
             </a>
           </td>
@@ -85,7 +85,7 @@
 <div class="card">
   <p class="muted">{{ tong }} phiếu xuất kho{% if co_loc %} phù hợp bộ lọc{% endif %}.</p>
   <div class="scroll">
-  <table class="tbl">
+  <table class="tbl tbl--xuat-kho">
     <thead><tr><th>Mã phiếu</th><th>Hợp đồng</th><th>Khách hàng</th><th>VIN</th><th>Tên xe</th><th>Ngày lập</th><th>Người lập</th><th>Trạng thái</th></tr></thead>
     <tbody>
     {% for p in trang %}

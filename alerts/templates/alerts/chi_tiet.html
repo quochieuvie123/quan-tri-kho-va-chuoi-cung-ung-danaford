@@ -2,102 +2,179 @@
 
 {% block extra_css %}
 <style>
+    .chi-tiet-canh-bao .kv-table-wrap {
+        margin: 16px 0 0;
+        border: 1px solid #dce6f0;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
     .chi-tiet-canh-bao table {
         width: 100%;
         border-collapse: collapse;
-        margin: 16px 0;
-        font-size: 14px;
+        font-size: 13px;
+        line-height: 1.45;
     }
 
     .chi-tiet-canh-bao th,
     .chi-tiet-canh-bao td {
-        padding: 14px;
-        border-bottom: 1px solid #e5e7eb;
+        padding: 12px 16px;
+        border-bottom: 1px solid #dce6f0;
         text-align: left;
         vertical-align: top;
     }
 
+    .chi-tiet-canh-bao tr:last-child th,
+    .chi-tiet-canh-bao tr:last-child td {
+        border-bottom: 0;
+    }
+
     .chi-tiet-canh-bao th {
-        width: 230px;
+        width: 220px;
         background: #f4f7fb;
+        color: #243b53;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .chi-tiet-canh-bao td {
+        color: #243b53;
+        font-size: 13px;
+        font-weight: 400;
     }
 
     .chi-tiet-canh-bao .thong-bao {
-        padding: 12px;
-        background: #fff3cd;
-        border-radius: 6px;
+        margin: 12px 0 0;
+        padding: 12px 16px;
+        background: #fff4d8;
+        color: #b76e00;
+        border-radius: 10px;
+        font-size: 13px;
+        line-height: 1.45;
     }
 
     .chi-tiet-canh-bao .thanh-cong {
+        margin: 12px 0 0;
         padding: 12px;
-        background: #e8f5e9;
-        border-radius: 6px;
+        background: #e8f7f0;
+        color: #12805c;
+        border-radius: 8px;
+        font-size: 13px;
+        line-height: 1.45;
     }
 
     .chi-tiet-canh-bao .errorlist {
-        color: #b42318;
+        color: #b82e3a;
+        font-size: 12px;
+        margin: 8px 0 0;
+        padding-left: 18px;
+    }
+
+    .chi-tiet-canh-bao .form-cap-nhat {
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid #dce6f0;
+    }
+
+    .chi-tiet-canh-bao form p {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        margin: 12px 0 0;
+        max-width: 420px;
+    }
+
+    .chi-tiet-canh-bao form label {
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 1.45;
+        color: #243b53;
     }
 
     .chi-tiet-canh-bao select {
-        padding: 10px;
-        border: 1px solid #dce3eb;
-        border-radius: 6px;
-        font: inherit;
-    }
-
-    .chi-tiet-canh-bao button,
-    .chi-tiet-canh-bao .quay-lai {
-        display: inline-block;
-        padding: 10px 20px;
-        color: white;
-        background: #0b66c3;
-        border: 0;
-        border-radius: 6px;
-        text-decoration: none;
-        cursor: pointer;
+        width: 100%;
+        height: 45.5px;
+        padding: 0 12px;
+        border: 1px solid #dce6f0;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #243b53;
+        font-size: 13px;
+        font-weight: 400;
+        line-height: 1.45;
+        box-sizing: border-box;
     }
 
     .chi-tiet-canh-bao .thao-tac {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
-        gap: 16px;
+        gap: 12px;
         margin-top: 16px;
+    }
+
+    .chi-tiet-canh-bao .quay-lai-wrap {
+        margin: 16px 0 0;
+    }
+
+    @media (max-width: 640px) {
+        .chi-tiet-canh-bao table,
+        .chi-tiet-canh-bao tbody,
+        .chi-tiet-canh-bao tr,
+        .chi-tiet-canh-bao th,
+        .chi-tiet-canh-bao td {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .chi-tiet-canh-bao th {
+            border-bottom: 0;
+            padding-bottom: 6px;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="card chi-tiet-canh-bao">
-    <h2>CB{{ canh_bao.pk }}</h2>
+<div class="df-stack">
+    <div class="df-page-header">
+        <div>
+            <h1 class="df-page-title">Chi tiết cảnh báo CB{{ canh_bao.pk }}</h1>
+        </div>
+    </div>
 
-    {% for message in messages %}
-        <p class="thanh-cong">{{ message }}</p>
-    {% endfor %}
+    <div class="card df-card chi-tiet-canh-bao">
+        <h2 class="df-section-title">Thông tin cảnh báo</h2>
 
-    {% if not canh_bao.con_hieu_luc %}
-        <p class="thong-bao">Cảnh báo này đã hết hiệu lực.</p>
-    {% endif %}
+        {% for message in messages %}
+            <p class="thanh-cong">{{ message }}</p>
+        {% endfor %}
 
-    <table>
-        <tbody>
-            <tr>
-                <th>Loại cảnh báo</th>
-                <td>{{ canh_bao.get_loai_display }}</td>
-            </tr>
-            <tr>
-                <th>Kho</th>
-                <td>{{ canh_bao.kho_hien_thi }}</td>
-            </tr>
+        {% if not canh_bao.con_hieu_luc %}
+            <p class="thong-bao">Cảnh báo này đã hết hiệu lực.</p>
+        {% endif %}
 
-            {% if canh_bao.xe %}
-                <tr>
-                    <th>VIN</th>
-                    <td>{{ canh_bao.xe.vin }}</td>
-                </tr>
-                <tr>
-                    <th>Tên xe</th>
-                    <td>{{ canh_bao.xe.ten_xe }}</td>
-                </tr>
+        <div class="kv-table-wrap">
+            <table>
+                <tbody>
+                    <tr>
+                        <th>Loại cảnh báo</th>
+                        <td>{{ canh_bao.get_loai_display }}</td>
+                    </tr>
+                    <tr>
+                        <th>Kho</th>
+                        <td>{{ canh_bao.kho_hien_thi }}</td>
+                    </tr>
+
+                    {% if canh_bao.xe %}
+                        <tr>
+                            <th>VIN</th>
+                            <td>{{ canh_bao.xe.vin }}</td>
+                        </tr>
+                        <tr>
+                            <th>Tên xe</th>
+                            <td>{{ canh_bao.xe.ten_xe }}</td>
+                        </tr>
                 <tr>
                     <th>Màu sắc</th>
                     <td>
@@ -186,29 +263,32 @@
                 </td>
             </tr>
         </tbody>
-    </table>
+        </div>
 
-    {{ form.non_field_errors }}
+        {{ form.non_field_errors }}
 
-    {% if co_the_cap_nhat %}
-        <h3>Cập nhật trạng thái xử lý</h3>
+        {% if co_the_cap_nhat %}
+            <div class="form-cap-nhat">
+                <h2 class="df-section-title">Cập nhật trạng thái xử lý</h2>
 
-        <form method="post" id="form-trang-thai">
-            {% csrf_token %}
-            {{ form.as_p }}
+                <form method="post" id="form-trang-thai">
+                    {% csrf_token %}
+                    {{ form.as_p }}
 
-            <div class="thao-tac">
-                <button type="submit">Lưu</button>
-                <a href="{{ quay_lai }}" data-roi-trang>Hủy</a>
+                    <div class="thao-tac">
+                        <button type="submit" class="df-btn df-btn--primary">Lưu</button>
+                        <a href="{{ quay_lai }}" class="df-btn df-btn--secondary" data-roi-trang>Hủy</a>
+                    </div>
+                </form>
             </div>
-        </form>
-    {% endif %}
+        {% endif %}
 
-    <p>
-        <a href="{{ quay_lai }}" class="quay-lai" data-roi-trang>
-            Quay lại
-        </a>
-    </p>
+        <p class="quay-lai-wrap">
+            <a href="{{ quay_lai }}" class="df-btn df-btn--secondary quay-lai" data-roi-trang>
+                Quay lại
+            </a>
+        </p>
+    </div>
 </div>
 {% endblock %}
 

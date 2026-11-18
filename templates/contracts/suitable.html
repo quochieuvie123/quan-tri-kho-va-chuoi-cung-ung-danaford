@@ -7,36 +7,37 @@
 <style>
 .tab-nav {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
+  padding: 16px 24px;
+  border-bottom: 1px solid #dce6f0;
+  background: #f4f7fb;
 }
 .source-jump {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  min-height: 44px;
+  padding: 0 14px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: #334155;
+  color: #243b53;
   background: #ffffff;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #dce6f0;
   text-decoration: none;
   cursor: pointer;
   transition: all .15s ease;
 }
 .source-jump:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: #eaf4ff;
+  border-color: #0067c5;
+  color: #0067c5;
 }
 .source-jump.active {
   background: #0067c5;
   color: #ffffff;
   border-color: #0067c5;
-  box-shadow: 0 2px 4px rgba(0, 103, 197, 0.25);
 }
 .source-jump .count-badge {
   display: inline-flex;
@@ -45,15 +46,15 @@
   padding: 2px 8px;
   border-radius: 9999px;
   font-size: 12px;
-  background: #e2e8f0;
-  color: #1e293b;
+  background: #f4f7fb;
+  color: #243b53;
 }
 .source-jump.active .count-badge {
   background: rgba(255, 255, 255, 0.25);
   color: #ffffff;
 }
 .source-section {
-  padding: 20px 24px 28px;
+  padding: 24px;
 }
 .source-section[hidden] {
   display: none;
@@ -66,23 +67,27 @@
   align-items: center;
   gap: 8px;
   margin: 0 0 4px;
-  color: #0f172a;
-  font-size: 17px;
-  font-weight: 700;
+  color: #102a43;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.45;
 }
 .source-desc {
   margin: 0;
   font-size: 13px;
-  color: #64748b;
+  color: #627d98;
 }
 .source-empty {
   margin: 0;
   padding: 24px;
   text-align: center;
-  color: #64748b;
-  background: #f8fafc;
-  border: 1px dashed #cbd5e1;
-  border-radius: 8px;
+  color: #627d98;
+  background: #f4f7fb;
+  border: 1px dashed #dce6f0;
+  border-radius: 10px;
+}
+.df-workflow .source-section .data-table {
+  min-width: 1420px;
 }
 </style>
 {% endblock %}

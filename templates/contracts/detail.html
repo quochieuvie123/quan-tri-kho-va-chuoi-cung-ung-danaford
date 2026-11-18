@@ -8,6 +8,12 @@
 
 {% block content %}
 <div class="stack df-workflow">
+  <div class="page-header">
+    <div>
+      <h1 class="page-header__title">Chi tiết hợp đồng {{ hop_dong.ma_hd }}</h1>
+      <p class="page-header__subtitle">Thông tin khách hàng, ngày dự kiến bàn giao và trạng thái nguồn xe của hợp đồng</p>
+    </div>
+  </div>
   <div class="toolbar">
     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
       <a class="btn btn--light" href="{% url 'contracts:index' %}">
@@ -61,7 +67,7 @@
       <form method="post" action="{% url 'contracts:hoan_tat' hop_dong.ma_hd %}" style="margin: 0;"
             onsubmit="return confirm('Xác nhận xuất xe và hoàn tất hợp đồng {{ hop_dong.ma_hd }}? Số lượng tồn kho xe sẽ được trừ và lưu vào báo cáo.');">
         {% csrf_token %}
-        <button type="submit" class="btn btn--success" style="background: #15803d; border-color: #15803d; color: #fff; font-weight: 700; padding: 9px 20px;">
+        <button type="submit" class="btn btn--primary">
           <i class="bi bi-check2-circle"></i> Xác nhận xuất kho & Hoàn tất hợp đồng
         </button>
       </form>
@@ -166,14 +172,14 @@
       </dt>
       <dd>
         {% if co_the_chinh_sua %}
-        <form method="post" action="{% url 'contracts:cap_nhat_ngay_giao' hop_dong.ma_hd %}" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0;">
+        <form method="post" action="{% url 'contracts:cap_nhat_ngay_giao' hop_dong.ma_hd %}" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0;">
           {% csrf_token %}
           <div style="display: inline-flex; align-items: center;">
             <input class="input" type="date" name="ngay_du_kien_giao" id="id_ngay_du_kien_giao"
                    value="{{ hop_dong.ngay_du_kien_giao|date:'Y-m-d' }}"
-                   style="padding: 6px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; min-width: 165px;">
+                   style="min-width: 175px;">
           </div>
-          <button type="submit" class="btn btn--primary" style="padding: 6px 14px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+          <button type="submit" class="btn btn--primary">
             <i class="bi bi-calendar-check"></i> Lưu ngày giao
           </button>
           {% if hop_dong.ngay_du_kien_giao %}

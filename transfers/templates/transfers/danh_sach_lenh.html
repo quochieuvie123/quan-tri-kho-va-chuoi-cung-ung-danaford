@@ -26,20 +26,17 @@
             <i class="bi bi-plus-lg"></i> Lập lệnh lưu chuyển mới
         </a>
     </div>
-        <div class="card" style="margin-bottom: 16px;">
-        <form method="GET" action="{% url 'transfers:danh_sach_lenh' %}" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin: 0;">
-            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <label for="trang-thai-select" style="font-weight: 600; font-size: 13px; color: #102a43; margin: 0; white-space: nowrap;">
-                    <i class="bi bi-funnel"></i> Trạng thái lệnh:
-                </label>
+    <div class="card" style="margin-bottom: 20px;">
+        <form method="GET" action="{% url 'transfers:danh_sach_lenh' %}" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: end; margin: 0;">
+            <div class="field">
+                <label for="trang-thai-select">Trạng thái lệnh</label>
                 <select
                     id="trang-thai-select"
                     name="trang_thai"
                     class="select"
                     onchange="this.form.submit()"
-                    style="min-width: 220px; padding: 8px 14px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; color: #102a43; cursor: pointer;"
                 >
-                    <option value="" {% if not trang_thai %}selected{% endif %}>📋 Tất cả trạng thái</option>
+                    <option value="" {% if not trang_thai %}selected{% endif %}>Tất cả trạng thái</option>
                     <option value="NHAP" {% if trang_thai == 'NHAP' %}selected{% endif %}>Bản nháp</option>
                     <option value="CHO_DUYET" {% if trang_thai == 'CHO_DUYET' or trang_thai == 'DA_GUI' %}selected{% endif %}>Chờ duyệt</option>
                     <option value="DA_DUYET" {% if trang_thai == 'DA_DUYET' %}selected{% endif %}>Đã duyệt</option>
@@ -49,38 +46,41 @@
                     <option value="TU_CHOI" {% if trang_thai == 'TU_CHOI' %}selected{% endif %}>Từ chối</option>
                     <option value="HUY" {% if trang_thai == 'HUY' %}selected{% endif %}>Đã hủy</option>
                 </select>
+            </div>
 
-                <label for="thang-select" style="font-weight: 600; font-size: 13px; color: #102a43; margin: 0 0 0 8px; white-space: nowrap;">
-                    <i class="bi bi-calendar3"></i> Tháng lập:
-                </label>
+            <div class="field">
+                <label for="thang-select">Tháng lập</label>
                 <select
                     id="thang-select"
                     name="thang"
                     class="select"
                     onchange="this.form.submit()"
-                    style="min-width: 175px; padding: 8px 14px; font-size: 13px; font-weight: 500; border-radius: 8px; border: 1px solid #cbd5e1; background: #ffffff; color: #102a43; cursor: pointer;"
                 >
-                    <option value="" {% if not thang %}selected{% endif %}>📅 Tất cả các tháng</option>
+                    <option value="" {% if not thang %}selected{% endif %}>Tất cả các tháng</option>
                     {% for val, lbl in thang_options %}
                     <option value="{{ val }}" {% if thang == val %}selected{% endif %}>{{ lbl }}</option>
                     {% endfor %}
                 </select>
             </div>
 
-            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <div class="field">
+                <label for="transfer-q-lenh">Từ khóa tìm kiếm</label>
                 <input
+                    id="transfer-q-lenh"
                     type="text"
                     name="q"
                     value="{{ tu_khoa }}"
                     placeholder="Tìm mã lệnh, kho, người lập, biển số..."
                     class="input"
-                    style="min-width: 280px; padding: 8px 12px; font-size: 13px; border-radius: 8px; border: 1px solid #cbd5e1;"
                 >
-                <button type="submit" class="btn btn--primary" style="padding: 8px 16px; font-size: 13px;">
+            </div>
+
+            <div style="grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                <button type="submit" class="btn btn--primary">
                     <i class="bi bi-search"></i> Tìm kiếm
                 </button>
-                {% if tu_khoa or trang_thai %}
-                <a href="{% url 'transfers:danh_sach_lenh' %}" class="btn btn--light" style="padding: 8px 14px; font-size: 13px;" title="Xóa bộ lọc">
+                {% if tu_khoa or trang_thai or thang %}
+                <a href="{% url 'transfers:danh_sach_lenh' %}" class="btn btn--light" title="Xóa bộ lọc">
                     <i class="bi bi-arrow-counterclockwise"></i> Đặt lại
                 </a>
                 {% endif %}
@@ -90,7 +90,7 @@
 
     <div class="card">
         <div class="table-wrap table-wrap--scroll">
-            <table class="data-table" style="min-width: 1050px;">
+            <table class="data-table" style="min-width: 1556px;">
                 <thead>
                     <tr>
                         <th style="width: 45px; text-align: center;">STT</th>

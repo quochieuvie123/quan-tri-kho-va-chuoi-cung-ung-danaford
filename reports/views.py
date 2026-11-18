@@ -104,8 +104,8 @@ def them_bieu_do(
             margin={
                 "l": 30,
                 "r": 20,
-                "t": 60,
-                "b": 50,
+                "t": 36,
+                "b": 48,
             },
             legend={
                 "orientation": "h",
@@ -135,7 +135,7 @@ def them_bieu_do(
 
 def them_bieu_do_bo_sung(cac_bieu_do, data):
     mau_sac = [
-        "#0866c6", "#23825c", "#f3b340", "#e12d39", "#829ab1",
+        "#0067c5", "#2e7d32", "#f3b340", "#c62828", "#829ab1",
         "#627d98", "#9f7aea", "#ed64a6", "#38b2ac", "#dd6b20"
     ]
 
@@ -187,7 +187,7 @@ def them_bieu_do_bo_sung(cac_bieu_do, data):
                 figure = go.Figure(go.Bar(
                     x=list(bao_cao[key].keys()),
                     y=list(bao_cao[key].values()),
-                    marker_color="#0866c6",
+                    marker_color="#0067c5",
                 ))
                 figure.update_yaxes(
                     title_text="Số cảnh báo",
@@ -217,7 +217,7 @@ def tao_cac_bieu_do(data):
                     for row in rows
                 ],
                 orientation="h",
-                marker_color="#0866c6",
+                marker_color="#0067c5",
                 text=[row[1] for row in rows],
                 textposition="auto",
                 hovertemplate=(
@@ -243,7 +243,7 @@ def tao_cac_bieu_do(data):
             "Tồn kho theo tên xe",
             figure,
             "Số lượng tồn hiện tại, sắp xếp giảm dần.",
-            chieu_cao=max(360, len(rows) * 18 + 70),
+            chieu_cao=max(360, len(rows) * 24 + 100),
         )
     else:
         them_bieu_do(cac_bieu_do, "Tồn kho theo tên xe")
@@ -262,7 +262,7 @@ def tao_cac_bieu_do(data):
                         for row in rows
                     ],
                     y=[row[1] for row in rows],
-                    marker_color="#0866c6",
+                    marker_color="#0067c5",
                     text=[row[1] for row in rows],
                     textposition="auto",
                     hovertemplate=(
@@ -303,9 +303,9 @@ def tao_cac_bieu_do(data):
                 sort=False,
                 marker={
                     "colors": [
-                        "#0866c6",
+                        "#0067c5",
                         "#f3b340",
-                        "#d64545",
+                        "#c62828",
                     ]
                 },
                 textinfo="value+percent",
@@ -350,7 +350,7 @@ def tao_cac_bieu_do(data):
         cac_nhom = [
             ("Nháp", so_nhap, "#829ab1"),
             ("Chờ duyệt", so_cho_duyet, "#f3b340"),
-            ("Đã duyệt", so_da_duyet, "#0866c6"),
+            ("Đã duyệt", so_da_duyet, "#0067c5"),
         ]
 
         for ten_nhom, so_luong, mau in cac_nhom:
@@ -394,7 +394,7 @@ def tao_cac_bieu_do(data):
                 go.Bar(
                     x=[row[0] for row in rows],
                     y=[row[1] for row in rows],
-                    marker_color="#0866c6",
+                    marker_color="#0067c5",
                     text=[row[1] for row in rows],
                     textposition="auto",
                     hovertemplate=(
@@ -414,7 +414,7 @@ def tao_cac_bieu_do(data):
                     y=[row[1] for row in rows],
                     mode="lines+markers",
                     line={
-                        "color": "#0866c6",
+                        "color": "#0067c5",
                         "width": 3,
                     },
                     marker={"size": 8},
@@ -456,7 +456,7 @@ def tao_cac_bieu_do(data):
                     for row in rows
                 ],
                 orientation="h",
-                marker_color="#20a486",
+                marker_color="#2e7d32",
                 text=[row[1] for row in rows],
                 textposition="auto",
                 hovertemplate=(

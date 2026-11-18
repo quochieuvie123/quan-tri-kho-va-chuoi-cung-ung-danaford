@@ -3,6 +3,12 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'incidents/incidents.css' %}">{% endblock %}
 {% block content %}
 {% include "incidents/_messages.html" %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">Gửi yêu cầu xử lý sự cố {{ bb.ma_pdi }}</h1>
+    <p class="page-header__subtitle">Kiểm tra nội dung thư thông báo và gửi yêu cầu tới đơn vị vận chuyển</p>
+  </div>
+</div>
 <form method="post" class="card form">
   {% csrf_token %}
   <p>Gửi tới: <strong>{{ dvvc.ten_dvvc }}</strong> &lt;{{ email }}&gt; (kèm {{ bb.anh_su_co.count }} ảnh hư hại)</p>

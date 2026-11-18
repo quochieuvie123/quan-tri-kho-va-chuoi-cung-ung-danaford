@@ -13,12 +13,20 @@
 </div>
 <form method="get" class="card">
   <h3>1. Chọn hợp đồng</h3>
+  <div class="df-field-grid-2">
+    <div class="field">
+      <label for="id_ma_hd">Hợp đồng</label>
+      <select id="id_ma_hd" name="ma_hd" class="inp" required>
+        <option value="">-- chọn hợp đồng --</option>
+        {% for h in ds_hop_dong %}<option value="{{ h.ma_hd }}" {% if h.ma_hd == ma_hd %}selected{% endif %}>{{ h.ma_hd }} - {{ h.khach_hang.ten_kh }} ({{ h.get_trang_thai_display }})</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="id_kho">Kho xuất xe</label>
+      <select id="id_kho" name="kho" class="inp">{% for k in ds_kho %}<option value="{{ k.ma_kho }}" {% if k.ma_kho == ma_kho %}selected{% endif %}>{{ k.ma_kho }} - {{ k.chi_nhanh.ten_cn }}</option>{% endfor %}</select>
+    </div>
+  </div>
   <div class="actions">
-    <select name="ma_hd" class="inp" required>
-      <option value="">-- chọn hợp đồng --</option>
-      {% for h in ds_hop_dong %}<option value="{{ h.ma_hd }}" {% if h.ma_hd == ma_hd %}selected{% endif %}>{{ h.ma_hd }} - {{ h.khach_hang.ten_kh }} ({{ h.get_trang_thai_display }})</option>{% endfor %}
-    </select>
-    <select name="kho" class="inp">{% for k in ds_kho %}<option value="{{ k.ma_kho }}" {% if k.ma_kho == ma_kho %}selected{% endif %}>{{ k.ma_kho }} - {{ k.chi_nhanh.ten_cn }}</option>{% endfor %}</select>
     <button class="btn btn--primary" type="submit">Kiểm tra hợp đồng và tìm xe</button>
     <a class="btn" href="{% url 'warehouse:xuat' %}">Quay lại</a>
   </div>

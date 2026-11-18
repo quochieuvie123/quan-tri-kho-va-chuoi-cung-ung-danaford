@@ -3,9 +3,15 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
 {% block content %}
 {% include "warehouse/_messages.html" %}
-<div class="actions"><a class="btn" href="{% url 'warehouse:ton_kho' %}?kho={{ d.kho }}"><i class="bi bi-arrow-left"></i> Tồn kho</a></div>
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">{{ d.ten_xe }} · {{ d.vin }}</h1>
+    <p class="page-header__subtitle">Chi tiết tồn kho, sự cố PDI và lịch sử giao dịch của xe tại kho {{ d.kho }}</p>
+  </div>
+  <a class="btn" href="{% url 'warehouse:ton_kho' %}?kho={{ d.kho }}"><i class="bi bi-arrow-left"></i> Tồn kho</a>
+</div>
 <div class="card">
-  <h3>{{ d.ten_xe }}</h3>
+  <h3>Thông tin xe trong kho</h3>
   <dl class="kv">
     <dt>VIN</dt><dd>{{ d.vin }}</dd><dt>Số máy</dt><dd>{{ d.so_may }}</dd>
     <dt>Loại xe</dt><dd>{{ d.loai_xe }}</dd><dt>Màu / Năm SX</dt><dd>{{ d.mau_sac|default:"—" }} / {{ d.nam_sx|default:"—" }}</dd>

@@ -4,16 +4,25 @@
 {% block content %}
 {% include "analytics/_messages.html" %}
 
-<div class="actions">
-  <a class="btn" href="{% url 'analytics:index' %}"><i class="bi bi-arrow-left"></i> Phiên dự báo</a>
-  <span class="badge {% if phien.trang_thai_de_xuat == 'Tự động' %}badge--auto{% else %}badge--manual{% endif %}">{{ phien.trang_thai_de_xuat }}</span>
-  <span class="spacer"></span>
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">Phiên dự báo kỳ {{ phien.thang|stringformat:"02d" }}/{{ phien.nam }}</h1>
+    <p class="page-header__subtitle">Tổng hợp dự báo SARIMA, đề xuất POQ và điều chỉnh số lượng nhập xe theo phân khúc</p>
+  </div>
+  <div class="actions actions--top">
+    <span class="badge {% if phien.trang_thai_de_xuat == 'Tự động' %}badge--auto{% else %}badge--manual{% endif %}">{{ phien.trang_thai_de_xuat }}</span>
+    <a class="btn" href="{% url 'analytics:index' %}"><i class="bi bi-arrow-left"></i> Phiên dự báo</a>
+  </div>
+</div>
+
+<div class="actions actions--top" style="margin-bottom: 20px;">
   <form method="get" class="inline">
-    <select name="nhom" class="inp" onchange="this.form.submit()">
+    <select name="nhom" class="inp" onchange="this.form.submit()" style="min-width: 220px;">
       <option value="">Tất cả phân khúc</option>
       {% for n in ds_nhom %}<option value="{{ n }}" {% if n == nhom %}selected{% endif %}>{{ n }}</option>{% endfor %}
     </select>
   </form>
+  <span class="spacer"></span>
   <button type="button" class="btn" id="btn-xuat"><i class="bi bi-download"></i> Xuất danh sách đề xuất</button>
 </div>
 
@@ -41,7 +50,7 @@
   <div class="card">
     <h3>{{ ten_nhom }} <small class="muted">({{ ds|length }} dòng xe)</small></h3>
     <div class="scroll">
-    <table class="tbl tbl--sm">
+    <table class="tbl tbl--sm tbl--du-bao" style="min-width: 1460px;">
       <thead><tr><th>Mã dòng xe</th><th>Tên xe</th><th>Phiên bản</th><th>Dự báo SARIMA</th><th>Tồn kho khả dụng</th>
         <th>HĐ chờ giao</th><th>Đang vận chuyển</th><th>Chỉ tiêu hãng</th><th>Đề xuất POQ</th><th>Số lượng nhập điều chỉnh</th><th>Lý do điều chỉnh</th></tr></thead>
       <tbody>

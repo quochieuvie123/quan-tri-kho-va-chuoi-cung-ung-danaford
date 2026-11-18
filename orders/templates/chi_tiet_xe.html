@@ -1,8 +1,8 @@
 {% extends "ql_dat_xe.html" %}
 
 {% block booking_content %}
-<div class="stack" style="max-width: 800px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
+<div class="stack" style="max-width: 850px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
         <h2 class="section-title" style="margin: 0;">Thông tin chi tiết xe phân bổ</h2>
         <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--light">
             <i class="bi bi-arrow-left"></i> Quay lại tìm kiếm xe
@@ -10,13 +10,13 @@
     </div>
 
     <!-- THÔNG TIN XE -->
-    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
+    <div style="background: #f4f7fb; border: 1px solid #dce6f0; border-radius: 14px; padding: 24px;">
         <dl class="detail-list">
             <dt>Mã dòng xe</dt>
             <dd><span class="badge">{{ xe.vehicle_code }}</span></dd>
 
             <dt>Mô tả dòng xe</dt>
-            <dd><strong style="font-size: 15px; color: #0b2a4a;">{{ xe.description }}</strong></dd>
+            <dd><strong style="font-size: 14px; color: #102a43;">{{ xe.description }}</strong></dd>
 
             <dt>Số khung (VIN)</dt>
             <dd style="font-family: monospace; font-size: 14px; font-weight: 700; color: #0067c5;">{{ xe.vin }}</dd>
@@ -28,16 +28,16 @@
             <dd>{{ xe.engine_number }}</dd>
 
             <dt>Trạng thái</dt>
-            <dd><span class="badge" style="background:#ecfdf5; color:#047857; border:1px solid #a7f3d0;">Còn trống</span></dd>
+            <dd><span class="badge" style="background:#e8f7f0; color:#12805c; border:1px solid #bfe6d2;">Còn trống</span></dd>
         </dl>
     </div>
 
     <!-- FORM XÁC NHẬN CHỌN XE -->
-    <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px;">
-        <h3 style="margin: 0 0 14px; font-size: 15px; font-weight: 700; color: #0b2a4a;">
+    <div style="background: #ffffff; border: 1px solid #dce6f0; border-radius: 14px; padding: 24px;">
+        <h3 style="margin: 0 0 12px; font-size: 18px; font-weight: 600; color: #102a43;">
             Xác nhận đặt xe
         </h3>
-        <p style="margin: 0 0 16px; color: #64748b; font-size: 14px;">
+        <p style="margin: 0 0 16px; color: #627d98; font-size: 13px;">
             Mỗi xe phân bổ tương ứng với 1 số khung (VIN) duy nhất. Bấm nút bên dưới để thêm xe vào danh sách đặt xe.
         </p>
 
