@@ -41,31 +41,36 @@ def get_sourcing_counts_by_tier(hd):
 def check_can_source_from_tier(hd, tier):
     """
     Kiểm tra xem hợp đồng có được phép chốt xe từ tầng nguồn cung `tier` hay không.
-    Quy tắc nghiệp vụ:
-    - Còn xe phù hợp tại Đà Nẵng thì CHỈ được chốt xe Đà Nẵng.
-    - Đà Nẵng không còn xe phù hợp nhưng chi nhánh còn thì CHỈ được chốt xe chi nhánh.
-    - Cả hai không còn xe phù hợp mới được chốt từ lịch phân bổ/PYC.
-    - Không có ngoại lệ cho bất kỳ vai trò nào (kể cả Sale Admin).
+    Quy tắc nghiệp vụ (Phương án 2):
+    - Vẫn hiển thị xe khác màu ở các kho để tham khảo (nếu khách đồng ý đổi màu).
+    - NHƯNG chỉ khi Kho Đà Nẵng còn xe ĐÚNG MÀU hợp đồng (`uu_tien == 0`) thì mới khóa tầng Chi nhánh và Phân bổ.
+    - Nếu Kho Đà Nẵng hết xe đúng màu (chỉ có xe khác màu `uu_tien == 2` hoặc 0 xe), mở khóa cho phép chốt xe tại Chi nhánh (Bình Định / Gia Lai).
+    - Nếu cả Kho Đà Nẵng và Kho Chi nhánh đều không còn xe ĐÚNG MÀU hợp đồng (`uu_tien in (0, 1)`), mở khóa cho phép chốt từ Lịch phân bổ / PYC.
 
     Trả về: (duoc_chon: bool, ly_do_khoa: str)
     """
-    counts = get_sourcing_counts_by_tier(hd)
-    so_da_nang = counts[SourcingTier.DA_NANG]
-    so_chi_nhanh = counts[SourcingTier.CHI_NHANH]
+    from .views import find_suitable
+    criteria, results, error = find_suitable(hd)
+    if error or not criteria:
+        so_da_nang_dung_mau = 0
+        so_chi_nhanh_dung_mau = 0
+    else:
+        so_da_nang_dung_mau = len([r for r in results if r.get('uu_tien') == 0])
+        so_chi_nhanh_dung_mau = len([r for r in results if r.get('uu_tien') == 1])
 
     if tier == SourcingTier.DA_NANG:
         return True, ""
 
     elif tier == SourcingTier.CHI_NHANH:
-        if so_da_nang > 0:
-            return False, f"Kho Đà Nẵng còn {so_da_nang} xe phù hợp, hãy chốt xe Đà Nẵng trước."
+        if so_da_nang_dung_mau > 0:
+            return False, f"Kho Đà Nẵng còn {so_da_nang_dung_mau} xe phù hợp đúng màu hợp đồng, hãy chốt xe Đà Nẵng trước."
         return True, ""
 
     elif tier == SourcingTier.PHAN_BO:
-        if so_da_nang > 0:
-            return False, f"Kho Đà Nẵng còn {so_da_nang} xe phù hợp, hãy chốt xe Đà Nẵng trước."
-        if so_chi_nhanh > 0:
-            return False, f"Kho chi nhánh còn {so_chi_nhanh} xe phù hợp cần lưu chuyển, hãy chốt xe chi nhánh trước."
+        if so_da_nang_dung_mau > 0:
+            return False, f"Kho Đà Nẵng còn {so_da_nang_dung_mau} xe phù hợp đúng màu hợp đồng, hãy chốt xe Đà Nẵng trước."
+        if so_chi_nhanh_dung_mau > 0:
+            return False, f"Kho chi nhánh còn {so_chi_nhanh_dung_mau} xe phù hợp đúng màu cần lưu chuyển, hãy chốt xe chi nhánh trước."
         return True, ""
 
     return False, "Tầng nguồn cung không hợp lệ."
