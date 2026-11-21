@@ -8,6 +8,12 @@
 
 {% block content %}
 <div class="stack">
+    <div class="page-header no-print">
+        <div>
+            <h1 class="page-header__title">Lệnh lưu chuyển xe nội bộ</h1>
+            <p class="page-header__subtitle">Xem trước chứng từ và xác nhận lưu hoặc gửi lệnh điều phối xe</p>
+        </div>
+    </div>
     <!-- Thanh điều hướng và in ấn phía trên -->
     <div class="toolbar no-print">
         <a href="{% url 'transfers:index' %}?tab=da-chon" class="btn btn--light">

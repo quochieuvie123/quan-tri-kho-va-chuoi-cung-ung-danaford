@@ -324,10 +324,283 @@ class BaoCaoBoSungTest(TestCase):
         bao_cao = tao_bao_cao_canh_bao(Kho.objects.all(), {})
         self.assertEqual(bao_cao["tong"], 1)
         self.assertEqual(sum(bao_cao["theo_loai"].values()), 1)
+        self.assertEqual(bao_cao["theo_loai_va_xu_ly"]["Tồn dưới ngưỡng"]["Đã xử lý"], 1)
         self.assertEqual(bao_cao["dong"][0][5], "Còn hiệu lực")
         self.assertEqual(bao_cao["dong"][0][6], "Đã xử lý")
 
+        # Kiểm tra gộp 2 biểu đồ cảnh báo thành 1 biểu đồ cột chồng theo loại và trạng thái xử lý.
+        from .views import tao_cac_bieu_do
+        bieu_do_ds = tao_cac_bieu_do({"ton_kho": {"theo_ten": [], "theo_kho": []}, "tuoi_ton": {"nhom": []}, "nhap_kho": {"theo_thang": []}, "hop_dong": {"theo_thang": []}, "pdi": {"nhom": []}, "canh_bao": bao_cao})
+        tieu_de_ds = [bd["tieu_de"] for bd in bieu_do_ds]
+        self.assertIn("Cảnh báo theo loại và trạng thái xử lý", tieu_de_ds)
+        self.assertNotIn("Cảnh báo theo loại", tieu_de_ds)
+        self.assertNotIn("Cảnh báo theo trạng thái xử lý", tieu_de_ds)
+        bd_cb = next(bd for bd in bieu_do_ds if bd["tieu_de"] == "Cảnh báo theo loại và trạng thái xử lý")
+        self.assertIn('"barmode":"stack"', bd_cb["html"])
+
+        # Thay đổi trạng thái ở module alerts -> số liệu gộp tự động cập nhật.
+        cb.trang_thai = CanhBao.TrangThai.DANG_XU_LY
+        cb.save(update_fields=["trang_thai"])
+        bao_cao_moi = tao_bao_cao_canh_bao(Kho.objects.all(), {"ten_xe": "Everest"})
+        self.assertEqual(bao_cao_moi["theo_loai_va_xu_ly"]["Tồn dưới ngưỡng"]["Đang xử lý"], 1)
+        self.assertEqual(bao_cao_moi["theo_loai_va_xu_ly"]["Tồn dưới ngưỡng"]["Đã xử lý"], 0)
+
     def test_thieu_quyen_khong_them_bao_cao_moi(self):
         bao_cao = tao_bao_cao(Kho.objects.all(), {}, user=self.user)
-        for loai in ["dat_xe", "luu_chuyen", "canh_bao"]:
+        for loai in ["dat_xe", "luu_chuyen", "canh_bao", "du_bao", "su_co"]:
             self.assertNotIn(loai, bao_cao)
+
+    def test_bo_loc_nhieu_thang_cung_luc_va_bieu_do_bi(self):
+        """Bộ lọc hỗ trợ chọn nhiều tháng (liên tiếp hoặc cách quãng) và render UI/Excel/BI chính xác."""
+        from django.contrib.auth import get_user_model
+        from django.test import Client
+        from django.urls import reverse
+        from database.models import HopDong, KhachHang
+        from transfers.models import LenhLuuChuyen, ChiTietLenhLuuChuyen
+
+        kh = KhachHang.objects.create(ma_kh="KH-REP-M", ten_kh="Khách Multi", sdt_kh="0909888777")
+        HopDong.objects.create(
+            ma_hd="HD-REP-08", khach_hang=kh, chi_nhanh=self.khos[0].chi_nhanh,
+            dong_xe_yeu_cau="Ford Ranger", ngay_ky=timezone.make_aware(timezone.datetime(2026, 8, 10, 9, 0)),
+        )
+        HopDong.objects.create(
+            ma_hd="HD-REP-09", khach_hang=kh, chi_nhanh=self.khos[0].chi_nhanh,
+            dong_xe_yeu_cau="Ford Ranger", ngay_ky=timezone.make_aware(timezone.datetime(2026, 9, 10, 9, 0)),
+        )
+        HopDong.objects.create(
+            ma_hd="HD-REP-11", khach_hang=kh, chi_nhanh=self.khos[0].chi_nhanh,
+            dong_xe_yeu_cau="Ford Everest", ngay_ky=timezone.make_aware(timezone.datetime(2026, 11, 10, 9, 0)),
+        )
+
+        # Tạo lệnh lưu chuyển ở trạng thái HOAN_TAT cũng phải được tính trong xe_da_xac_nhan
+        lenh_ht = LenhLuuChuyen.objects.create(
+            ma_lenh="LLC-HT-01", kho_xuat=self.khos[0], kho_nhap=self.khos[1],
+            nguoi_lap=self.user, trang_thai=LenhLuuChuyen.TrangThai.HOAN_TAT,
+        )
+        xe_ht = Xe.objects.create(vin="VIN-REP-HT01", ten_xe="Ford Ranger", so_may="MAY-HT01", loai_xe="Pickup", mau_sac="Đen")
+        ChiTietLenhLuuChuyen.objects.create(lenh=lenh_ht, xe=xe_ht, so_luong=1)
+
+        form = BoLocBaoCaoForm(
+            data={"thang": ["2026-11", "2026-08"]},
+            danh_sach_kho=Kho.objects.all(),
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["cac_thang"], [date(2026, 8, 1), date(2026, 11, 1)])
+
+        bao_cao = tao_bao_cao(Kho.objects.all(), form.cleaned_data, kem_thong_ke=True)
+        # Chỉ có 2 hợp đồng tháng 08 và tháng 11 (loại tháng 09)
+        self.assertEqual(bao_cao["hop_dong"]["tong"], 2)
+        self.assertEqual(bao_cao["hop_dong"]["theo_thang"], [["08/2026", 1], ["11/2026", 1]])
+
+        # Lọc theo tên xe Ranger bao gồm cả HĐ mới ghi dong_xe_yeu_cau chưa gán VIN
+        bao_cao_ranger = tao_bao_cao(Kho.objects.all(), {"ten_xe": "Ranger", "cac_thang": [date(2026, 8, 1), date(2026, 11, 1)]}, kem_thong_ke=True)
+        self.assertEqual(bao_cao_ranger["hop_dong"]["tong"], 1)
+
+        # Kiểm tra luu_chuyen đếm đúng HOAN_TAT
+        from .utils import tao_bao_cao_luu_chuyen
+        lc_rep = tao_bao_cao_luu_chuyen(Kho.objects.all(), {}, True)
+        self.assertIn("đã xác nhận: 1", lc_rep["ghi_chu"])
+
+        # Kiểm tra UI /thong-ke-bao-cao/ unbound và multi-month GET
+        admin = get_user_model().objects.create_superuser(username="rep-admin", email="r@df.vn", password="password123")
+        client = Client()
+        client.force_login(admin)
+        resp_unbound = client.get(reverse("dashboard:index"))
+        self.assertEqual(resp_unbound.status_code, 200)
+        resp_multi = client.get(reverse("dashboard:index") + "?thang=2026-11&thang=2026-10")
+        self.assertEqual(resp_multi.status_code, 200)
+        html = resp_multi.content.decode("utf-8")
+        self.assertIn("thang=2026-11&amp;thang=2026-10", html)
+        # Bỏ 2 ghi chú trên giao diện
+        self.assertNotIn("Tổng hợp lúc:", html)
+        self.assertNotIn("Tồn kho và tuổi tồn phản ánh thời điểm hiện tại.", html)
+        # Mọi khối thống kê tổng đều có ghi_chu nhỏ ở dưới
+        self.assertTrue(all(item.get("ghi_chu") for item in resp_multi.context["cac_chi_so"]))
+
+    def test_bao_cao_va_bieu_do_du_bao_nhu_cau_loc_va_cap_nhat(self):
+        """Thống kê dự báo nhu cầu lấy phiên mới nhất mỗi kỳ, hỗ trợ lọc và cập nhật theo module analytics."""
+        from django.contrib.auth import get_user_model
+        from django.test import Client
+        from django.urls import reverse
+        from analytics.models import DongDuBao, PhienDuBao
+        from .utils import tao_bao_cao_du_bao
+        from .views import tao_cac_bieu_do
+
+        # Phiên cũ và phiên mới cho cùng kỳ 12/2026: chỉ tính phiên mới nhất.
+        phien_cu = PhienDuBao.objects.create(
+            nam=2026, thang=12, tao_luc=timezone.now() - timedelta(days=2),
+        )
+        DongDuBao.objects.create(
+            phien=phien_cu, ten_xe="Ford Ranger Wildtrak 2.0L", loai_xe="Pickup",
+            ma_dong_xe="RANGER-WILDTRAK", ten_ngan="Ford Ranger", phien_ban="Wildtrak 2.0L",
+            du_bao_sarima=9.9, ky_truoc=5, ton_kho=1, de_xuat_poq=8,
+        )
+
+        phien_moi = PhienDuBao.objects.create(
+            nam=2026, thang=12, tao_luc=timezone.now() - timedelta(days=1),
+        )
+        dong_ranger = DongDuBao.objects.create(
+            phien=phien_moi, ten_xe="Ford Ranger Raptor 2.0L", loai_xe="Pickup",
+            ma_dong_xe="RANGER-RAPTOR", ten_ngan="Ford Ranger", phien_ban="Raptor 2.0L",
+            du_bao_sarima=2.4, ky_truoc=3, ton_kho=1, de_xuat_poq=2,
+        )
+        DongDuBao.objects.create(
+            phien=phien_moi, ten_xe="Ford Everest Titanium 2.0L", loai_xe="SUV",
+            ma_dong_xe="EVEREST-TITANIUM", ten_ngan="Ford Everest", phien_ban="Titanium 2.0L",
+            du_bao_sarima=1.6, ky_truoc=2, ton_kho=0, de_xuat_poq=2,
+        )
+
+        # Thêm một kỳ khác (11/2026) để kiểm tra bộ lọc tháng.
+        phien_11 = PhienDuBao.objects.create(
+            nam=2026, thang=11, tao_luc=timezone.now() - timedelta(days=5),
+        )
+        DongDuBao.objects.create(
+            phien=phien_11, ten_xe="Ford Ranger Raptor 2.0L", loai_xe="Pickup",
+            ma_dong_xe="RANGER-RAPTOR", ten_ngan="Ford Ranger", phien_ban="Raptor 2.0L",
+            du_bao_sarima=3.0, ky_truoc=4, ton_kho=1, de_xuat_poq=2,
+        )
+
+        # Kiểm tra tháng dự báo 12/2026 xuất hiện trong form lọc.
+        form = BoLocBaoCaoForm(
+            data={"thang": ["2026-12"], "ten_xe": "Ranger"},
+            danh_sach_kho=Kho.objects.all(),
+        )
+        self.assertIn("2026-12", dict(form.fields["thang"].choices))
+        self.assertTrue(form.is_valid(), form.errors)
+
+        admin = get_user_model().objects.create_superuser(
+            username="rep-du-bao-admin", email="db@df.vn", password="password123",
+        )
+        bao_cao_loc = tao_bao_cao(Kho.objects.all(), form.cleaned_data, kem_thong_ke=True, user=admin)
+        du_bao_rep = bao_cao_loc["du_bao"]
+        self.assertEqual(du_bao_rep["tong"], 2.4)
+        self.assertEqual(len(du_bao_rep["dong"]), 1)
+        self.assertEqual(du_bao_rep["so_sanh"]["ky"], "12/2026")
+        self.assertEqual(len(du_bao_rep["so_sanh"]["hang"]), 1)
+
+        # Thay đổi dữ liệu ở module analytics -> báo cáo tự động cập nhật.
+        dong_ranger.so_luong_dieu_chinh = 5
+        dong_ranger.save(update_fields=["so_luong_dieu_chinh"])
+        du_bao_cap_nhat = tao_bao_cao_du_bao(form.cleaned_data, kem_thong_ke=True)
+        self.assertEqual(du_bao_cap_nhat["dong"][0][8], 5)
+        self.assertIn("Đề xuất nhập: 5 xe", du_bao_cap_nhat["ghi_chu"])
+
+        # Sinh biểu đồ và kiểm tra giao diện tổng quan / chi tiết / xuất Excel.
+        import json
+        bieu_do_ds = tao_cac_bieu_do(bao_cao_loc)
+        tieu_de_ds = [bd["tieu_de"] for bd in bieu_do_ds]
+        self.assertIn("So sánh nhu cầu dự báo với tháng trước", tieu_de_ds)
+        bd_du_bao = next(bd for bd in bieu_do_ds if bd["tieu_de"] == "So sánh nhu cầu dự báo với tháng trước")
+        self.assertIn(json.dumps("Bán tháng trước"), bd_du_bao["html"])
+        self.assertIn(json.dumps("Dự báo kỳ 12/2026").replace("/", "\\u002f"), bd_du_bao["html"])
+        self.assertIn('"barmode":"group"', bd_du_bao["html"])
+
+        client = Client()
+        client.force_login(admin)
+        resp_tq = client.get(reverse("dashboard:index") + "?thang=2026-12&ten_xe=Ranger")
+        self.assertEqual(resp_tq.status_code, 200)
+        self.assertIn("So sánh nhu cầu dự báo với tháng trước", resp_tq.content.decode("utf-8"))
+
+        resp_ct = client.get(reverse("dashboard:reports:chi_tiet", args=["du_bao"]) + "?thang=2026-12")
+        self.assertEqual(resp_ct.status_code, 200)
+        self.assertIn("Ford Ranger Raptor 2.0L", resp_ct.content.decode("utf-8"))
+
+        resp_xls = client.get(reverse("dashboard:reports:xuat_excel") + "?loai=du_bao&thang=2026-12")
+        self.assertEqual(resp_xls.status_code, 200)
+
+        # User không có quyền bị chặn khi vào chi tiết du_bao.
+        client.force_login(self.user)
+        resp_forbidden = client.get(reverse("dashboard:reports:chi_tiet", args=["du_bao"]))
+        self.assertEqual(resp_forbidden.status_code, 403)
+
+    def test_bao_cao_va_bieu_do_su_co_van_chuyen_loc_va_cap_nhat(self):
+        """Thống kê sự cố vận chuyển lọc theo kho/tháng/tên xe và cập nhật khi module incidents thay đổi."""
+        from decimal import Decimal
+        from django.contrib.auth import get_user_model
+        from django.test import Client
+        from django.urls import reverse
+        from database.models import (
+            BienBanPDI, DonViVanChuyen, HoaDonNhap, NhaCungCap, NhanVien,
+        )
+        from incidents.models import CHUA_XU_LY, DA_XU_LY, HoSoSuCo
+        from .utils import tao_bao_cao_su_co
+        from .views import tao_cac_bieu_do
+
+        ncc = NhaCungCap.objects.create(ma_ncc="NCC-SC", ten_ncc="Ford VN")
+        dvvc = DonViVanChuyen.objects.create(ma_dvvc="DVVC-SC", ten_dvvc="Vận tải Miền Trung")
+        nv = NhanVien.objects.create(ma_nv="NV-SC", ten_nv="Nhân viên PDI", chi_nhanh=self.khos[0].chi_nhanh)
+        hdn_1 = HoaDonNhap.objects.create(
+            ma_hdn="HDN-SC-1", nha_cung_cap=ncc, chi_nhanh=self.khos[0].chi_nhanh,
+            don_vi_van_chuyen=dvvc, ngay_nhap=timezone.make_aware(timezone.datetime(2026, 11, 5, 9, 0)),
+        )
+        hdn_2 = HoaDonNhap.objects.create(
+            ma_hdn="HDN-SC-2", nha_cung_cap=ncc, chi_nhanh=self.khos[1].chi_nhanh,
+            don_vi_van_chuyen=dvvc, ngay_nhap=timezone.make_aware(timezone.datetime(2026, 10, 5, 9, 0)),
+        )
+
+        xe_1 = self.tao_xe_test("VIN-SC-01", "Ford Ranger XLS")
+        xe_2 = self.tao_xe_test("VIN-SC-02", "Ford Everest Sport")
+
+        bb_1 = BienBanPDI.objects.create(
+            ma_pdi="PDI-SC-01", hoa_don_nhap=hdn_1, xe=xe_1, nhan_vien=nv,
+            ngay_ghi_nhan=timezone.make_aware(timezone.datetime(2026, 11, 6, 10, 0)),
+            loai_su_co="Trầy xước sơn", trang_thai_claim=CHUA_XU_LY,
+        )
+        BienBanPDI.objects.create(
+            ma_pdi="PDI-SC-02", hoa_don_nhap=hdn_2, xe=xe_2, nhan_vien=nv,
+            ngay_ghi_nhan=timezone.make_aware(timezone.datetime(2026, 10, 8, 10, 0)),
+            loai_su_co="Móp méo thân vỏ", trang_thai_claim=DA_XU_LY,
+        )
+        HoSoSuCo.objects.create(
+            bien_ban=bb_1, hinh_thuc_khac_phuc="TIEN",
+            so_tien_boi_thuong=Decimal("5000000"),
+        )
+
+        admin = get_user_model().objects.create_superuser(
+            username="rep-su-co-admin", email="sc@df.vn", password="password123",
+        )
+        bo_loc = {
+            "kho": self.khos[0],
+            "ten_xe": "Ranger",
+            "cac_thang": [date(2026, 11, 1)],
+        }
+        bao_cao_loc = tao_bao_cao(Kho.objects.all(), bo_loc, kem_thong_ke=True, user=admin)
+        su_co_rep = bao_cao_loc["su_co"]
+        self.assertEqual(su_co_rep["tong"], 1)
+        self.assertIn("Đang xử lý: 1", su_co_rep["ghi_chu"])
+        self.assertIn("5.000.000 đ", su_co_rep["ghi_chu"])
+        self.assertEqual(su_co_rep["theo_loai"], [("Trầy xước sơn", 1, 0)])
+
+        # Cập nhật trạng thái sang Đã xử lý ở module incidents -> báo cáo tự động cập nhật.
+        bb_1.trang_thai_claim = DA_XU_LY
+        bb_1.save(update_fields=["trang_thai_claim"])
+        su_co_cap_nhat = tao_bao_cao_su_co(Kho.objects.all(), bo_loc, kem_thong_ke=True)
+        self.assertIn("Đã đóng: 1", su_co_cap_nhat["ghi_chu"])
+        self.assertEqual(su_co_cap_nhat["theo_loai"], [("Trầy xước sơn", 0, 1)])
+
+        bieu_do_ds = tao_cac_bieu_do(bao_cao_loc)
+        tieu_de_ds = [bd["tieu_de"] for bd in bieu_do_ds]
+        self.assertIn("Sự cố vận chuyển theo loại và trạng thái", tieu_de_ds)
+
+        client = Client()
+        client.force_login(admin)
+        resp_tq = client.get(reverse("dashboard:index") + f"?kho={self.khos[0].pk}&thang=2026-11")
+        self.assertEqual(resp_tq.status_code, 200)
+        self.assertIn("Sự cố vận chuyển theo loại và trạng thái", resp_tq.content.decode("utf-8"))
+
+        resp_ct = client.get(reverse("dashboard:reports:chi_tiet", args=["su_co"]) + "?thang=2026-11")
+        self.assertEqual(resp_ct.status_code, 200)
+        self.assertIn("PDI-SC-01", resp_ct.content.decode("utf-8"))
+
+        resp_xls = client.get(reverse("dashboard:reports:xuat_excel") + "?loai=su_co&thang=2026-11")
+        self.assertEqual(resp_xls.status_code, 200)
+
+        client.force_login(self.user)
+        resp_forbidden = client.get(reverse("dashboard:reports:chi_tiet", args=["su_co"]))
+        self.assertEqual(resp_forbidden.status_code, 403)
+
+    def tao_xe_test(self, vin, ten_xe):
+        return Xe.objects.create(
+            vin=vin, ten_xe=ten_xe, loai_xe="SUV",
+            so_may=f"MAY-{vin}", mau_sac="Trắng",
+        )

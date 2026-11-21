@@ -189,10 +189,10 @@ class TransfersWorkflowTests(TestCase):
         self.assertEqual(self.ton1.so_luong_ton, 1)
         self.assertFalse(TonKho.objects.filter(kho=self.kho_danang, xe=self.xe1).exists())
 
-        # Bước 2: Duyệt lệnh -> Tồn Bình Định được trừ về 0, Xe chuyển DANG_LUU_CHUYEN
+        # Bước 2: Duyệt lệnh -> Chỉ xác nhận phương án, Tồn Bình Định vẫn = 1 (chưa giảm tồn)
         services.duyet_lenh_luu_chuyen(self.user_admin, lenh.pk)
         self.ton1.refresh_from_db()
-        self.assertEqual(self.ton1.so_luong_ton, 0)
+        self.assertEqual(self.ton1.so_luong_ton, 1)
 
         # Bước 3: Kho nguồn xuất xe -> Tồn Bình Định bị trừ về 0, Xe chuyển DANG_LUU_CHUYEN
         services.xac_nhan_xuat_kho_nguon(
@@ -288,10 +288,22 @@ class TransfersWorkflowTests(TestCase):
         )
         services.gui_lenh_luu_chuyen(self.user_binhdinh, lenh1.pk)
 
-        # Duyệt lệnh: Hợp đồng phải chuyển sang HOAN_TAT
+        # Duyệt lệnh: xác nhận phương án lưu chuyển, chưa trừ tồn kho nguồn
         services.duyet_lenh_luu_chuyen(self.user_admin, lenh1.pk)
-        hd.refresh_from_db()
-        self.assertEqual(hd.trang_thai, TrangThaiHopDong.HOAN_TAT)
+        self.ton2.refresh_from_db()
+        self.assertEqual(self.ton2.so_luong_ton, 1)
+
+        # Kho nguồn xác nhận xuất xe thực tế rời kho -> giảm tồn kho nguồn
+        services.xac_nhan_xuat_kho_nguon(
+            self.user_binhdinh,
+            lenh1.pk,
+            don_vi_van_chuyen_id=self.dvvc.pk,
+            bien_so_xe="77C-555.66",
+            tai_xe="Trần Văn Tài",
+            ngay_du_kien_den=date.today() + timedelta(days=1),
+        )
+        self.ton2.refresh_from_db()
+        self.assertEqual(self.ton2.so_luong_ton, 0)
 
         # Tạo lệnh tiếp theo để kiểm tra tính duy nhất của mã lệnh
         lenh2 = services.tao_lenh_luu_chuyen(

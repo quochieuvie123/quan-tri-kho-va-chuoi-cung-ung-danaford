@@ -35,7 +35,8 @@ def receipt_data(receipt, user):
     pdi = services.latest_pdi(receipt)
     local = is_da_nang_branch(warehouse.chi_nhanh)
     worker = local and has_role(user, WAREHOUSE) and can_write_warehouse(user, warehouse)
-    can_pdi = worker and (user.has_perm('warehouse.add_ketquapdi') or user.is_superuser)
+    need_pdi = services.requires_pdi(receipt)
+    can_pdi = need_pdi and worker and (user.has_perm('warehouse.add_ketquapdi') or user.is_superuser)
     ready = services.ready_pdi(receipt, pdi=pdi)
 
     # 3 trạng thái chuẩn nghiệp vụ: Chưa xử lý, Đang xử lý, Đã xử lý
@@ -121,6 +122,7 @@ def receipt_data(receipt, user):
         'nguoi_duyet_id': receipt.nguoi_duyet_id, 'nguoi_duyet': user_name(receipt.nguoi_duyet),
         'thoi_gian_duyet': receipt.thoi_gian_duyet,
         'pdi_moi_nhat': pdi_data(pdi) if (user.has_perm('warehouse.view_ketquapdi') or user.is_superuser) else None,
+        'requires_pdi': need_pdi,
         'trang_thai_xe_hien_thi': 'Đã nhập kho' if receipt.trang_thai == 'DA_DUYET' else 'Chưa nhập kho theo phiếu này',
         'canh_bao': warnings,
         'thao_tac': {

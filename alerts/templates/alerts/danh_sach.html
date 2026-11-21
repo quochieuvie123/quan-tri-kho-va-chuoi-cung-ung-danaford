@@ -2,104 +2,349 @@
 
 {% block extra_css %}
 <style>
-    .canh-bao .bo-loc {
+    .canh-bao {
         display: flex;
-        flex-wrap: wrap;
-        align-items: flex-end;
+        flex-direction: column;
+        gap: 20px;
+        min-width: 0;
+    }
+
+    .canh-bao .bo-loc {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 16px;
+        align-items: end;
     }
 
     .canh-bao .bo-loc p {
         margin: 0;
-        flex: 1 1 180px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        min-width: 0;
     }
 
-    .canh-bao label {
+    .canh-bao .bo-loc label {
         display: block;
-        margin-bottom: 8px;
-        font-size: 14px;
+        margin: 0;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 1.45;
+        color: #243b53;
     }
 
-    .canh-bao input,
-    .canh-bao select {
+    .canh-bao .bo-loc input,
+    .canh-bao .bo-loc select {
         width: 100%;
-        padding: 10px;
-        border: 1px solid #dce3eb;
-        border-radius: 6px;
-        font: inherit;
-        font-size: 14px;
+        height: 45.5px;
+        padding: 0 12px;
+        border: 1px solid #dce6f0;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #243b53;
+        font-size: 13px;
+        font-weight: 400;
+        line-height: 1.45;
+        box-sizing: border-box;
     }
 
     .canh-bao .thao-tac {
+        grid-column: 1 / -1;
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
         gap: 12px;
     }
 
-    .canh-bao button {
-        padding: 11px 24px;
-        background: #0b66c3;
-        color: white;
-        border: 0;
-        border-radius: 6px;
-        cursor: pointer;
+    .canh-bao .bang-header {
+        margin-bottom: 16px;
     }
 
-    .canh-bao .bang {
-        margin-top: 20px;
-        overflow-x: auto;
+    .canh-bao .bang-count {
+        margin: 4px 0 0;
+        font-size: 13px;
+        font-weight: 400;
+        line-height: 1.45;
+        color: #627d98;
     }
 
     .canh-bao table {
         width: 100%;
+        min-width: 1248px;
         border-collapse: collapse;
-        font-size: 14px;
+        font-size: 12px;
+        line-height: 1.45;
+        color: #243b53;
     }
 
     .canh-bao th,
     .canh-bao td {
-        padding: 14px 12px;
-        border-bottom: 1px solid #e5e7eb;
+        padding: 8px 12px;
+        border-bottom: 1px solid #dce6f0;
         text-align: left;
-        vertical-align: top;
+        vertical-align: middle;
     }
 
-    .canh-bao th {
+    .canh-bao thead th {
         background: #f4f7fb;
+        color: #102a43;
+        font-size: 12px;
+        font-weight: 500;
+        line-height: 1.45;
+        height: 34px;
+        white-space: nowrap;
+    }
+
+    .canh-bao tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .canh-bao td a {
+        color: #0067c5;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .canh-bao td a:hover {
+        text-decoration: underline;
     }
 
     .canh-bao .errorlist {
-        color: #b42318;
+        grid-column: 1 / -1;
+        color: #b82e3a;
         padding-left: 18px;
+        margin: 0;
+        font-size: 12px;
+    }
+
+    .cb-thang-multi {
+        position: relative;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        min-width: 0;
+    }
+
+    .cb-thang-multi__btn {
+        width: 100%;
+        height: 45.5px;
+        padding: 0 32px 0 12px;
+        border: 1px solid #dce6f0;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #243b53;
         font-size: 13px;
+        font-weight: 400;
+        line-height: 1.45;
+        text-align: left;
+        cursor: pointer;
+        position: relative;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        box-sizing: border-box;
+    }
+
+    .cb-thang-multi__btn::after {
+        content: "\25BC";
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 10px;
+        color: #627d98;
+    }
+
+    .cb-thang-multi__menu {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        min-width: 240px;
+        max-height: 250px;
+        overflow-y: auto;
+        background: #ffffff;
+        border: 1px solid #dce6f0;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(16, 42, 67, 0.12);
+        z-index: 60;
+        padding: 6px;
+    }
+
+    .cb-thang-multi__menu[hidden] {
+        display: none;
+    }
+
+    .cb-thang-multi__actions {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 8px 8px;
+        border-bottom: 1px solid #dce6f0;
+        font-size: 12px;
+    }
+
+    .cb-thang-multi__actions button {
+        background: none;
+        border: 0;
+        padding: 0;
+        color: #0067c5;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .cb-thang-multi__item {
+        display: flex !important;
+        align-items: center;
+        gap: 8px;
+        min-height: 36px;
+        padding: 6px 8px;
+        margin: 0 !important;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px !important;
+        font-weight: 400 !important;
+        color: #243b53;
+    }
+
+    .cb-thang-multi__item:hover {
+        background: #f4f7fb;
+    }
+
+    .cb-thang-multi__item input[type="checkbox"] {
+        width: 16px !important;
+        height: 16px !important;
+        margin: 0;
+        padding: 0;
+        accent-color: #1a66b2;
+    }
+
+    @media (max-width: 900px) {
+        .canh-bao .bo-loc {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 600px) {
+        .canh-bao .bo-loc {
+            grid-template-columns: minmax(0, 1fr);
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="canh-bao">
-    <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div class="df-page-header" style="margin-bottom: 0;">
         <div>
-            <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #0b2a4a;">Cảnh báo hệ thống</h1>
-            <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Theo dõi các cảnh báo tồn kho lâu ngày, chậm tiến độ giao xe, vượt chỉ tiêu hoặc sai lệch số liệu</p>
+            <h1 class="df-page-title">Cảnh báo hệ thống</h1>
+            <p class="df-page-subtitle">Theo dõi cảnh báo tồn kho dưới ngưỡng, xe tồn lâu ngày và danh sách dòng xe đã hết hàng (chuyển sang phân bổ kỳ sau)</p>
         </div>
+        {% comment %} TẠM ẨN nút Xuất danh sách xe hết hàng khỏi giao diện web theo yêu cầu (giữ nguyên code xử lý alerts:xuat_het_hang để mở lại khi cần): {% endcomment %}
+        {% comment %}
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <a href="{% url 'alerts:xuat_het_hang' %}" class="df-btn df-btn--secondary">
+                <i class="bi bi-download"></i> Xuất danh sách xe hết hàng ({{ so_het_hang }})
+            </a>
+        </div>
+        {% endcomment %}
     </div>
-    <div class="card">
+
+    <div class="card df-card">
+        <h2 class="df-section-title" style="margin-bottom: 16px;">Bộ lọc tìm kiếm</h2>
         <form method="get" class="bo-loc">
             {{ form.as_p }}
+            <div class="cb-thang-multi" id="cb-thang-multi-wrap">
+                <label for="cb-thang-multi-btn">Tháng phát sinh:</label>
+                <button type="button" id="cb-thang-multi-btn" class="cb-thang-multi__btn" aria-expanded="false">
+                    Tất cả các tháng
+                </button>
+                <div id="cb-thang-multi-menu" class="cb-thang-multi__menu" hidden>
+                    <div class="cb-thang-multi__actions">
+                        <button type="button" onclick="chonTatCaThangCanhBao(true);">Chọn tất cả</button>
+                        <button type="button" onclick="chonTatCaThangCanhBao(false);">Tất cả các tháng</button>
+                    </div>
+                    {% for val, lbl in thang_options %}
+                    <label class="cb-thang-multi__item">
+                        <input type="checkbox" name="thang" value="{{ val }}" data-label="{{ lbl }}"
+                               {% if val in selected_thang %}checked{% endif %}
+                               onchange="capNhatNhanThangCanhBao();">
+                        <span>{{ lbl }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
 
             <div class="thao-tac">
-                <button type="submit">Lọc</button>
-                <a href="{% url 'alerts:index' %}">Bỏ lọc</a>
+                <button type="submit" class="df-btn df-btn--primary">Tìm kiếm</button>
+                <a href="{% url 'alerts:index' %}" class="df-btn df-btn--secondary">Đặt lại</a>
             </div>
         </form>
+        <script>
+        function capNhatNhanThangCanhBao() {
+            const btn = document.getElementById('cb-thang-multi-btn');
+            const checks = Array.from(document.querySelectorAll('#cb-thang-multi-menu input[name="thang"]:checked'));
+            if (!btn) return;
+            if (checks.length === 0) {
+                btn.textContent = 'Tất cả các tháng';
+            } else if (checks.length <= 2) {
+                btn.textContent = checks.map(c => c.dataset.label).join(', ');
+            } else {
+                const preview = checks.slice(0, 2).map(c => c.value.split('-').reverse().join('/')).join(', ');
+                btn.textContent = `Đã chọn ${checks.length} tháng (${preview}...)`;
+            }
+        }
+        function chonTatCaThangCanhBao(checked) {
+            document.querySelectorAll('#cb-thang-multi-menu input[name="thang"]').forEach(cb => {
+                cb.checked = checked;
+            });
+            capNhatNhanThangCanhBao();
+        }
+        (function () {
+            const btn = document.getElementById('cb-thang-multi-btn');
+            const menu = document.getElementById('cb-thang-multi-menu');
+            if (!btn || !menu) return;
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const isHidden = menu.hasAttribute('hidden');
+                if (isHidden) {
+                    menu.removeAttribute('hidden');
+                    btn.setAttribute('aria-expanded', 'true');
+                } else {
+                    menu.setAttribute('hidden', '');
+                    btn.setAttribute('aria-expanded', 'false');
+                }
+            });
+            menu.addEventListener('click', function (e) {
+                e.stopPropagation();
+            });
+            document.addEventListener('click', function () {
+                menu.setAttribute('hidden', '');
+                btn.setAttribute('aria-expanded', 'false');
+            });
+            capNhatNhanThangCanhBao();
+        })();
+        </script>
     </div>
 
-    <div class="card bang">
-        <h2>Danh sách cảnh báo</h2>
-        <p>Số cảnh báo phù hợp: {{ tong_so }}</p>
+    <div class="card df-card bang">
+        <div class="bang-header">
+            <h2 class="df-section-title">Danh sách cảnh báo</h2>
+            <p class="bang-count">Số cảnh báo phù hợp: {{ tong_so }}</p>
+        </div>
 
+        <div class="df-table-wrap">
         <table>
+            <colgroup>
+                <col style="width: 88px;">
+                <col style="width: 168px;">
+                <col style="width: 144px;">
+                <col style="width: 320px;">
+                <col style="width: 152px;">
+                <col style="width: 192px;">
+                <col style="width: 184px;">
+            </colgroup>
             <thead>
                 <tr>
                     <th>Mã</th>
@@ -116,16 +361,33 @@
                 {% for cb in danh_sach %}
                 <tr>
                     <td>
-                        <a href="{% url 'alerts:chi_tiet' cb.pk %}?{{ request.GET.urlencode }}">
+                        <a class="df-code" href="{% url 'alerts:chi_tiet' cb.pk %}?{{ request.GET.urlencode }}">
                             CB{{ cb.pk }}
                         </a>
                     </td>
-                    <td>{{ cb.get_loai_display }}</td>
+                    <td>
+                        {% if cb.loai == "HET_HANG" %}
+                            <span style="display: inline-block; padding: 4px 9px; border-radius: 6px; background: #fef2f2; color: #b91c1c; font-weight: 700; font-size: 12px;">
+                                {{ cb.get_loai_display }}
+                            </span>
+                            <div style="margin-top: 4px; font-size: 12px; color: #64748b;">
+                                Đặt xe theo lịch phân bổ kỳ sau
+                            </div>
+                        {% elif cb.loai == "DUOI_NGUONG" %}
+                            <span style="display: inline-block; padding: 4px 9px; border-radius: 6px; background: #fffbeb; color: #b45309; font-weight: 700; font-size: 12px;">
+                                {{ cb.get_loai_display }}
+                            </span>
+                        {% else %}
+                            <span style="display: inline-block; padding: 4px 9px; border-radius: 6px; background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: 12px;">
+                                {{ cb.get_loai_display }}
+                            </span>
+                        {% endif %}
+                    </td>
                     <td>{{ cb.kho_hien_thi }}</td>
 
                     <td>
                         {% if cb.xe %}
-                            {{ cb.xe.vin }}<br>
+                            <span class="df-code">{{ cb.xe.vin }}</span><br>
                             {{ cb.xe.ten_xe }}<br>
                             {{ cb.xe.mau_sac|default:"Chưa có màu" }}
                         {% else %}
@@ -148,13 +410,14 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7">
+                    <td colspan="7" class="df-empty-row">
                         Không có cảnh báo phù hợp.
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 {% endblock %}

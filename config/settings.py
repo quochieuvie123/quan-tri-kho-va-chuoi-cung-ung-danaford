@@ -97,6 +97,9 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.layout'
             ],
+            'builtins': [
+                'core.templatetags.tien_filters',
+            ],
         },
     },
 ]
@@ -195,3 +198,6 @@ TIME_ZONE = "Asia/Ho_Chi_Minh"
 
 
 
+
+# Cấu hình thời hạn giữ chỗ phiếu nháp (mặc định 10 phút)
+ORDER_DRAFT_HOLD_MINUTES = 10

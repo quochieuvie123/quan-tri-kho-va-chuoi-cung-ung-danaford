@@ -8,6 +8,12 @@
 
 {% block content %}
 <div class="stack df-workflow">
+  <div class="page-header no-print">
+    <div>
+      <h1 class="page-header__title">Chi tiết phiếu nhập kho {{ phieu_nhap.ma_phieu }}</h1>
+      <p class="page-header__subtitle">Thông tin xe tiếp nhận, chứng từ nguồn, kiểm định PDI và phê duyệt nhập kho</p>
+    </div>
+  </div>
   <!-- Thanh công cụ điều hướng -->
   <div class="toolbar no-print">
     <div style="display: flex; gap: 10px; align-items: center;">
@@ -213,17 +219,17 @@
 
       <div class="pdi-grid">
         <!-- Ngoại thất -->
-        <div style="background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #cbd5e1;">
-          <div style="font-weight: 700; color: #0b2a4a; margin-bottom: 10px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+        <div style="background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #dce6f0;">
+          <div style="font-weight: 600; color: #102a43; margin-bottom: 12px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
             <i class="bi bi-car-front-fill" style="color: #0067c5;"></i> 1. Kiểm tra Ngoại thất
           </div>
-          <div class="field" style="margin-bottom: 10px;">
+          <div class="field" style="margin-bottom: 12px;">
             <label>Tình trạng thực tế</label>
             <input class="input" name="ngoai_that_tinh_trang" placeholder="Sơn, kính, đèn, lốp..." required>
           </div>
-          <div class="field" style="margin-bottom: 10px;">
+          <div class="field" style="margin-bottom: 12px;">
             <label>Ghi chú</label>
-            <textarea class="textarea" style="min-height: 60px;" name="ngoai_that_ghi_chu" placeholder="Chi tiết lỗi nếu có..."></textarea>
+            <textarea class="textarea" name="ngoai_that_ghi_chu" placeholder="Chi tiết lỗi nếu có..."></textarea>
           </div>
           <div class="field">
             <label>Kết quả đánh giá</label>
@@ -235,17 +241,17 @@
         </div>
 
         <!-- Nội thất -->
-        <div style="background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #cbd5e1;">
-          <div style="font-weight: 700; color: #0b2a4a; margin-bottom: 10px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+        <div style="background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #dce6f0;">
+          <div style="font-weight: 600; color: #102a43; margin-bottom: 12px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
             <i class="bi bi-speedometer2" style="color: #0067c5;"></i> 2. Kiểm tra Nội thất & Khoang lái
           </div>
-          <div class="field" style="margin-bottom: 10px;">
+          <div class="field" style="margin-bottom: 12px;">
             <label>Tình trạng thực tế</label>
             <input class="input" name="noi_that_tinh_trang" placeholder="Ghế, táp-lô, màn hình..." required>
           </div>
-          <div class="field" style="margin-bottom: 10px;">
+          <div class="field" style="margin-bottom: 12px;">
             <label>Ghi chú</label>
-            <textarea class="textarea" style="min-height: 60px;" name="noi_that_ghi_chu" placeholder="Chi tiết lỗi nếu có..."></textarea>
+            <textarea class="textarea" name="noi_that_ghi_chu" placeholder="Chi tiết lỗi nếu có..."></textarea>
           </div>
           <div class="field">
             <label>Kết quả đánh giá</label>
@@ -257,11 +263,11 @@
         </div>
 
         <!-- Vận hành -->
-        <div style="background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid #cbd5e1; grid-column: 1 / -1;">
-          <div style="font-weight: 700; color: #0b2a4a; margin-bottom: 10px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+        <div style="background: #ffffff; padding: 16px; border-radius: 12px; border: 1px solid #dce6f0; grid-column: 1 / -1;">
+          <div style="font-weight: 600; color: #102a43; margin-bottom: 12px; font-size: 14px; display: flex; align-items: center; gap: 6px;">
             <i class="bi bi-gear-wide-connected" style="color: #0067c5;"></i> 3. Động cơ & Khả năng vận hành cơ bản
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
             <div class="field">
               <label>Tình trạng thực tế</label>
               <input class="input" name="van_hanh_tinh_trang" placeholder="Khởi động máy, hệ thống điện, phanh..." required>
@@ -274,9 +280,9 @@
               </select>
             </div>
           </div>
-          <div class="field" style="margin-top: 10px;">
+          <div class="field" style="margin-top: 12px;">
             <label>Ghi chú vận hành</label>
-            <textarea class="textarea" style="min-height: 60px;" name="van_hanh_ghi_chu" placeholder="Ghi chú thêm..."></textarea>
+            <textarea class="textarea" name="van_hanh_ghi_chu" placeholder="Ghi chú thêm..."></textarea>
           </div>
         </div>
       </div>
@@ -296,6 +302,21 @@
   {% endif %}
 
   <!-- Bảng Lịch sử PDI -->
+  {% if not phieu_nhap.requires_pdi %}
+  <div class="card" style="border-left: 4px solid #16a34a; background: #f0fdf4;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <strong style="color: #15803d; font-size: 14px;"><i class="bi bi-check-circle-fill"></i> Xe lưu chuyển nội bộ — Không cần kiểm định PDI lại</strong>
+        <p style="margin: 4px 0 0; color: #166534; font-size: 13px;">Xe điều chuyển từ chi nhánh về Đà Nẵng không phải thực hiện kiểm định PDI lại. Thủ kho có thể gửi duyệt và Sale Admin duyệt nhập kho trực tiếp để xuất bán.</p>
+      </div>
+      {% if phieu_nhap.trang_thai != 'DA_DUYET' and not phieu_nhap.incident_info %}
+      <a class="btn btn--light" style="font-weight: 600; white-space: nowrap;" href="{% url 'incidents:ghi_nhan' %}?xe={{ phieu_nhap.vin|urlencode }}{% if phieu_nhap.lenh_luu_chuyen_id %}&amp;lenh_luu_chuyen={{ phieu_nhap.lenh_luu_chuyen_id }}{% endif %}">
+        <i class="bi bi-exclamation-triangle"></i> Báo sự cố vận chuyển (nếu có)
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
   <div class="card">
     <h2 class="section-title">Lịch sử kiểm định PDI</h2>
     {% if pdi %}

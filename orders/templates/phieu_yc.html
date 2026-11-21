@@ -27,11 +27,17 @@
 
 {% block content %}
 <div class="stack">
+    <div class="page-header no-print">
+        <div>
+            <h1 class="page-header__title">Phiếu yêu cầu đặt xe PYC{{ phieu.id|stringformat:"05d" }}</h1>
+            <p class="page-header__subtitle">Chi tiết chứng từ đặt xe theo lịch phân bổ và phê duyệt</p>
+        </div>
+    </div>
     <!-- Thanh điều hướng và in ấn -->
     <div class="toolbar no-print">
         <div style="display: flex; gap: 10px; align-items: center;">
             {% if phieu.status == "DRAFT" %}
-                <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--light">
+                <a href="{% url 'orders:chinh_sua_phieu_yeu_cau' phieu.id %}" class="btn btn--light">
                     <i class="bi bi-arrow-left"></i> Quay lại chọn xe
                 </a>
             {% else %}
@@ -68,11 +74,27 @@
                         <span class="badge badge--CHO_DUYET"><i class="bi bi-clock-history"></i> Chờ Sale Admin (Quốc Hiếu) xác nhận</span>
                     {% elif phieu.status == "ACCEPTED" %}
                         <span class="badge badge--DA_DUYET"><i class="bi bi-check-circle"></i> Đã phê duyệt tiếp nhận</span>
+                    {% elif phieu.status == "REJECTED" %}
+                        <span class="badge" style="background:#fef2f2; color:#b91c1c; border:1px solid #fecaca;"><i class="bi bi-x-circle"></i> Đã từ chối</span>
                     {% endif %}
                 </div>
             </div>
         </div>
 
+        {% if phieu.status == "REJECTED" %}
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #dc2626; color: #991b1b; border-radius: 8px; padding: 14px 18px; margin: 16px 0 20px;">
+            <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14.5px; margin-bottom: 4px;">
+                <i class="bi bi-x-circle-fill" style="color: #dc2626; font-size: 18px;"></i>
+                Phiếu yêu cầu đặt xe đã bị Quản trị viên (Sale Admin) từ chối
+            </div>
+            <div style="font-size: 13.5px; color: #b91c1c;">
+                <strong>Lý do từ chối:</strong> {{ phieu.rejection_reason|default:"Sale Admin từ chối phê duyệt" }}
+            </div>
+            <div style="font-size: 12.5px; color: #7f1d1d; margin-top: 6px;">
+                <i class="bi bi-info-circle"></i> Toàn bộ xe trong phiếu này đã được tự động nhả về trạng thái "Còn trống" cho các yêu cầu khác.
+            </div>
+        </div>
+        {% endif %}
         <h1 class="transfer-paper-title">PHIẾU YÊU CẦU ĐẶT XE</h1>
         <div class="transfer-paper-date">
             Ngày {{ ngay_lap|date:"d" }} tháng {{ ngay_lap|date:"m" }} năm {{ ngay_lap|date:"Y" }}
@@ -114,7 +136,17 @@
                         <td><strong>{{ item.allocation.description }}</strong></td>
                         <td style="font-family: monospace;">{{ item.allocation.vin }}</td>
                         <td>{{ item.allocation.color_code }}</td>
-                        <td style="text-align: center; font-weight: 700; color: #0067c5;">{{ item.quantity }}</td>
+                        <td style="text-align: center; font-weight: 700; color: #0067c5;">
+                            1
+                            {% if phieu.status == "DRAFT" %}
+                            <form method="POST" action="{% url 'orders:xoa_xe_phieu_nhap' phieu.id item.id %}" style="display:inline; margin-left: 8px;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn--light" style="padding: 2px 7px; color: #dc2626; font-size: 11px; border-color: #fecaca;" title="Xóa xe khỏi phiếu nháp" onclick="return confirm('Bạn muốn xóa xe này khỏi phiếu nháp?');">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
@@ -159,27 +191,31 @@
     </div>
 
     <!-- CÁC NÚT THAO TÁC XỬ LÝ -->
-    <div class="toolbar no-print" style="justify-content: center; gap: 14px; margin-top: 10px;">
+    <div class="toolbar no-print" style="justify-content: center; gap: 12px; margin-top: 10px;">
         {% if phieu.status == "DRAFT" %}
-            <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--light">
-                <i class="bi bi-pencil-square"></i> Quay lại chỉnh sửa
+            <a href="{% url 'orders:chinh_sua_phieu_yeu_cau' phieu.id %}" class="btn btn--light">
+                <i class="bi bi-pencil-square"></i> Quay lại và chỉnh sửa
             </a>
             <form method="POST" action="{% url 'orders:gui_phieu_yeu_cau' phieu.id %}" style="margin: 0;">
                 {% csrf_token %}
-                <button type="submit" class="btn btn--primary" style="background: #0067c5; border-color: #0067c5; color: #fff; font-weight: 700; padding: 9px 20px;">
+                <button type="submit" class="btn btn--primary">
                     <i class="bi bi-send-check"></i> Gửi phiếu yêu cầu (Trình Quốc Hiếu duyệt)
                 </button>
             </form>
         {% elif phieu.status == "PENDING" %}
-            <a href="{% url 'orders:danh_sach_yeu_cau' %}" class="btn btn--light">
-                <i class="bi bi-arrow-left"></i> Quay lại danh sách
-            </a>
             {% if is_sale_admin %}
             <form method="POST" action="{% url 'orders:xac_nhan_phieu' phieu.id %}" style="margin: 0;">
                 {% csrf_token %}
-                <button type="submit" class="btn btn--success" style="background: #16a34a; border-color: #16a34a; color: #fff; font-weight: 700; padding: 9px 20px;"
+                <button type="submit" class="btn btn--success"
                         onclick="return confirm('Bạn xác nhận tiếp nhận và phê duyệt phiếu đặt xe này để chuyển tiếp sang kho và các quy trình tiếp theo?');">
                     <i class="bi bi-check2-circle"></i> Xác nhận & Phê duyệt phiếu (Quốc Hiếu)
+                </button>
+            </form>
+            <form method="POST" action="{% url 'orders:tu_choi_phieu' phieu.id %}" style="margin: 0;" onsubmit="var r = prompt('Nhập lý do từ chối:'); if (!r) return false; this.ly_do.value = r;">
+                {% csrf_token %}
+                <input type="hidden" name="ly_do" value="">
+                <button type="submit" class="btn btn--danger">
+                    <i class="bi bi-x-circle"></i> Từ chối phiếu
                 </button>
             </form>
             {% else %}
@@ -188,11 +224,12 @@
             </span>
             {% endif %}
         {% elif phieu.status == "ACCEPTED" %}
-            <a href="{% url 'orders:danh_sach_yeu_cau' %}" class="btn btn--light">
-                <i class="bi bi-arrow-left"></i> Quay lại danh sách yêu cầu
-            </a>
             <a href="{% url 'warehouse:nhap' %}" class="btn btn--primary" style="background: #0067c5; color: #fff; font-weight: 700;">
                 <i class="bi bi-box-arrow-in-down"></i> Tiếp tục quy trình: Quản lý nhập kho & PDI &rarr;
+            </a>
+        {% elif phieu.status == "REJECTED" %}
+            <a href="{% url 'orders:vehicle_orders' %}" class="btn btn--primary">
+                <i class="bi bi-plus-circle"></i> Đặt xe mới từ nguồn phân bổ
             </a>
         {% endif %}
     </div>

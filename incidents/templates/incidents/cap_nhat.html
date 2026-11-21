@@ -3,7 +3,13 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'incidents/incidents.css' %}">{% endblock %}
 {% block content %}
 {% include "incidents/_messages.html" %}
-<div class="card" style="background: #f0fdf4; border: 1px solid #bbf7d0; margin-bottom: 20px; padding: 14px 18px; border-left: 4px solid #16a34a;">
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">Xác nhận giải quyết sự cố {{ bb.ma_pdi }}</h1>
+    <p class="page-header__subtitle">Cập nhật kết quả khắc phục, bồi thường và đóng hồ sơ sự cố</p>
+  </div>
+</div>
+<div class="card" style="background: #e8f7f0; border: 1px solid #bfe6d2; margin-bottom: 20px; padding: 14px 18px; border-left: 4px solid #12805c; max-width: 850px;">
   <div style="font-weight: 700; color: #15803d; font-size: 15px; display: flex; align-items: center; gap: 8px;">
     <i class="bi bi-shield-check" style="font-size: 18px;"></i>
     Xác nhận giải quyết xong sự cố vận chuyển

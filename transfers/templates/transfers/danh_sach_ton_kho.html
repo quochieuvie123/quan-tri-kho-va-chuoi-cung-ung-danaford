@@ -13,9 +13,6 @@
             <h1 class="page-header__title">Quản lý lưu chuyển xe</h1>
             <p class="page-header__subtitle">Theo dõi xe tồn kho khả dụng, chọn xe và tạo lệnh điều chuyển giữa các kho chi nhánh</p>
         </div>
-        <a href="{% url 'transfers:danh_sach_lenh' %}" class="transfer-btn transfer-btn--light">
-            <i class="bi bi-list-ul"></i> Xem danh sách lệnh đã lập
-        </a>
     </div>
 
     <!-- Thanh tab điều hướng -->
@@ -45,52 +42,88 @@
     <!-- TAB 1: DANH SÁCH TỒN KHO -->
     <div id="ton-kho" class="transfer-content active card">
         <div style="margin-bottom: 18px;">
-            <h3 style="margin: 0 0 14px; font-size: 16px; font-weight: 600; color: #0b2a4a;">Tìm kiếm xe tồn kho</h3>
-            <form method="GET" action="{% url 'transfers:index' %}" class="transfer-search-form">
-                <input
-                    class="transfer-search-input"
-                    type="text"
-                    name="q"
-                    value="{{ tu_khoa }}"
-                    placeholder="Nhập tên xe, loại xe hoặc mã kho..."
-                >
-                <button class="transfer-btn transfer-btn--primary" type="submit">
-                    <i class="bi bi-search"></i> Tìm kiếm
-                </button>
-                {% if tu_khoa %}
-                <a href="{% url 'transfers:index' %}" class="transfer-btn transfer-btn--light">
-                    <i class="bi bi-x-circle"></i> Xóa lọc
-                </a>
-                {% endif %}
+            <h3 style="margin: 0 0 14px; font-size: 18px; font-weight: 600; color: #102a43;">Tìm kiếm & Lọc xe tồn kho tại các chi nhánh</h3>
+            <form method="GET" action="{% url 'transfers:index' %}" class="transfer-search-form" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: end; background: #f4f7fb; padding: 16px; border: 1px solid #dce6f0; border-radius: 12px;">
+                <div class="df-field">
+                    <label class="df-label" for="transfer-kho-filter">Kho chi nhánh</label>
+                    <select id="transfer-kho-filter" name="kho" class="df-control df-control--44" onchange="this.form.submit()">
+                        <option value="">Tất cả kho chi nhánh</option>
+                        {% for k in ds_kho %}
+                        <option value="{{ k.pk }}" {% if kho_filter == k.pk %}selected{% endif %}>{{ k.ma_kho }} - {{ k.chi_nhanh.ten_cn }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="df-field df-field--span-2">
+                    <label class="df-label" for="transfer-q-filter">Từ khóa tìm kiếm</label>
+                    <input
+                        id="transfer-q-filter"
+                        class="transfer-search-input df-control df-control--44"
+                        type="text"
+                        name="q"
+                        value="{{ tu_khoa }}"
+                        placeholder="Nhập mã VIN, tên xe, loại xe hoặc mã kho..."
+                    >
+                </div>
+                <div style="grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+                    <button class="transfer-btn transfer-btn--primary" type="submit">
+                        <i class="bi bi-search"></i> Tìm kiếm
+                    </button>
+                    {% if tu_khoa or kho_filter %}
+                    <a href="{% url 'transfers:index' %}" class="transfer-btn transfer-btn--light">
+                        <i class="bi bi-x-circle"></i> Đặt lại
+                    </a>
+                    {% endif %}
+                </div>
             </form>
         </div>
 
         <div class="transfer-table-wrap">
-            <table class="transfer-table">
+            <table class="transfer-table" style="min-width: 1510px;">
                 <thead>
                     <tr>
+                        <th>Số khung (VIN)</th>
                         <th>Tên xe</th>
                         <th>Loại xe</th>
                         <th>Màu sắc</th>
-                        <th>Mã kho</th>
-                        <th>Tên kho chi nhánh</th>
-                        <th style="text-align: center;">Số lượng tồn</th>
+                        <th>Kho chi nhánh hiện tại</th>
+                        <th style="text-align: center;">Tình trạng điều chuyển</th>
                         <th style="text-align: right;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in ds_ton_kho %}
                     <tr>
-                        <td><strong>{{ item.xe.ten_xe }}</strong></td>
+                        <td><span class="df-code" style="color: #0067c5;">{{ item.xe.vin }}</span></td>
+                        <td>
+                            <strong>{{ item.xe.ten_xe }}</strong>
+                            {% if item.da_nang_het_xe %}
+                            <div style="margin-top: 3px;">
+                                <span class="badge" style="background: #fffbeb; color: #b45309; border: 1px solid #fde68a; font-size: 11px;">
+                                    <i class="bi bi-arrow-left-right"></i> Đà Nẵng đang hết dòng xe này — Có thể điều chuyển về ĐN
+                                </span>
+                            </div>
+                            {% endif %}
+                        </td>
                         <td>{{ item.xe.loai_xe }}</td>
                         <td>{{ item.xe.mau_sac|default:"Chưa cập nhật" }}</td>
-                        <td><span class="badge">{{ item.kho.ma_kho }}</span></td>
-                        <td>{{ item.kho.chi_nhanh }}</td>
-                        <td style="text-align: center; font-weight: 600; color: #0b66c3;">{{ item.so_luong_ton }}</td>
+                        <td><span class="badge">{{ item.kho.ma_kho }}</span> {{ item.kho.chi_nhanh }}</td>
+                        <td style="text-align: center;">
+                            {% if item.co_the_dieu_chuyen %}
+                                <span class="badge" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;">{{ item.nhan_trang_thai }}</span>
+                            {% else %}
+                                <span class="badge" style="background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1;">{{ item.nhan_trang_thai }}</span>
+                            {% endif %}
+                        </td>
                         <td style="text-align: right;">
+                            {% if item.co_the_dieu_chuyen %}
                             <a class="transfer-btn transfer-btn--primary" href="{% url 'transfers:chi_tiet_xe' item.pk %}">
                                 <i class="bi bi-plus-lg"></i> Chọn xe
                             </a>
+                            {% else %}
+                            <span class="badge" style="background: #f8fafc; color: #94a3b8; border: 1px solid #e2e8f0; padding: 6px 10px;">
+                                <i class="bi bi-lock-fill"></i> Đang bận
+                            </span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}

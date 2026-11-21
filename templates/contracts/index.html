@@ -30,6 +30,13 @@
         </select>
       </div>
       <div class="field">
+        <label>Tháng ký HĐ</label>
+        <select class="select" name="thang">
+          <option value="">Tất cả các tháng</option>
+          {% for val,lbl in thang_options %}<option value="{{ val }}"{% if selected_month == val %} selected{% endif %}>{{ lbl }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field">
         <label>Dòng xe yêu cầu</label>
         <input class="input" name="dong_xe" value="{{ request.GET.dong_xe }}" placeholder="Ví dụ: Ranger, Everest...">
       </div>
@@ -62,7 +69,7 @@
       </div>
     {% else %}
       <div class="table-wrap">
-        <table class="data-table">
+        <table class="data-table data-table--hop-dong">
           <thead>
             <tr>
               <th>Mã HĐ</th>
@@ -77,7 +84,7 @@
             {% for hd in hop_dong %}
             <tr>
               <td>
-                <a href="{% url 'contracts:detail' hd.ma_hd %}" style="text-decoration: none; font-weight: 700; color: #0067c5;">
+                <a class="df-code" href="{% url 'contracts:detail' hd.ma_hd %}">
                   {{ hd.ma_hd }}
                 </a>
               </td>

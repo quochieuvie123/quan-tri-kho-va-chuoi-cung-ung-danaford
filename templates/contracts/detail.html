@@ -8,6 +8,12 @@
 
 {% block content %}
 <div class="stack df-workflow">
+  <div class="page-header">
+    <div>
+      <h1 class="page-header__title">Chi tiết hợp đồng {{ hop_dong.ma_hd }}</h1>
+      <p class="page-header__subtitle">Thông tin khách hàng, ngày dự kiến bàn giao và trạng thái nguồn xe của hợp đồng</p>
+    </div>
+  </div>
   <div class="toolbar">
     <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
       <a class="btn btn--light" href="{% url 'contracts:index' %}">
@@ -46,11 +52,22 @@
         </a>
         {% endif %}
       </div>
+      {% elif hop_dong.xe and not hop_dong.co_ton_da_nang or hop_dong.co_phieu_nhap_chua_xong %}
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <span class="badge badge--CHO_DUYET" style="padding: 9px 16px; font-size: 13px;">
+          <i class="bi bi-hourglass-split"></i>
+          {% if hop_dong.lenh_luu_chuyen %}
+            Chờ hoàn tất nhập kho tại Đà Nẵng trước khi xuất bán
+          {% else %}
+            Chờ hoàn tất nhập kho &amp; PDI tại Đà Nẵng trước khi xuất bán
+          {% endif %}
+        </span>
+      </div>
       {% elif hop_dong.xe %}
       <form method="post" action="{% url 'contracts:hoan_tat' hop_dong.ma_hd %}" style="margin: 0;"
             onsubmit="return confirm('Xác nhận xuất xe và hoàn tất hợp đồng {{ hop_dong.ma_hd }}? Số lượng tồn kho xe sẽ được trừ và lưu vào báo cáo.');">
         {% csrf_token %}
-        <button type="submit" class="btn btn--success" style="background: #15803d; border-color: #15803d; color: #fff; font-weight: 700; padding: 9px 20px;">
+        <button type="submit" class="btn btn--success">
           <i class="bi bi-check2-circle"></i> Xác nhận xuất kho & Hoàn tất hợp đồng
         </button>
       </form>
@@ -72,9 +89,6 @@
           </p>
         </div>
       </div>
-      <a class="btn btn--primary" href="{% url 'warehouse:xuat_chi_tiet' hop_dong.phieu_xuat.ma_pxk %}" style="font-weight: 700;">
-        <i class="bi bi-box-arrow-up-right"></i> Chuyển tới Quản lý xuất kho để duyệt
-      </a>
     </div>
   </div>
   {% elif hop_dong.lenh_luu_chuyen %}
@@ -158,14 +172,14 @@
       </dt>
       <dd>
         {% if co_the_chinh_sua %}
-        <form method="post" action="{% url 'contracts:cap_nhat_ngay_giao' hop_dong.ma_hd %}" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0;">
+        <form method="post" action="{% url 'contracts:cap_nhat_ngay_giao' hop_dong.ma_hd %}" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0;">
           {% csrf_token %}
           <div style="display: inline-flex; align-items: center;">
             <input class="input" type="date" name="ngay_du_kien_giao" id="id_ngay_du_kien_giao"
                    value="{{ hop_dong.ngay_du_kien_giao|date:'Y-m-d' }}"
-                   style="padding: 6px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; min-width: 165px;">
+                   style="min-width: 175px;">
           </div>
-          <button type="submit" class="btn btn--primary" style="padding: 6px 14px; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+          <button type="submit" class="btn btn--primary">
             <i class="bi bi-calendar-check"></i> Lưu ngày giao
           </button>
           {% if hop_dong.ngay_du_kien_giao %}
@@ -184,7 +198,7 @@
       </dd>
 
       <dt>Số tiền đặt cọc</dt>
-      <dd style="color: #166534; font-weight: 700;">{{ hop_dong.so_tien_coc }}</dd>
+      <dd style="color: #166534; font-weight: 700;">{{ hop_dong.so_tien_coc|tien_vn }}</dd>
     </dl>
   </div>
 
@@ -200,19 +214,6 @@
   <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
       <h2 class="section-title" style="margin: 0;">Danh sách xe đã liên kết với hợp đồng</h2>
-      {% if hop_dong.phieu_xuat and hop_dong.phieu_xuat.trang_thai == 'CHO_DUYET' %}
-      <a class="btn btn--primary" href="{% url 'warehouse:xuat_chi_tiet' hop_dong.phieu_xuat.ma_pxk %}" style="font-weight: 700;">
-        <i class="bi bi-box-arrow-up-right"></i> Duyệt xuất kho tại Quản lý xuất kho
-      </a>
-      {% elif hop_dong.xe and hop_dong.trang_thai != 'HOAN_TAT' %}
-      <form method="post" action="{% url 'contracts:hoan_tat' hop_dong.ma_hd %}" style="margin: 0;"
-            onsubmit="return confirm('Xác nhận xuất xe và hoàn tất hợp đồng {{ hop_dong.ma_hd }}? Số lượng tồn kho xe sẽ được trừ và lưu vào báo cáo.');">
-        {% csrf_token %}
-        <button type="submit" class="btn btn--success" style="background: #15803d; border-color: #15803d; color: #fff; font-weight: 700;">
-          <i class="bi bi-box-arrow-up-right"></i> Xuất kho xe & Hoàn tất hợp đồng
-        </button>
-      </form>
-      {% endif %}
     </div>
 
     {% if hop_dong.xe %}
@@ -265,42 +266,141 @@
 </div>
 
 {% if co_the_chinh_sua %}
-<!-- Modal Thiết lập ngày giao dự kiến -->
+<!-- Modal Thiết lập ngày giao dự kiến có tích hợp tra cứu Lịch phân bổ -->
 <div id="dateModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
-  <div style="background: #ffffff; border-radius: 12px; width: 100%; max-width: 450px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); overflow: hidden; margin: 16px;">
+  <div style="background: #ffffff; border-radius: 14px; width: 100%; max-width: 840px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); overflow: hidden; margin: 16px;">
     <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
       <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px;">
-        <i class="bi bi-calendar-event text-primary"></i> Thiết lập ngày giao dự kiến
+        <i class="bi bi-calendar-event text-primary"></i> Thiết lập ngày giao dự kiến cho khách hàng
       </h3>
       <button type="button" onclick="closeDateModal();" style="border: none; background: transparent; font-size: 24px; line-height: 1; cursor: pointer; color: #64748b;">&times;</button>
     </div>
-    <form method="post" action="{% url 'contracts:cap_nhat_ngay_giao' hop_dong.ma_hd %}" style="padding: 20px; margin: 0;">
-      {% csrf_token %}
-      <p style="margin: 0 0 14px; font-size: 13.5px; color: #475569;">
-        Hợp đồng: <strong style="color: #0067c5;">{{ hop_dong.ma_hd }}</strong> · Khách hàng: <strong>{{ hop_dong.ten_khach_hang }}</strong>
-      </p>
 
-      <label style="display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px;">
-        Chọn ngày dự kiến bàn giao xe cho khách hàng:
-      </label>
-      <input class="input" type="date" name="ngay_du_kien_giao" id="modal_ngay_du_kien_giao"
-             value="{{ hop_dong.ngay_du_kien_giao|date:'Y-m-d' }}"
-             style="width: 100%; padding: 9px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #cbd5e1; margin-bottom: 12px;" required>
+    <div style="padding: 20px; overflow-y: auto;">
+      <form method="post" action="{% url 'contracts:cap_nhat_ngay_giao' hop_dong.ma_hd %}" id="formDateModal" style="margin: 0;">
+        {% csrf_token %}
+        <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px 16px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;">
+          <div style="font-size: 13.5px; color: #0369a1;">
+            Hợp đồng: <strong>{{ hop_dong.ma_hd }}</strong> · Khách hàng: <strong>{{ hop_dong.ten_khach_hang }}</strong>
+          </div>
+          <div style="font-size: 13.5px; color: #0369a1;">
+            Dòng xe: <strong>{{ hop_dong.dong_xe|default:"—" }}</strong> · Phiên bản: <strong>{{ hop_dong.phien_ban|default:"—" }}</strong> · Màu: <strong>{{ hop_dong.mau_sac|default:"—" }}</strong>
+          </div>
+        </div>
 
-      <div style="margin-bottom: 18px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-        <span style="font-size: 12px; color: #64748b;">Gợi ý nhanh:</span>
-        <button type="button" class="btn btn--light" style="padding: 3px 8px; font-size: 12px;" onclick="setPresetDays(7);">+7 ngày</button>
-        <button type="button" class="btn btn--light" style="padding: 3px 8px; font-size: 12px;" onclick="setPresetDays(15);">+15 ngày</button>
-        <button type="button" class="btn btn--light" style="padding: 3px 8px; font-size: 12px;" onclick="setPresetDays(30);">+30 ngày</button>
-      </div>
+        <!-- KHỐI TRA CỨU LỊCH PHÂN BỔ ĐỂ CHỌN NGÀY VỀ KHO ĐÀ NẴNG -->
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+            <div style="font-size: 14px; font-weight: 700; color: #0b2a4a; display: flex; align-items: center; gap: 6px;">
+              <i class="bi bi-calendar2-range text-primary"></i> Tra cứu lịch phân bổ dự kiến xe về kho Đà Nẵng
+            </div>
+            <!-- BỘ LỌC NÂNG CAO MÀU SẮC -->
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <label for="modalColorFilter" style="font-size: 12.5px; font-weight: 600; color: #475569; margin: 0;">
+                <i class="bi bi-funnel"></i> Màu xe (Bộ lọc nâng cao):
+              </label>
+              <select id="modalColorFilter" onchange="filterModalAllocations();" style="padding: 5px 10px; font-size: 12.5px; font-weight: 600; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; color: #1e293b; cursor: pointer;">
+                <option value="">Tất cả màu sắc ({{ hop_dong.allocations_lich_ve|length }} xe)</option>
+                {% for col in hop_dong.mau_sac_phan_bo %}
+                  <option value="{{ col }}" {% if hop_dong.mau_sac and hop_dong.mau_sac|lower in col|lower %}selected{% endif %}>{{ col }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
 
-      <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #f1f5f9; padding-top: 14px;">
-        <button type="button" class="btn btn--light" onclick="closeDateModal();">Hủy</button>
-        <button type="submit" class="btn btn--primary" style="font-weight: 600;">
-          <i class="bi bi-check-circle"></i> Xác nhận lưu ngày giao
-        </button>
-      </div>
-    </form>
+          {% if hop_dong.allocations_lich_ve %}
+          <div class="table-wrap" style="max-height: 220px; overflow-y: auto; border: 1px solid #f1f5f9; border-radius: 6px;">
+            <table class="data-table" style="font-size: 12.5px; margin: 0;" id="modalAllocTable">
+              <thead>
+                <tr style="position: sticky; top: 0; background: #f8fafc; z-index: 1;">
+                  <th>Số khung (VIN)</th>
+                  <th>Phiên bản / Mô tả</th>
+                  <th>Màu ngoại thất</th>
+                  <th>Dự kiến Ship NM</th>
+                  <th>Dự kiến cập bến Đà Nẵng</th>
+                  <th style="text-align: center;">Trạng thái</th>
+                  <th style="text-align: right;">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for alloc in hop_dong.allocations_lich_ve %}
+                <tr class="modal-alloc-row" data-color="{{ alloc.exterior_color|default:''|lower }}">
+                  <td style="font-family: monospace; font-weight: 700; color: #0067c5;">{{ alloc.vin }}</td>
+                  <td><strong>{{ alloc.description|default:alloc.vehicle_code }}</strong></td>
+                  <td><span class="badge" style="background: #f1f5f9; color: #334155;">{{ alloc.exterior_color|default:"—" }}</span></td>
+                  <td>{{ alloc.expected_ship_date|date:"d/m/Y"|default:"—" }}</td>
+                  <td>
+                    {% if alloc.contractual_delivery_date %}
+                      <strong style="color: #047857;">{{ alloc.contractual_delivery_date|date:"d/m/Y" }}</strong>
+                    {% else %}
+                      <span style="color: #64748b;">{{ alloc.expected_ship_date|date:"d/m/Y"|default:"Chưa rõ" }}</span>
+                    {% endif %}
+                  </td>
+                  <td style="text-align: center;">
+                    {% if alloc.availability_info %}
+                      <span class="badge" style="font-size: 11px;">{{ alloc.availability_info.label }}</span>
+                    {% else %}
+                      <span class="badge" style="background:#ecfdf5; color:#047857;">Còn trống</span>
+                    {% endif %}
+                  </td>
+                  <td style="text-align: right;">
+                    {% if alloc.contractual_delivery_date %}
+                      <button type="button" class="btn btn--light" style="padding: 3px 8px; font-size: 11.5px; border-color: #0284c7; color: #0284c7; font-weight: 600;"
+                              onclick="pickAllocationDate('{{ alloc.contractual_delivery_date|date:'Y-m-d' }}', 3, '{{ alloc.vin }}');"
+                              title="Tự động chọn ngày giao = ngày xe cập bến + 3 ngày chuẩn bị PDI">
+                        <i class="bi bi-calendar-plus"></i> Hẹn ngày này (+3 ngày PDI)
+                      </button>
+                    {% elif alloc.expected_ship_date %}
+                      <button type="button" class="btn btn--light" style="padding: 3px 8px; font-size: 11.5px; border-color: #0284c7; color: #0284c7; font-weight: 600;"
+                              onclick="pickAllocationDate('{{ alloc.expected_ship_date|date:'Y-m-d' }}', 5, '{{ alloc.vin }}');"
+                              title="Tự động chọn ngày giao = ngày ship + 5 ngày vận chuyển & PDI">
+                        <i class="bi bi-calendar-plus"></i> Hẹn ngày này (+5 ngày V/C & PDI)
+                      </button>
+                    {% else %}
+                      <span style="color: #94a3b8; font-size: 11px;">Chưa có ngày</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div style="padding: 16px; text-align: center; color: #64748b; font-size: 13px; background: #f8fafc; border-radius: 6px;">
+            <i class="bi bi-info-circle"></i> Chưa có dữ liệu phân bổ hoặc ngày cập bến cho dòng xe {{ hop_dong.dong_xe|default:"" }}. Bạn có thể chọn ngày thủ công bên dưới.
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Ô CHỌN NGÀY GIAO THỰC TẾ -->
+        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <label style="font-size: 13.5px; font-weight: 700; color: #1e293b; margin: 0;">
+              Ngày cam kết bàn giao xe cho khách hàng:
+            </label>
+            <span id="datePresetNotice" style="font-size: 12px; color: #0284c7; font-weight: 600;"></span>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <input class="input" type="date" name="ngay_du_kien_giao" id="modal_ngay_du_kien_giao"
+                   value="{{ hop_dong.ngay_du_kien_giao|date:'Y-m-d' }}"
+                   style="flex: 1; min-width: 200px; padding: 9px 12px; font-size: 14px; border-radius: 6px; border: 1px solid #cbd5e1;" required>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 12px; color: #64748b;">Gợi ý nhanh từ hôm nay:</span>
+              <button type="button" class="btn btn--light" style="padding: 4px 8px; font-size: 12px;" onclick="setPresetDays(7);">+7 ngày</button>
+              <button type="button" class="btn btn--light" style="padding: 4px 8px; font-size: 12px;" onclick="setPresetDays(15);">+15 ngày</button>
+              <button type="button" class="btn btn--light" style="padding: 4px 8px; font-size: 12px;" onclick="setPresetDays(30);">+30 ngày</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #f1f5f9; padding-top: 16px; margin-top: 16px;">
+          <button type="button" class="btn btn--light" onclick="closeDateModal();">Hủy</button>
+          <button type="submit" class="btn btn--primary" style="font-weight: 600; padding: 9px 22px;">
+            <i class="bi bi-check-circle"></i> Xác nhận lưu ngày giao
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 {% endif %}
@@ -310,7 +410,10 @@
 <script>
 function openDateModal() {
   const m = document.getElementById('dateModal');
-  if (m) m.style.display = 'flex';
+  if (m) {
+    m.style.display = 'flex';
+    filterModalAllocations();
+  }
 }
 function closeDateModal() {
   const m = document.getElementById('dateModal');
@@ -327,6 +430,34 @@ function setPresetDays(days) {
   if (modalInput) modalInput.value = str;
   const inlineInput = document.getElementById('id_ngay_du_kien_giao');
   if (inlineInput) inlineInput.value = str;
+  const notice = document.getElementById('datePresetNotice');
+  if (notice) notice.innerText = `Đã chọn +${days} ngày từ hôm nay`;
+}
+function pickAllocationDate(baseDateStr, addDays, vin) {
+  if (!baseDateStr) return;
+  const parts = baseDateStr.split('-');
+  const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  d.setDate(d.getDate() + addDays);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const resStr = `${yyyy}-${mm}-${dd}`;
+  const modalInput = document.getElementById('modal_ngay_du_kien_giao');
+  if (modalInput) modalInput.value = resStr;
+  const notice = document.getElementById('datePresetNotice');
+  if (notice) notice.innerText = `Đã chọn theo VIN ${vin} (+${addDays} ngày PDI/chuẩn bị xe)`;
+}
+function filterModalAllocations() {
+  const selColor = (document.getElementById('modalColorFilter').value || '').toLowerCase().trim();
+  const rows = document.querySelectorAll('.modal-alloc-row');
+  rows.forEach(r => {
+    const rowColor = (r.getAttribute('data-color') || '').toLowerCase();
+    if (!selColor || rowColor.includes(selColor)) {
+      r.style.display = '';
+    } else {
+      r.style.display = 'none';
+    }
+  });
 }
 window.addEventListener('click', function(e) {
   const m = document.getElementById('dateModal');

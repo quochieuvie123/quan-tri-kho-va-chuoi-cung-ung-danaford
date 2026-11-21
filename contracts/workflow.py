@@ -69,8 +69,10 @@ def choose_vehicle(contract_id, vin, user):
     """
     contract = HopDong.objects.select_for_update().select_related('chi_nhanh', 'khach_hang').get(pk=contract_id)
     car = Xe.objects.select_for_update().get(pk=vin)
-    if contract.trang_thai in (TrangThaiHopDong.DANG_XUAT_KHO, TrangThaiHopDong.HOAN_TAT):
+    if contract.trang_thai in (TrangThaiHopDong.DU_DIEU_KIEN_XUAT, TrangThaiHopDong.DANG_XUAT_KHO, TrangThaiHopDong.HOAN_TAT):
         raise ValidationError('Hợp đồng đang xuất kho hoặc đã hoàn tất.')
+    if contract.trang_thai == TrangThaiHopDong.CHO_XE_VE_KHO or ChiTietHopDong.objects.filter(hop_dong=contract).exists():
+        raise ValidationError('Hợp đồng đã chốt nguồn xe (đang chờ xe về kho), không thể chốt trùng lần hai.')
     if not matches_contract(car, contract):
         raise ValidationError('VIN không khớp dòng xe, phiên bản và màu sắc của hợp đồng.')
 
@@ -87,8 +89,25 @@ def choose_vehicle(contract_id, vin, user):
         xe=car, so_luong_ton__gt=0
     ).select_related('kho__chi_nhanh').first()
 
+    from warehouse.models import PhieuNhapKho
+    pnk_pyc = None
     if not available_here:
-        raise ValidationError('Xe không còn tồn kho tại bất kỳ chi nhánh nào.')
+        # Kiểm tra xe từ PYC đang chờ PDI (đã có phiếu nhập trạng thái NHAP)
+        pnk_pyc = PhieuNhapKho.objects.filter(
+            xe=car, trang_thai=PhieuNhapKho.TrangThai.NHAP
+        ).select_related('kho__chi_nhanh').first()
+        if not pnk_pyc:
+            raise ValidationError('Xe không còn tồn kho tại bất kỳ chi nhánh nào.')
+
+    from .sourcing import check_can_source_from_tier, SourcingTier
+    if pnk_pyc:
+        can_choose, reason = check_can_source_from_tier(contract, SourcingTier.PHAN_BO)
+        if not can_choose:
+            raise ValidationError(reason)
+    elif not is_da_nang_branch(available_here.kho.chi_nhanh):
+        can_choose, reason = check_can_source_from_tier(contract, SourcingTier.CHI_NHANH)
+        if not can_choose:
+            raise ValidationError(reason)
 
     nv = getattr(user, 'nhan_vien', None)
     if not nv:
@@ -96,7 +115,26 @@ def choose_vehicle(contract_id, vin, user):
 
     dn_branch_ids = getattr(settings, 'III_IV_DA_NANG_BRANCH_IDS', ['CN01'])
 
-    if is_da_nang_branch(available_here.kho.chi_nhanh):
+    if pnk_pyc:
+        # 3. Xe từ PYC chờ PDI: giữ chỗ xe và chuyển hợp đồng sang CHO_XE_VE_KHO
+        car.trang_thai = TrangThaiXe.GIU_CHO_XUAT
+        car.save(update_fields=['trang_thai'])
+
+        contract.trang_thai = TrangThaiHopDong.CHO_XE_VE_KHO
+        contract.save(update_fields=['trang_thai'])
+
+        from dashboard.models import ThongBaoHoatDong
+        ten_kho = pnk_pyc.kho.chi_nhanh.ten_cn if pnk_pyc.kho and pnk_pyc.kho.chi_nhanh else pnk_pyc.kho.ma_kho
+        ThongBaoHoatDong.objects.create(
+            user=user if user and user.is_authenticated else None,
+            ten_nhan_vien=nv.ten_nv if nv else "Hệ thống",
+            chuc_vu="Nhân viên kinh doanh",
+            hanh_dong=f"Chốt xe từ PYC {car.vin}",
+            chi_tiet=f"Hợp đồng {contract.ma_hd} đã chốt xe {car.ten_xe} ({car.vin}) từ nguồn PYC chờ PDI tại {ten_kho}. Trạng thái hợp đồng: Chờ xe về kho.",
+            module="contracts",
+            loai="THONG_TIN"
+        )
+    elif is_da_nang_branch(available_here.kho.chi_nhanh):
         # 1. Xe tại kho Đà Nẵng: Giữ chỗ xe & chuyển trạng thái hợp đồng
         car.trang_thai = TrangThaiXe.GIU_CHO_XUAT
         car.save(update_fields=['trang_thai'])
@@ -189,14 +227,15 @@ def choose_vehicle(contract_id, vin, user):
 
 @transaction.atomic
 def sync_contract_for_vin(vin):
-    """After PDI/receipt puts a chosen VIN in Đà Nẵng stock, enable export."""
+    """After PDI/receipt puts a chosen VIN in Đà Nẵng stock, enable export via Quản lý xuất kho."""
     from django.conf import settings
     car = Xe.objects.select_for_update().get(pk=vin)
     dn_branch_ids = getattr(settings, 'III_IV_DA_NANG_BRANCH_IDS', ['CN01'])
-    if not TonKho.objects.filter(
+    dn_stock = TonKho.objects.filter(
         xe=car, so_luong_ton__gt=0, xe__trang_thai=TrangThaiXe.SAN_SANG,
         kho__chi_nhanh_id__in=dn_branch_ids
-    ).exists():
+    ).select_related('kho').first()
+    if not dn_stock:
         return 0
     updated = 0
     for contract in HopDong.objects.select_for_update().filter(
@@ -205,8 +244,23 @@ def sync_contract_for_vin(vin):
     ).distinct():
         contract.trang_thai = TrangThaiHopDong.DU_DIEU_KIEN_XUAT
         contract.save(update_fields=['trang_thai'])
-        # Đảm bảo có hóa đơn bán hàng sẵn sàng
+        # Đảm bảo có hóa đơn bán hàng & phiếu xuất kho chờ duyệt để hoàn tất tại Quản lý xuất kho
         ensure_invoice_for_contract(contract, car)
+        ct_hd = ChiTietHopDong.objects.filter(hop_dong=contract, xe=car).first()
+        if ct_hd:
+            nv = NhanVien.objects.filter(chi_nhanh=contract.chi_nhanh).first() or NhanVien.objects.first()
+            ma_pxk = f"PXK-{contract.ma_hd}-{car.vin[-6:]}"[:50]
+            pxk = PhieuXuatKho.objects.filter(chi_tiet_hop_dong=ct_hd).first()
+            if not pxk:
+                PhieuXuatKho.objects.create(
+                    ma_pxk=ma_pxk,
+                    chi_tiet_hop_dong=ct_hd,
+                    kho=dn_stock.kho,
+                    nguoi_nhan=contract.khach_hang.ten_kh,
+                    nguoi_lap=nv,
+                    trang_thai=TrangThaiPhieuXuat.CHO_DUYET,
+                    ghi_chu=f"Xe {car.vin} đã hoàn tất nhập kho & PDI tại Đà Nẵng. Chờ Sale Admin duyệt xuất kho cho HĐ {contract.ma_hd}."
+                )
         updated += 1
     return updated
 

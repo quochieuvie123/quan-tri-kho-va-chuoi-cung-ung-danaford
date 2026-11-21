@@ -3,11 +3,18 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'warehouse/warehouse.css' %}">{% endblock %}
 {% block content %}
 {% include "warehouse/_messages.html" %}
-<div class="actions">
-  <a class="btn" href="{% url 'warehouse:kk_ds' %}?kho={{ phieu.kho_id }}"><i class="bi bi-arrow-left"></i> Danh sách kiểm kê</a>
-  <span class="badge {% if phieu.trang_thai == 'HOAN_TAT' %}badge--ok{% elif phieu.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">{{ phieu.get_trang_thai_display }}</span>
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">Phiếu kiểm kê {{ phieu.ma_pkk }}</h1>
+    <p class="page-header__subtitle">{{ phieu.ky_kiem_ke }} · {{ phieu.pham_vi }} · Kho {{ phieu.kho_id }}</p>
+  </div>
+  <div class="actions actions--top">
+    <span class="badge {% if phieu.trang_thai == 'HOAN_TAT' %}badge--ok{% elif phieu.trang_thai == 'DA_HUY' %}badge--off{% else %}badge--wait{% endif %}">{{ phieu.get_trang_thai_display }}</span>
+    <a class="btn" href="{% url 'warehouse:kk_ds' %}?kho={{ phieu.kho_id }}"><i class="bi bi-arrow-left"></i> Danh sách kiểm kê</a>
+  </div>
 </div>
 <div class="card">
+  <h3>Thông tin phiếu kiểm kê</h3>
   <dl class="kv">
     <dt>Mã phiếu</dt><dd>{{ phieu.ma_pkk }} · kho {{ phieu.kho_id }}</dd>
     <dt>Kỳ / Phạm vi</dt><dd>{{ phieu.ky_kiem_ke }} · {{ phieu.pham_vi }}</dd>
@@ -30,7 +37,7 @@
   {% csrf_token %}
   <h3>Chi tiết kiểm kê <small class="muted">({{ dong|length }} xe, {{ so_chenh_lech }} chênh lệch)</small></h3>
   <div class="scroll">
-  <table class="tbl tbl--sm">
+  <table class="tbl tbl--kk">
     <thead><tr><th>VIN</th><th>Tên xe</th><th>Hệ thống</th><th>Thực tế</th><th>Vị trí HT → TT</th><th>Phân loại</th><th>Nguyên nhân</th><th>Phương án xử lý</th></tr></thead>
     <tbody>
     {% for d in dong %}

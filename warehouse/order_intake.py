@@ -8,6 +8,17 @@ from orders.models import VehicleRequest
 from .models import PhieuNhapKho
 
 
+def resolve_unique_engine_number(raw_engine, vin):
+    """Chuẩn hóa số máy duy nhất khi tạo Xe từ phân bổ (tránh đụng trùng '0' hoặc giá trị giữ chỗ)."""
+    candidate = str(raw_engine or '').strip()[:50]
+    invalid_placeholders = {'', '0', '00', '-', 'na', 'n/a', 'none', 'null', 'chua co', 'chưa có'}
+    if candidate.lower() in invalid_placeholders or Xe.objects.filter(so_may=candidate).exclude(vin=vin).exists():
+        candidate = f'TMP-{vin}'[:50]
+    if Xe.objects.filter(so_may=candidate).exclude(vin=vin).exists():
+        candidate = f'ENG-{vin}'[:50]
+    return candidate
+
+
 def _da_nang_receiving_data():
     """Default PYC destination until a transfer is planned."""
     branch, _ = ChiNhanh.objects.get_or_create(ma_cn='CN01', defaults={'ten_cn': 'Dana Ford Đà Nẵng', 'dia_chi_cn': 'Đà Nẵng'})
@@ -47,12 +58,12 @@ def sync_request(request_id):
             else:
                 continue
 
-        engine = (allocation.engine_number or f'DEMO-{allocation.vin}')[:50]
+        engine = resolve_unique_engine_number(allocation.engine_number, allocation.vin)
         car, _ = Xe.objects.get_or_create(
             vin=allocation.vin,
             defaults={'ten_xe': allocation.description or allocation.vehicle_code,
                       'loai_xe': allocation.vehicle_code, 'phien_ban': allocation.description or '',
-                      'so_may': engine, 'mau_sac': allocation.exterior_color or ''},
+                      'so_may': engine, 'mau_sac': allocation.exterior_color or allocation.mau_sac or ''},
         )
         if car.trang_thai == 'DA_XUAT':
             car.trang_thai = 'SAN_SANG'

@@ -3,20 +3,25 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'incidents/incidents.css' %}">{% endblock %}
 {% block content %}
 {% include "incidents/_messages.html" %}
-<div class="actions">
-  <a class="btn" href="{% url 'incidents:index' %}"><i class="bi bi-arrow-left"></i> Danh sách</a>
-  <span class="spacer"></span>
-  {% if phieu_nhap %}
-    <a class="btn btn--light" href="{% url 'warehouse:receipt_detail' phieu_nhap.id %}">
-      <i class="bi bi-box-seam"></i> Xem phiếu nhập {{ phieu_nhap.ma_phieu }}
-    </a>
-  {% endif %}
-  {% if co_the_gui %}<a class="btn btn--primary" href="{% url 'incidents:gui_yeu_cau' bb.ma_pdi %}"><i class="bi bi-send"></i> Gửi yêu cầu xử lý cho ĐVVC</a>{% endif %}
-  {% if co_the_cap_nhat %}
-    <a class="btn btn--success" style="background-color: #16a34a; border-color: #16a34a; color: #fff; font-weight: 700;" href="{% url 'incidents:cap_nhat' bb.ma_pdi %}">
-      <i class="bi bi-check2-circle"></i> Xác nhận đã xử lý xong sự cố (Đóng sự cố)
-    </a>
-  {% endif %}
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">Hồ sơ sự cố {{ bb.ma_pdi }}</h1>
+    <p class="page-header__subtitle">Chi tiết sự cố vận chuyển, hình ảnh hư hại và tiến trình xử lý bồi thường · VIN {{ xe.vin }}</p>
+  </div>
+  <div class="actions actions--top">
+    <a class="btn" href="{% url 'incidents:index' %}"><i class="bi bi-arrow-left"></i> Danh sách</a>
+    {% if phieu_nhap %}
+      <a class="btn" href="{% url 'warehouse:receipt_detail' phieu_nhap.id %}">
+        <i class="bi bi-box-seam"></i> Xem phiếu nhập {{ phieu_nhap.ma_phieu }}
+      </a>
+    {% endif %}
+    {% if co_the_gui %}<a class="btn btn--primary" href="{% url 'incidents:gui_yeu_cau' bb.ma_pdi %}"><i class="bi bi-send"></i> Gửi yêu cầu xử lý cho ĐVVC</a>{% endif %}
+    {% if co_the_cap_nhat %}
+      <a class="btn btn--success" href="{% url 'incidents:cap_nhat' bb.ma_pdi %}">
+        <i class="bi bi-check2-circle"></i> Xác nhận đã xử lý xong sự cố (Đóng sự cố)
+      </a>
+    {% endif %}
+  </div>
 </div>
 
 {% if bb.trang_thai_claim == 'Đã xử lý' %}
@@ -164,7 +169,7 @@
   <h3>Kết quả xử lý</h3>
   <dl class="kv">
     <dt>Hình thức khắc phục</dt><dd>{{ ho_so.get_hinh_thuc_khac_phuc_display }}</dd>
-    {% if ho_so.so_tien_boi_thuong is not None %}<dt>Số tiền bồi thường</dt><dd>{{ ho_so.so_tien_boi_thuong|floatformat:"0g" }} đ</dd>{% endif %}
+    {% if ho_so.so_tien_boi_thuong is not None %}<dt>Số tiền bồi thường</dt><dd>{{ ho_so.so_tien_boi_thuong|tien_vn }} đ</dd>{% endif %}
     <dt>Ngày xác nhận</dt><dd>{{ ho_so.ngay_xac_nhan|date:"d/m/Y" }}</dd>
     {% if ho_so.bien_ban_thoa_thuan %}<dt>Biên bản thỏa thuận</dt><dd><a href="{% url 'incidents:tep_thoa_thuan' bb.ma_pdi %}">Tải về</a></dd>{% endif %}
   </dl>

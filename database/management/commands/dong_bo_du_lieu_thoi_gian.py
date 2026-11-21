@@ -1,0 +1,424 @@
+from datetime import date, datetime
+from decimal import Decimal
+from django.core.management.base import BaseCommand
+from django.utils import timezone
+from django.contrib.auth import get_user_model
+
+from database.models import (
+    ChiNhanh, Kho, NhanVien, KhachHang, NhaCungCap, DonViVanChuyen,
+    Xe, TonKho, HoaDonNhap, ChiTietNhap, HopDong, ChiTietHopDong,
+    PhieuXuatKho, BienBanPDI, TrangThaiXe, TrangThaiHopDong, TrangThaiPhieuXuat
+)
+from warehouse.models import PhieuNhapKho
+from orders.models import Allocation, VehicleRequest, VehicleRequestItem
+from transfers.models import LenhLuuChuyen, ChiTietLenhLuuChuyen
+from alerts.models import CanhBao, NguongCanhBao
+from alerts.utils import cap_nhat_tat_ca_canh_bao, lay_dong_xe
+
+
+class Command(BaseCommand):
+    help = "Phân bổ đồng đều dữ liệu mẫu qua các tháng 08, 09, 10, 11/2026 cho toàn bộ module (Thống kê, Đặt xe, Lưu chuyển, Nhập/Xuất, Sự cố, Cảnh báo)"
+
+    def handle(self, *args, **options):
+        User = get_user_model()
+        admin_user = User.objects.filter(is_superuser=True).first() or User.objects.first()
+        tz = timezone.get_current_timezone()
+
+        def aware_dt(y, m, d, hour=9, minute=30):
+            return timezone.make_aware(datetime(y, m, d, hour, minute), tz)
+
+        # 1. Phân bổ đều VehicleRequest (Đặt xe) qua Tháng 08, 09, 10, 11/2026
+        target_months = [
+            (2026, 8, 12),
+            (2026, 9, 15),
+            (2026, 10, 18),
+            (2026, 11, 10),
+        ]
+        reqs = list(VehicleRequest.objects.order_by("id"))
+        for idx, req in enumerate(reqs):
+            y, m, d_base = target_months[idx % len(target_months)]
+            d = min(28, d_base + (idx % 10))
+            dt = aware_dt(y, m, d, 9 + (idx % 8), 15)
+            VehicleRequest.objects.filter(pk=req.pk).update(
+                created_at=dt,
+                sent_at=dt if req.status != VehicleRequest.Status.DRAFT else None,
+            )
+
+        # 2. Phân bổ đều LenhLuuChuyen (Lưu chuyển) qua Tháng 08, 09, 10, 11/2026
+        lenhs = list(LenhLuuChuyen.objects.order_by("id"))
+        for idx, lenh in enumerate(lenhs):
+            # Nếu mã lệnh có sẵn 202609 hoặc 202610 thì giữ đúng tháng đó
+            if "202609" in (lenh.ma_lenh or ""):
+                y, m = 2026, 9
+            elif "202610" in (lenh.ma_lenh or ""):
+                y, m = 2026, 10
+            elif "202608" in (lenh.ma_lenh or ""):
+                y, m = 2026, 8
+            else:
+                y, m, _ = target_months[idx % len(target_months)]
+            d = min(27, 5 + (idx * 2) % 22)
+            dt = aware_dt(y, m, d, 10, 0)
+            LenhLuuChuyen.objects.filter(pk=lenh.pk).update(
+                ngay_lap=dt,
+                ngay_gui=dt if lenh.ngay_gui else None,
+                ngay_duyet=aware_dt(y, m, min(28, d + 1), 14, 0) if lenh.ngay_duyet else None,
+            )
+
+        # 3. Phân bổ đều PhieuNhapKho qua Tháng 08, 09, 10, 11/2026
+        pnks = list(PhieuNhapKho.objects.order_by("id"))
+        for idx, pnk in enumerate(pnks):
+            y, m, _ = target_months[idx % len(target_months)]
+            d = min(27, 4 + (idx * 2) % 23)
+            dt = aware_dt(y, m, d, 8, 45)
+            PhieuNhapKho.objects.filter(pk=pnk.pk).update(
+                ngay_nhap=date(y, m, d),
+                ngay_lap=dt,
+            )
+
+        # 4. Phân bổ đều PhieuXuatKho qua Tháng 08, 09, 10, 11/2026
+        pxks = list(PhieuXuatKho.objects.order_by("ma_pxk"))
+        for idx, pxk in enumerate(pxks):
+            y, m, _ = target_months[idx % len(target_months)]
+            d = min(27, 6 + (idx * 2) % 21)
+            dt_lap = aware_dt(y, m, d, 11, 0)
+            dt_xuat = aware_dt(y, m, min(28, d + 1), 15, 30) if pxk.trang_thai == TrangThaiPhieuXuat.DA_DUYET else None
+            PhieuXuatKho.objects.filter(pk=pxk.pk).update(
+                ngay_lap=dt_lap,
+                ngay_xuat=dt_xuat,
+                ngay_duyet=dt_xuat,
+            )
+
+        # 5. Bổ sung & phân bổ đều BienBanPDI (Sự cố vận chuyển/PDI) có đủ ở Tháng 08, 09, 10, 11/2026
+        nv_default = NhanVien.objects.first()
+        hdn_default = HoaDonNhap.objects.first()
+        cars_all = list(Xe.objects.all()[:10])
+        if nv_default and hdn_default and cars_all:
+            for extra_idx, (y, m, d) in enumerate([(2026, 9, 14), (2026, 10, 9), (2026, 10, 21), (2026, 11, 5)], start=1):
+                ma_pdi = f"PDI-DEMO-{y}{m:02d}-{extra_idx:02d}"
+                car_sample = cars_all[extra_idx % len(cars_all)]
+                BienBanPDI.objects.update_or_create(
+                    ma_pdi=ma_pdi,
+                    defaults={
+                        "hoa_don_nhap": hdn_default,
+                        "xe": car_sample,
+                        "nhan_vien": nv_default,
+                        "ngay_ghi_nhan": aware_dt(y, m, d, 13, 30),
+                        "loai_su_co": "Trầy xước cản trước khi vận chuyển" if extra_idx % 2 == 0 else "Chưa đủ bộ phụ kiện tiêu chuẩn",
+                        "mo_ta_chi_tiet": f"Biên bản ghi nhận sự cố kỳ tháng {m:02d}/{y} phục vụ đối chiếu và thống kê.",
+                        "trang_thai_claim": "Đã xử lý",
+                    },
+                )
+
+        pdis = list(BienBanPDI.objects.order_by("ma_pdi"))
+        for idx, pdi in enumerate(pdis):
+            if "202609" in pdi.ma_pdi:
+                y, m = 2026, 9
+            elif "202610" in pdi.ma_pdi:
+                y, m = 2026, 10
+            else:
+                y, m, _ = target_months[idx % len(target_months)]
+            d = min(27, 7 + (idx * 3) % 20)
+            BienBanPDI.objects.filter(pk=pdi.pk).update(
+                ngay_ghi_nhan=aware_dt(y, m, d, 14, 0)
+            )
+
+        # 6. Phân bổ đều CanhBao qua Tháng 08, 09, 10, 11/2026
+        cbs = list(CanhBao.objects.order_by("id"))
+        for idx, cb in enumerate(cbs):
+            y, m, _ = target_months[idx % len(target_months)]
+            d = min(27, 3 + (idx * 2) % 24)
+            dt = aware_dt(y, m, d, 8, 30)
+            CanhBao.objects.filter(pk=cb.pk).update(
+                ngay_phat_sinh=dt,
+                ngay_cap_nhat=dt,
+            )
+
+        # 7. Đảm bảo có sẵn kịch bản mẫu "Khách ở Đà Nẵng mua xe Everest Titanium (Đà Nẵng hết xe, Gia Lai có xe RL2FMA001TZ000040)"
+        cn_dn = ChiNhanh.objects.filter(ma_cn="CN01").first()
+        cn_gl = ChiNhanh.objects.filter(ma_cn="CN03").first() or cn_dn
+        kh_sample = KhachHang.objects.first()
+        if cn_dn and kh_sample:
+            HopDong.objects.update_or_create(
+                ma_hd="HD-DN-LUU-CHUYEN-GL",
+                defaults={
+                    "chi_nhanh": cn_dn,
+                    "khach_hang": kh_sample,
+                    "ngay_ky": aware_dt(2026, 10, 25, 9, 0),
+                    "so_tien_coc": Decimal("50000000"),
+                    "dong_xe_yeu_cau": "Ford Everest",
+                    "phien_ban_yeu_cau": "Titanium 2.0L 4x2 AT",
+                    "mau_sac_yeu_cau": "Trắng Tuyết",
+                    "trang_thai": TrangThaiHopDong.CHO_XU_LY,
+                },
+            )
+
+        # 8. Đồng bộ ngày giao dự kiến & kỳ phân bổ của Allocation và HopDong (Mục 3)
+        for alloc in Allocation.objects.all():
+            am = alloc.allocation_month or date(2026, 11, 1)
+            am_first = date(am.year, am.month, 1)
+            ship_d = alloc.expected_ship_date
+            deliv_d = alloc.contractual_delivery_date
+            base_day = 12 + (alloc.id % 10)
+            if not ship_d or (ship_d.year, ship_d.month) != (am_first.year, am_first.month):
+                ship_d = date(am_first.year, am_first.month, min(23, base_day))
+            if not deliv_d or (deliv_d.year, deliv_d.month) != (am_first.year, am_first.month) or deliv_d < ship_d:
+                deliv_d = date(am_first.year, am_first.month, min(28, ship_d.day + 5))
+            if (
+                alloc.allocation_month != am_first
+                or alloc.expected_ship_date != ship_d
+                or alloc.contractual_delivery_date != deliv_d
+            ):
+                Allocation.objects.filter(pk=alloc.pk).update(
+                    allocation_month=am_first,
+                    expected_ship_date=ship_d,
+                    contractual_delivery_date=deliv_d,
+                )
+
+        # Các hợp đồng Tháng 9 đã HOAN_TAT thì kỳ phân bổ và ngày giao đều nằm trong Tháng 9/2026
+        for hd in HopDong.objects.prefetch_related("chitiethopdong_set__xe").all():
+            ky_dt = timezone.localtime(hd.ngay_ky).date() if timezone.is_aware(hd.ngay_ky) else hd.ngay_ky.date()
+            if ky_dt.month == 9 and hd.trang_thai == TrangThaiHopDong.HOAN_TAT:
+                giao_t9 = date(2026, 9, min(28, max(ky_dt.day + 12, 22)))
+                if hd.ngay_du_kien_giao != giao_t9:
+                    HopDong.objects.filter(pk=hd.pk).update(ngay_du_kien_giao=giao_t9)
+                for ct in hd.chitiethopdong_set.all():
+                    Allocation.objects.filter(vin=ct.xe_id).update(
+                        allocation_month=date(2026, 9, 1),
+                        expected_ship_date=date(2026, 9, max(10, giao_t9.day - 5)),
+                        contractual_delivery_date=giao_t9,
+                    )
+            else:
+                # Hợp đồng gắn với Allocation kỳ nào thì ngày dự kiến giao phải >= kỳ phân bổ và >= ngày ký
+                for ct in hd.chitiethopdong_set.all():
+                    al = Allocation.objects.filter(vin=ct.xe_id).first()
+                    if al and al.allocation_month:
+                        target_deliv = al.contractual_delivery_date or al.expected_ship_date or date(al.allocation_month.year, al.allocation_month.month, 20)
+                        if not hd.ngay_du_kien_giao or hd.ngay_du_kien_giao < al.allocation_month or hd.ngay_du_kien_giao < ky_dt:
+                            HopDong.objects.filter(pk=hd.pk).update(ngay_du_kien_giao=target_deliv)
+
+        # 9. Bổ sung xe phân bổ kỳ Tháng 11/2026 cho hợp đồng HD-T10-EV-GL-0002 (Ford Everest Titanium 2.0L 4x2 AT - Trắng Tuyết)
+        for idx_ev, (vin_ev, mau_ev, code_m) in enumerate([
+            ("RL2FMA001TZ000091", "Trắng Tuyết", "WH1"),
+            ("RL2FMA001TZ000092", "Đen Ánh Kim", "BK1"),
+        ], start=1):
+            Allocation.objects.update_or_create(
+                vin=vin_ev,
+                defaults={
+                    "order_number": f"FVL-AL2611-EV0{idx_ev}",
+                    "vehicle_code": "EVEREST-TITANIUM-4X2",
+                    "description": "Ford Everest Titanium 2.0L 4x2 AT",
+                    "color_code": code_m,
+                    "exterior_color": mau_ev,
+                    "mau_sac": mau_ev,
+                    "engine_number": f"EV20T-009{idx_ev}",
+                    "allocation_month": date(2026, 11, 1),
+                    "expected_ship_date": date(2026, 11, 15 + idx_ev),
+                    "contractual_delivery_date": date(2026, 11, 20 + idx_ev),
+                    "dealer_name": "Dana Ford Gia Lai",
+                    "chi_nhanh": cn_gl,
+                    "quantity": 1,
+                },
+            )
+
+        # 9b. Bổ sung 25 xe tồn kho Sẵn sàng (SAN_SANG, đã duyệt nhập kho) ưu tiên dòng bán chạy:
+        # Đà Nẵng (KHO01): 15 xe (60%) | Bình Định (KHO02): 5 xe (20%) | Gia Lai (KHO03): 5 xe (20%)
+        kho_dn = Kho.objects.filter(ma_kho="KHO01").first()
+        kho_bd = Kho.objects.filter(ma_kho="KHO02").first()
+        kho_gl = Kho.objects.filter(ma_kho="KHO03").first()
+        ncc_default = NhaCungCap.objects.first()
+        dvvc_default = DonViVanChuyen.objects.first()
+
+        ds_xe_import_ton_kho = [
+            # --- 15 XE TẠI KHO ĐÀ NẴNG (KHO01 - 60%) ---
+            ("RL2FMA001TZ000101", "Ford Territory Titanium 1.5L EcoBoost", "Titanium 1.5L EcoBoost", "SUV 5 chỗ", "Trắng", "KHO01", Decimal("799000000"), date(2026, 10, 12)),
+            ("RL2FMA001TZ000102", "Ford Territory Titanium 1.5L EcoBoost", "Titanium 1.5L EcoBoost", "SUV 5 chỗ", "Đen", "KHO01", Decimal("799000000"), date(2026, 10, 14)),
+            ("RL2FMA001TZ000103", "Ford Territory Titanium X 1.5L EcoBoost", "Titanium X 1.5L EcoBoost", "SUV 5 chỗ", "Trắng", "KHO01", Decimal("889000000"), date(2026, 10, 16)),
+            ("RL2FMA001TZ000104", "Ford Territory Trend 1.5L EcoBoost", "Trend 1.5L EcoBoost", "SUV 5 chỗ", "Trắng", "KHO01", Decimal("759000000"), date(2026, 10, 18)),
+            ("RL2FMA001TZ000105", "Ford Territory Trend 1.5L EcoBoost", "Trend 1.5L EcoBoost", "SUV 5 chỗ", "Đen", "KHO01", Decimal("759000000"), date(2026, 10, 20)),
+            ("RL2FMA001TZ000106", "Ford Ranger XLS 2.0L 4x2 AT", "XLS 2.0L 4x2 AT", "Bán tải", "Trắng", "KHO01", Decimal("665000000"), date(2026, 10, 22)),
+            ("RL2FMA001TZ000107", "Ford Ranger XLS 2.0L 4x2 AT", "XLS 2.0L 4x2 AT", "Bán tải", "Đen", "KHO01", Decimal("665000000"), date(2026, 10, 24)),
+            ("RL2FMA001TZ000108", "Ford Ranger XLS 2.0L 4x4 AT", "XLS 2.0L 4x4 AT", "Bán tải", "Bạc", "KHO01", Decimal("707000000"), date(2026, 10, 25)),
+            ("RL2FMA001TZ000109", "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT", "Wildtrak 2.0L Bi-Turbo 4x4 AT", "Bán tải", "Vàng Luxe", "KHO01", Decimal("979000000"), date(2026, 10, 27)),
+            ("RL2FMA001TZ000110", "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT", "Wildtrak 2.0L Bi-Turbo 4x4 AT", "Bán tải", "Đen", "KHO01", Decimal("979000000"), date(2026, 11, 2)),
+            ("RL2FMA001TZ000111", "Ford Ranger Sport 2.0L 4x4 AT", "Sport 2.0L 4x4 AT", "Bán tải", "Đỏ Cam", "KHO01", Decimal("864000000"), date(2026, 11, 4)),
+            ("RL2FMA001TZ000112", "Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT", "Titanium+ 2.0L Bi-Turbo 4x4 AT", "SUV 7 chỗ", "Trắng Tuyết", "KHO01", Decimal("1468000000"), date(2026, 11, 5)),
+            ("RL2FMA001TZ000113", "Ford Everest Titanium 2.0L 4x2 AT", "Titanium 2.0L 4x2 AT", "SUV 7 chỗ", "Đen", "KHO01", Decimal("1299000000"), date(2026, 11, 7)),
+            ("RL2FMA001TZ000114", "Ford Everest Platinum 3.0L V6 4x4 AT", "Platinum 3.0L V6 4x4 AT", "SUV 7 chỗ", "Đen", "KHO01", Decimal("1545000000"), date(2026, 11, 9)),
+            ("RL2FMA001TZ000115", "Ford Transit Trend 16 chỗ 2.3L", "Trend 16 chỗ 2.3L", "Thương mại 16 chỗ", "Bạc", "KHO01", Decimal("905000000"), date(2026, 11, 10)),
+            # --- 5 XE TẠI KHO BÌNH ĐỊNH (KHO02 - 20%) ---
+            ("RL2FMA001TZ000116", "Ford Territory Titanium 1.5L EcoBoost", "Titanium 1.5L EcoBoost", "SUV 5 chỗ", "Trắng", "KHO02", Decimal("799000000"), date(2026, 10, 19)),
+            ("RL2FMA001TZ000117", "Ford Ranger XLS 2.0L 4x2 AT", "XLS 2.0L 4x2 AT", "Bán tải", "Trắng", "KHO02", Decimal("665000000"), date(2026, 10, 23)),
+            ("RL2FMA001TZ000118", "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT", "Wildtrak 2.0L Bi-Turbo 4x4 AT", "Bán tải", "Vàng Luxe", "KHO02", Decimal("979000000"), date(2026, 10, 28)),
+            ("RL2FMA001TZ000119", "Ford Everest Titanium+ 2.0L Bi-Turbo 4x4 AT", "Titanium+ 2.0L Bi-Turbo 4x4 AT", "SUV 7 chỗ", "Đen", "KHO02", Decimal("1468000000"), date(2026, 11, 3)),
+            ("RL2FMA001TZ000120", "Ford Transit Trend 16 chỗ 2.3L", "Trend 16 chỗ 2.3L", "Thương mại 16 chỗ", "Bạc", "KHO02", Decimal("905000000"), date(2026, 11, 8)),
+            # --- 5 XE TẠI KHO GIA LAI (KHO03 - 20%) ---
+            ("RL2FMA001TZ000121", "Ford Territory Titanium 1.5L EcoBoost", "Titanium 1.5L EcoBoost", "SUV 5 chỗ", "Trắng", "KHO03", Decimal("799000000"), date(2026, 10, 17)),
+            ("RL2FMA001TZ000122", "Ford Territory Trend 1.5L EcoBoost", "Trend 1.5L EcoBoost", "SUV 5 chỗ", "Đen", "KHO03", Decimal("759000000"), date(2026, 10, 21)),
+            ("RL2FMA001TZ000123", "Ford Ranger XLS 2.0L 4x2 AT", "XLS 2.0L 4x2 AT", "Bán tải", "Bạc", "KHO03", Decimal("665000000"), date(2026, 10, 26)),
+            ("RL2FMA001TZ000124", "Ford Ranger Wildtrak 2.0L Bi-Turbo 4x4 AT", "Wildtrak 2.0L Bi-Turbo 4x4 AT", "Bán tải", "Trắng", "KHO03", Decimal("979000000"), date(2026, 11, 1)),
+            ("RL2FMA001TZ000125", "Ford Everest Sport 2.0L 4x2 AT", "Sport 2.0L 4x2 AT", "SUV 7 chỗ", "Đen", "KHO03", Decimal("1178000000"), date(2026, 11, 6)),
+        ]
+
+        kho_map = {"KHO01": kho_dn, "KHO02": kho_bd, "KHO03": kho_gl}
+        if admin_user and ncc_default and dvvc_default and all(kho_map.values()):
+            for idx_imp, (vin_imp, ten_imp, pb_imp, loai_imp, mau_imp, ma_kho_imp, gia_imp, ngay_imp) in enumerate(ds_xe_import_ton_kho, start=101):
+                kho_obj = kho_map[ma_kho_imp]
+                existing_xe = Xe.objects.filter(vin=vin_imp).first()
+                if existing_xe:
+                    xe_obj = existing_xe
+                else:
+                    xe_obj = Xe.objects.create(
+                        vin=vin_imp,
+                        ten_xe=ten_imp,
+                        phien_ban=pb_imp,
+                        loai_xe=loai_imp,
+                        mau_sac=mau_imp,
+                        so_may=f"YN2S-0{idx_imp}",
+                        nam_sx=2026,
+                        hop_so="Tự động",
+                        nhien_lieu="Dầu" if ("Ranger" in ten_imp or "Everest" in ten_imp or "Transit" in ten_imp) else "Xăng",
+                        dung_tich=2000 if ("Ranger" in ten_imp or "Everest" in ten_imp) else 1500,
+                        trang_thai=TrangThaiXe.SAN_SANG,
+                    )
+                # Chỉ tạo tồn kho ban đầu nếu xe chưa phát sinh xuất/lưu chuyển trong quá trình test
+                if xe_obj.trang_thai == TrangThaiXe.SAN_SANG and not TonKho.objects.filter(xe=xe_obj).exists():
+                    TonKho.objects.create(
+                        kho=kho_obj,
+                        xe=xe_obj,
+                        so_luong_ton=1,
+                        ngay_vao_kho=ngay_imp,
+                        vi_tri=f"A{(idx_imp - 100):02d}",
+                    )
+                dt_imp = aware_dt(ngay_imp.year, ngay_imp.month, ngay_imp.day, 9, 0)
+                hdn_obj, _ = HoaDonNhap.objects.update_or_create(
+                    ma_hdn=f"HDN-IMP-{idx_imp}",
+                    defaults={
+                        "nha_cung_cap": ncc_default,
+                        "chi_nhanh": kho_obj.chi_nhanh,
+                        "don_vi_van_chuyen": dvvc_default,
+                        "ngay_nhap": dt_imp,
+                        "so_hoa_don": f"VAT-IMP-{idx_imp}",
+                        "ky_hieu": "1C26TDF",
+                        "bien_so_xe": "43C-889.99",
+                        "ten_tai_xe": "Nguyễn Văn Tài",
+                    },
+                )
+                ctn_obj, _ = ChiTietNhap.objects.update_or_create(
+                    hoa_don_nhap=hdn_obj,
+                    xe=xe_obj,
+                    defaults={
+                        "so_luong_nhap": 1,
+                        "don_gia": gia_imp,
+                        "thanh_tien": gia_imp,
+                    },
+                )
+                pnk_obj, _ = PhieuNhapKho.objects.update_or_create(
+                    ma_phieu=f"PNK-IMP-{idx_imp}",
+                    defaults={
+                        "loai_nguon": PhieuNhapKho.LoaiNguon.HOA_DON,
+                        "chi_tiet_nhap": ctn_obj,
+                        "xe": xe_obj,
+                        "kho": kho_obj,
+                        "ngay_nhap": ngay_imp,
+                        "trang_thai": PhieuNhapKho.TrangThai.DA_DUYET,
+                        "nguoi_lap": admin_user,
+                        "nguoi_duyet": admin_user,
+                        "thoi_gian_duyet": dt_imp,
+                    },
+                )
+                PhieuNhapKho.objects.filter(pk=pnk_obj.pk).update(ngay_lap=dt_imp)
+
+        # 10. Chuẩn hóa màu sắc Xe & thiết lập quy tắc NguongCanhBao (Mục 6)
+        color_norm_map = {
+            "FROZEN WHITE": "Trắng",
+            "Trang Oxford": "Trắng",
+            "SNOW FLAKE WHITE PEARL MC": "Trắng Tuyết",
+            "ABSOLUTE BLACK": "Đen",
+            "Den Absolute": "Đen",
+            "PACE RED": "Đỏ Cam",
+            "Xam Meteor": "Xám Meteor",
+            "MAGNETIC": "Xám",
+            "VAPOR BLUE/WHISPER BLUE": "Xanh",
+            "ACACIA GREEN": "Xanh",
+            "IGNITE ORANGE SOLID 2C": "Cam",
+        }
+        for raw_c, std_c in color_norm_map.items():
+            Xe.objects.filter(mau_sac=raw_c).update(mau_sac=std_c)
+            Allocation.objects.filter(mau_sac=raw_c).update(mau_sac=std_c)
+
+        # Xóa các cảnh báo & ngưỡng màu tiếng Anh rác trước khi đồng bộ lại
+        CanhBao.objects.filter(nguong__mau_sac__in=list(color_norm_map.keys())).delete()
+        NguongCanhBao.objects.filter(mau_sac__in=list(color_norm_map.keys())).delete()
+
+        cap_nhat_tat_ca_canh_bao()
+
+        # Chỉ bật theo dõi (dang_theo_doi=True) cho các nhóm đang có tồn kho thực tế + 3 nhóm hết hàng tiêu biểu
+        nhom_co_ton = set()
+        for t in TonKho.objects.filter(so_luong_ton__gt=0).select_related("xe"):
+            dx = lay_dong_xe(t.xe.ten_xe)
+            if dx:
+                nhom_co_ton.add((dx, (t.xe.mau_sac or "").strip()))
+
+        nhom_het_hang_mau = {
+            ("Explorer", "Trắng Tuyết"),
+            ("Territory", "Bạc"),
+            ("Transit", "Trắng"),
+        }
+        for ng in NguongCanhBao.objects.all():
+            key = (ng.ten_xe, ng.mau_sac)
+            should_track = (key in nhom_co_ton) or (key in nhom_het_hang_mau)
+            if ng.dang_theo_doi != should_track:
+                ng.dang_theo_doi = should_track
+                ng.save(update_fields=["dang_theo_doi"])
+
+        cap_nhat_tat_ca_canh_bao()
+
+        # Phân bổ thời gian cho các cảnh báo lịch sử, nhưng giữ thời gian mới nhất khi phát sinh mới
+        cbs = list(CanhBao.objects.filter(con_hieu_luc=True).order_by("id"))
+        for idx, cb in enumerate(cbs):
+            y, m, _ = target_months[idx % len(target_months)]
+            d = min(27, 3 + (idx * 2) % 24)
+            dt = aware_dt(y, m, d, 8, 30)
+            CanhBao.objects.filter(pk=cb.pk).update(
+                ngay_phat_sinh=dt,
+                ngay_cap_nhat=dt,
+            )
+
+        # 11. Chuẩn hóa trạng thái Xe cho các xe hết tồn ở toàn bộ các kho + hoàn thiện PYC lịch sử
+        for xe_err in Xe.objects.filter(trang_thai=TrangThaiXe.SAN_SANG):
+            if TonKho.objects.filter(xe=xe_err, so_luong_ton__gt=0).exists():
+                continue
+            if not TonKho.objects.filter(xe=xe_err).exists():
+                continue
+            if PhieuXuatKho.objects.filter(chi_tiet_hop_dong__xe=xe_err, trang_thai=TrangThaiPhieuXuat.DA_DUYET).exists() or ChiTietHopDong.objects.filter(xe=xe_err, hop_dong__trang_thai=TrangThaiHopDong.HOAN_TAT).exists():
+                xe_err.trang_thai = TrangThaiXe.DA_XUAT
+                xe_err.save(update_fields=["trang_thai"])
+
+        # Đảm bảo các hợp đồng phân bổ mẫu lịch sử đã có VehicleRequest để giỏ Đặt xe khởi đầu sạch
+        from warehouse.order_intake import sync_request
+        historical_pb_hds = [
+            "T09-002", "T10-001", "HD-CHO-PB-T10-02", "HD-CHO-PB-T10-04",
+            "HD-T09-GL-039", "HD-T10-EV-57228", "HD-T10-EV-57467", "HD-T10-EV-46501", "HD-T10-PB-46326",
+        ]
+        for ma_hd_hist in historical_pb_hds:
+            hd_h = HopDong.objects.filter(pk=ma_hd_hist, trang_thai=TrangThaiHopDong.CHO_XE_VE_KHO).first()
+            if not hd_h or not admin_user:
+                continue
+            ct_h = hd_h.chitiethopdong_set.first()
+            if not ct_h:
+                continue
+            alloc_h = Allocation.objects.filter(vin=ct_h.xe_id).first()
+            if not alloc_h:
+                continue
+            if not VehicleRequestItem.objects.filter(allocation=alloc_h).exclude(vehicle_request__status=VehicleRequest.Status.REJECTED).exists():
+                vr_h = VehicleRequest.objects.create(
+                    created_by=admin_user,
+                    status=VehicleRequest.Status.ACCEPTED,
+                    sent_at=hd_h.ngay_ky,
+                    hop_dong=hd_h,
+                )
+                VehicleRequestItem.objects.create(vehicle_request=vr_h, allocation=alloc_h, quantity=1)
+                VehicleRequest.objects.filter(pk=vr_h.pk).update(created_at=hd_h.ngay_ky)
+                sync_request(vr_h.pk)
+
+        self.stdout.write(self.style.SUCCESS("Đã đồng bộ dữ liệu thời gian, kỳ phân bổ, hợp đồng và quy tắc cảnh báo tồn kho!"))

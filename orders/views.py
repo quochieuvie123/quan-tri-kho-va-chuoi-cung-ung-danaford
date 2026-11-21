@@ -1,3 +1,9 @@
+from .availability import (
+    release_expired_draft_requests,
+    get_allocations_availability_map,
+    get_allocation_status,
+    AllocationAvailabilityStatus
+)
 
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
@@ -299,6 +305,8 @@ def allocation_list(request):
                         raise ValueError("Không tìm thấy cột Số khung (VIN) trong file Excel")
 
                     data = []
+                    qty_warnings = []
+                    vin_seen_counts = defaultdict(int)
                     default_month = today.replace(day=1)
 
                     for row_number, row in enumerate(all_rows[start_data_idx:], start=start_data_idx + 1):
@@ -335,23 +343,35 @@ def allocation_list(request):
 
                         cn_obj = ChiNhanh.objects.filter(ma_cn=target_ma_cn).first()
 
-                        data.append({
-                            "vin": vin,
-                            "order_number": chuyen_chuoi(get_col("order_number")),
-                            "vehicle_code": chuyen_chuoi(get_col("vehicle_code")),
-                            "description": chuyen_chuoi(get_col("description")),
-                            "color_code": chuyen_chuoi(get_col("color_code")),
-                            "exterior_color": chuyen_chuoi(get_col("exterior_color")),
-                            "mau_sac": chuyen_chuoi(get_col("mau_sac")) or chuyen_chuoi(get_col("exterior_color")),
-                            "engine_number": chuyen_chuoi(get_col("engine_number")),
-                            "quantity": chuyen_so_luong(get_col("quantity"), default=1),
-                            "expected_ship_date": chuyen_ngay(get_col("expected_ship_date")),
-                            "contractual_delivery_date": chuyen_ngay(get_col("contractual_delivery_date")),
-                            "allocation_month": alloc_month,
-                            "dealer_name": d_name_val or d_lbl,
-                            "dealer_code": d_code_val or ("V20011" if target_ma_cn == "CN02" else ("V20012" if target_ma_cn == "CN03" else "VD2001")),
-                            "chi_nhanh": cn_obj,
-                        })
+                        raw_qty = chuyen_so_luong(get_col("quantity"), default=1)
+                        if raw_qty and raw_qty > 1:
+                            qty_warnings.append(f"{vin} (x{raw_qty})")
+
+                        # Đảm bảo mỗi 1 xe có 1 mã số VIN riêng biệt (thêm hậu tố -1, -2... nếu số lượng > 1 hoặc trùng VIN)
+                        for q_idx in range(raw_qty):
+                            vin_seen_counts[vin] += 1
+                            if raw_qty > 1 or vin_seen_counts[vin] > 1:
+                                unique_vin = f"{vin}-{vin_seen_counts[vin]}"
+                            else:
+                                unique_vin = vin
+
+                            data.append({
+                                "vin": unique_vin,
+                                "order_number": chuyen_chuoi(get_col("order_number")),
+                                "vehicle_code": chuyen_chuoi(get_col("vehicle_code")),
+                                "description": chuyen_chuoi(get_col("description")),
+                                "color_code": chuyen_chuoi(get_col("color_code")),
+                                "exterior_color": chuyen_chuoi(get_col("exterior_color")),
+                                "mau_sac": chuyen_chuoi(get_col("mau_sac")) or chuyen_chuoi(get_col("exterior_color")),
+                                "engine_number": chuyen_chuoi(get_col("engine_number")),
+                                "quantity": 1,
+                                "expected_ship_date": chuyen_ngay(get_col("expected_ship_date")),
+                                "contractual_delivery_date": chuyen_ngay(get_col("contractual_delivery_date")),
+                                "allocation_month": alloc_month,
+                                "dealer_name": d_name_val or d_lbl,
+                                "dealer_code": d_code_val or ("V20011" if target_ma_cn == "CN02" else ("V20012" if target_ma_cn == "CN03" else "VD2001")),
+                                "chi_nhanh": cn_obj,
+                            })
 
                     if not data:
                         raise ValueError("Không đọc được dòng dữ liệu xe phân bổ hợp lệ nào từ file Excel")
@@ -385,6 +405,11 @@ def allocation_list(request):
                     except Exception:
                         pass
 
+                    if qty_warnings:
+                        messages.warning(
+                            request,
+                            f"Thông báo: Có {len(qty_warnings)} dòng xe có số lượng > 1 trong file Excel đã được tách thành từng xe riêng biệt với mã số VIN độc lập (hậu tố -1, -2, -3...): {', '.join(qty_warnings[:5])}{'...' if len(qty_warnings) > 5 else ''}."
+                        )
                     messages.success(
                         request,
                         f"Tải danh sách phân bổ thành công! Đã nạp {len(data)} xe vào hệ thống."
@@ -412,6 +437,11 @@ def allocation_list(request):
         if cn_obj:
             cn_name = cn_obj.ten_cn
 
+    release_expired_draft_requests()
+    avail_map = get_allocations_availability_map(allocations)
+    for a_item in allocations:
+        a_item.availability_info = avail_map.get(a_item.id)
+
     tong_so_xe = allocations.aggregate(total=Sum("quantity"))["total"] or 0
     return render(request, "danh_sach_pb.html", {
         "form": form,
@@ -424,6 +454,53 @@ def allocation_list(request):
     })
 
 # Đặt xe
+
+def _get_pending_contract_alloc_map():
+    """Trả về dict {alloc_id: ma_hd} cho các xe phân bổ đã chốt từ Hợp đồng nhưng chưa lập PYC."""
+    from database.models import ChiTietHopDong, TrangThaiHopDong, TonKho
+    from transfers.models import ChiTietLenhLuuChuyen
+    from warehouse.models import PhieuNhapKho
+
+    pending_cts = ChiTietHopDong.objects.filter(
+        hop_dong__trang_thai=TrangThaiHopDong.CHO_XE_VE_KHO,
+    ).select_related("xe", "hop_dong")
+
+    vin_to_hd = {}
+    for ct in pending_cts:
+        vin = ct.xe_id
+        if TonKho.objects.filter(xe_id=vin, so_luong_ton__gt=0).exists():
+            continue
+        if PhieuNhapKho.objects.filter(xe_id=vin).exists():
+            continue
+        if ChiTietLenhLuuChuyen.objects.filter(xe_id=vin).exists():
+            continue
+        if VehicleRequestItem.objects.filter(
+            allocation__vin=vin
+        ).exclude(vehicle_request__status=VehicleRequest.Status.REJECTED).exists():
+            continue
+        vin_to_hd[vin] = ct.hop_dong_id
+
+    if not vin_to_hd:
+        return {}
+
+    res = {}
+    for alloc in Allocation.objects.filter(vin__in=list(vin_to_hd.keys())).order_by("id"):
+        res[str(alloc.id)] = vin_to_hd[alloc.vin]
+    return res
+
+
+def _merge_selected_vehicles(request):
+    from database.models import ChiTietHopDong
+    danh_sach = dict(request.session.get("selected_vehicles", {}))
+    selected_contracts = dict(request.session.get("selected_vehicle_contracts", {}))
+    db_pending = _get_pending_contract_alloc_map()
+    for alloc_id_str, ma_hd in db_pending.items():
+        if alloc_id_str not in danh_sach:
+            danh_sach[alloc_id_str] = 1
+        if alloc_id_str not in selected_contracts:
+            selected_contracts[alloc_id_str] = ma_hd
+    return danh_sach, selected_contracts
+
 
 @login_required
 def dat_xe(request):
@@ -449,16 +526,27 @@ def dat_xe(request):
             if cn_obj:
                 cn_name = cn_obj.ten_cn
 
+        release_expired_draft_requests()
+        avail_map = get_allocations_availability_map(allocations)
+        available_count = 0
+        for xe_item in allocations:
+            info = avail_map.get(xe_item.id)
+            xe_item.availability_info = info
+            if info and info.get("is_available"):
+                available_count += 1
+
         context = {
             "keyword": keyword,
             "allocations": allocations,
+            "available_count": available_count,
             "selected_month": selected_month,
             "month_options": month_options,
             "current_cn": current_cn,
             "current_cn_name": cn_name,
         }
-        # Lấy danh sách xe đã chọn trong Session
-        danh_sach = request.session.get("selected_vehicles", {})
+        # Lấy danh sách xe đã chọn trong Session kết hợp từ DB (không mất khi đổi tài khoản / trình duyệt)
+        from database.models import ChiTietHopDong
+        danh_sach, selected_contracts = _merge_selected_vehicles(request)
 
         xe_da_chon = []
 
@@ -466,15 +554,13 @@ def dat_xe(request):
             xe = Allocation.objects.filter(id=ma_xe).first()
 
             if xe:
+                ma_hd_link = selected_contracts.get(str(ma_xe)) or ChiTietHopDong.objects.filter(xe__vin=xe.vin).values_list("hop_dong_id", flat=True).first()
                 xe_da_chon.append({
                     "xe": xe,
-                    "quantity": so_luong
+                    "quantity": so_luong,
+                    "ma_hd": ma_hd_link,
                 })
-                context = {
-                    "keyword": keyword,
-                    "allocations": allocations,
-                    "xe_da_chon": xe_da_chon
-                }
+        context["xe_da_chon"] = xe_da_chon
         return render(request, "tim_kiem_xe.html", context)
 
 
@@ -490,42 +576,28 @@ def chi_tiet_xe(request, id):
     )
 
     if request.method == "POST":
-        try:
-            so_luong = int(request.POST.get("quantity", ""))
-        except (ValueError, TypeError):
-            messages.error(request, "Số lượng phải là số nguyên.")
-        else:
-            if so_luong <= 0:
-                messages.error(request, "Số lượng phải lớn hơn 0.")
+        danh_sach = request.session.get("selected_vehicles", {})
+        ma_xe = str(xe.id)
 
-            else:
-                # Lấy danh sách xe đã chọn từ Session
-                danh_sach = request.session.get("selected_vehicles", {})
+        # Kiểm tra nếu VIN đã có trong danh sách đã chọn thì báo "Xe đã có trong phiếu"
+        selected_ids = [int(k) for k in danh_sach.keys() if str(k).isdigit()]
+        existing_vins = set(Allocation.objects.filter(id__in=selected_ids).values_list("vin", flat=True))
 
-                ma_xe = str(xe.id)
+        if ma_xe in danh_sach or xe.vin in existing_vins:
+            messages.error(request, "Xe đã có trong phiếu.")
+            return redirect("orders:vehicle_orders")
 
-                # Số lượng đã chọn trước đó
-                so_luong_cu = danh_sach.get(ma_xe, 0)
+        with transaction.atomic():
+            locked_alloc = Allocation.objects.select_for_update().filter(id=xe.id).first()
+            status_info = get_allocation_status(locked_alloc)
+            if not status_info["is_available"]:
+                messages.error(request, f"Xe VIN {xe.vin} không khả dụng ({status_info['label']}).")
+                return redirect("orders:vehicle_orders")
 
-                tong_so_luong = so_luong_cu + so_luong
-
-                if tong_so_luong > xe.quantity:
-                    messages.error(
-                        request,
-                        f"Số lượng yêu cầu không được vượt quá "
-                        f"{xe.quantity} xe phân bổ."
-                    )
-                else:
-                    danh_sach[ma_xe] = tong_so_luong
-
-                    request.session["selected_vehicles"] = danh_sach
-
-                    messages.success(
-                        request,
-                        "Đã thêm xe vào danh sách."
-                    )
-
-                    return redirect("orders:vehicle_orders")
+            danh_sach[ma_xe] = 1
+            request.session["selected_vehicles"] = danh_sach
+            messages.success(request, "Đã thêm xe vào danh sách.")
+            return redirect("orders:vehicle_orders")
 
     return render(request, "chi_tiet_xe.html", {
         "xe": xe
@@ -537,17 +609,33 @@ from django.views.decorators.http import require_POST
 @require_POST
 def xoa_xe_da_chon(request, xe_id):
     # Lấy danh sách xe đã chọn từ Session
-    danh_sach = request.session.get("selected_vehicles", {})
+    danh_sach = dict(request.session.get("selected_vehicles", {}))
+    selected_contracts = dict(request.session.get("selected_vehicle_contracts", {}))
 
     # ID trong Session được lưu dưới dạng chuỗi
     ma_xe = str(xe_id)
+    removed = False
 
     if ma_xe in danh_sach:
         del danh_sach[ma_xe]
-
-        # Cập nhật lại Session
+        selected_contracts.pop(ma_xe, None)
         request.session["selected_vehicles"] = danh_sach
+        request.session["selected_vehicle_contracts"] = selected_contracts
+        removed = True
 
+    db_pending = _get_pending_contract_alloc_map()
+    if ma_xe in db_pending:
+        from database.models import ChiTietHopDong, HopDong, TrangThaiHopDong
+        alloc_obj = Allocation.objects.filter(pk=xe_id).first()
+        if alloc_obj:
+            ma_hd = db_pending[ma_xe]
+            ChiTietHopDong.objects.filter(hop_dong_id=ma_hd, xe__vin=alloc_obj.vin).delete()
+            HopDong.objects.filter(pk=ma_hd, trang_thai=TrangThaiHopDong.CHO_XE_VE_KHO).update(
+                trang_thai=TrangThaiHopDong.CHO_XU_LY
+            )
+            removed = True
+
+    if removed:
         messages.success(request, "Đã xóa xe khỏi danh sách.")
     else:
         messages.error(request, "Xe không tồn tại trong danh sách đã chọn.")
@@ -558,8 +646,8 @@ def xoa_xe_da_chon(request, xe_id):
 @login_required
 def lap_phieu_yeu_cau(request):
 
-    # 1. Lấy danh sách xe đã chọn từ Session
-    danh_sach = request.session.get("selected_vehicles", {})
+    # 1. Lấy danh sách xe đã chọn từ Session + Hợp đồng phân bổ đang chờ lập PYC
+    danh_sach, selected_contracts = _merge_selected_vehicles(request)
 
     if not danh_sach:
         messages.error(
@@ -604,18 +692,41 @@ def lap_phieu_yeu_cau(request):
 
     # 3. Lưu phiếu và danh sách xe vào database
     with transaction.atomic():
+        release_expired_draft_requests()
+        from datetime import timedelta
+        hold_minutes = getattr(settings, "ORDER_DRAFT_HOLD_MINUTES", 10)
+        hold_until = timezone.now() + timedelta(minutes=hold_minutes)
+
+        from database.models import ChiTietHopDong, HopDong
+        alloc_ids = [item["xe"].id for item in xe_trong_phieu]
+        locked_allocs = list(Allocation.objects.select_for_update().filter(id__in=alloc_ids))
+
+        matched_hd = None
+        for alloc in locked_allocs:
+            ma_hd_link = selected_contracts.get(str(alloc.id)) or ChiTietHopDong.objects.filter(xe__vin=alloc.vin).values_list("hop_dong_id", flat=True).first()
+            target_hd = HopDong.objects.filter(pk=ma_hd_link).first() if ma_hd_link else None
+            if target_hd and not matched_hd:
+                matched_hd = target_hd
+            status_info = get_allocation_status(alloc, target_hd=target_hd)
+            if not status_info["is_available"]:
+                messages.error(request, f"Xe VIN {alloc.vin} không còn trống: {status_info['label']}.")
+                return redirect("orders:vehicle_orders")
 
         phieu = VehicleRequest.objects.create(
             created_by=request.user,
-            status=VehicleRequest.Status.DRAFT
+            status=VehicleRequest.Status.DRAFT,
+            hold_until=hold_until,
+            hop_dong=matched_hd,
         )
 
-        for item in xe_trong_phieu:
+        for alloc in locked_allocs:
             VehicleRequestItem.objects.create(
                 vehicle_request=phieu,
-                allocation=item["xe"],
-                quantity=item["quantity"]
+                allocation=alloc,
+                quantity=1
             )
+        request.session["selected_vehicles"] = {}
+        request.session["selected_vehicle_contracts"] = {}
 
         # Ghi nhận phiếu nháp thành công, chờ người dùng gửi để Sale Admin duyệt trước khi chuyển sang kho.
 
@@ -624,6 +735,52 @@ def lap_phieu_yeu_cau(request):
         "orders:phieu_yeu_cau",
         id=phieu.id
     )
+
+@login_required
+def chinh_sua_phieu_yeu_cau(request, id):
+    """Nạp lại các xe từ phiếu đặt xe bản nháp vào danh sách chọn xe để chỉnh sửa."""
+    role_info = get_user_role_info(request.user)
+    is_admin = request.user.is_superuser or (role_info and role_info.get("code") == "ADMIN")
+
+    phieu = get_object_or_404(
+        VehicleRequest.objects.prefetch_related("items__allocation"),
+        id=id,
+    )
+
+    if phieu.status != VehicleRequest.Status.DRAFT:
+        messages.error(request, "Chỉ có thể chỉnh sửa phiếu ở trạng thái Bản nháp.")
+        return redirect("orders:phieu_yeu_cau", id=phieu.id)
+
+    if not (is_admin or phieu.created_by == request.user):
+        messages.error(request, "Bạn không có quyền chỉnh sửa phiếu này.")
+        return redirect("orders:phieu_yeu_cau", id=phieu.id)
+
+    if phieu.hold_until and phieu.hold_until < timezone.now():
+        phieu.items.all().delete()
+        phieu.status = VehicleRequest.Status.REJECTED
+        phieu.rejection_reason = "Phiếu nháp đã quá thời hạn giữ chỗ."
+        phieu.save(update_fields=["status", "rejection_reason"])
+        messages.error(request, "Phiếu nháp đã hết thời hạn giữ chỗ và đã tự động giải phóng xe.")
+        return redirect("orders:danh_sach_yeu_cau")
+
+    danh_sach = dict(request.session.get("selected_vehicles", {}))
+    selected_contracts = dict(request.session.get("selected_vehicle_contracts", {}))
+
+    with transaction.atomic():
+        for item in phieu.items.select_related("allocation").all():
+            alloc_id_str = str(item.allocation_id)
+            danh_sach[alloc_id_str] = item.quantity or 1
+            if phieu.hop_dong_id and alloc_id_str not in selected_contracts:
+                selected_contracts[alloc_id_str] = phieu.hop_dong_id
+
+        phieu.items.all().delete()
+        phieu.delete()
+
+    request.session["selected_vehicles"] = danh_sach
+    request.session["selected_vehicle_contracts"] = selected_contracts
+    messages.success(request, "Đã nạp lại xe từ bản nháp vào danh sách. Bạn có thể tiếp tục chỉnh sửa.")
+    return redirect("orders:vehicle_orders")
+
 
 @login_required
 def phieu_yeu_cau(request, id):
@@ -696,6 +853,27 @@ def gui_phieu_yeu_cau(request, id):
             id=phieu.id
         )
 
+    # Kiểm tra nếu phiếu nháp đã hết hạn giữ chỗ
+    if phieu.hold_until and phieu.hold_until < timezone.now():
+        phieu.items.all().delete()
+        phieu.status = VehicleRequest.Status.REJECTED
+        phieu.rejection_reason = "Phiếu nháp đã quá thời hạn giữ chỗ."
+        phieu.save(update_fields=["status", "rejection_reason"])
+        messages.error(request, "Phiếu nháp đã hết thời hạn giữ chỗ và đã tự động giải phóng xe.")
+        return redirect("orders:danh_sach_yeu_cau")
+
+    # Kiểm tra xe có bị chiếm bởi giao dịch khác hay không
+    from database.models import ChiTietHopDong
+    for item in phieu.items.select_related("allocation").all():
+        target_hd = phieu.hop_dong
+        if not target_hd:
+            ct_hd = ChiTietHopDong.objects.filter(xe__vin=item.allocation.vin).select_related("hop_dong").first()
+            target_hd = ct_hd.hop_dong if ct_hd else None
+        status_info = get_allocation_status(item.allocation, target_hd=target_hd, exclude_request_id=phieu.id)
+        if not status_info["is_available"]:
+            messages.error(request, f"Xe VIN {item.allocation.vin} không khả dụng để gửi: {status_info['label']}.")
+            return redirect("orders:phieu_yeu_cau", id=phieu.id)
+
     # 4. Tính tổng số lượng xe
     tong_so_luong = (
         phieu.items.aggregate(total=Sum("quantity"))["total"] or 0
@@ -758,8 +936,9 @@ def gui_phieu_yeu_cau(request, id):
     # 8. Cập nhật trạng thái sang PENDING (Chờ Quốc Hiếu / Sale Admin duyệt)
     phieu.status = VehicleRequest.Status.PENDING
     phieu.sent_at = timezone.now()
+    phieu.hold_until = None
     phieu.save(
-        update_fields=["status", "sent_at"]
+        update_fields=["status", "sent_at", "hold_until"]
     )
 
     # 9. Làm trống danh sách xe đang chọn trong Session
@@ -811,12 +990,33 @@ def danh_sach_yeu_cau(request):
             .order_by("-created_at")
         )
 
+    thang = (request.GET.get("thang") or request.GET.get("month") or "").strip()
+    trang_thai = (request.GET.get("trang_thai") or "").strip()
+    if thang and thang != "ALL" and "-" in thang:
+        try:
+            y_val, m_val = map(int, thang.split("-", 1))
+            phieu_yeu_cau = phieu_yeu_cau.filter(created_at__year=y_val, created_at__month=m_val)
+        except ValueError:
+            pass
+    if trang_thai:
+        phieu_yeu_cau = phieu_yeu_cau.filter(status=trang_thai)
+
+    thang_options = [
+        ("2026-11", "Tháng 11/2026"),
+        ("2026-10", "Tháng 10/2026"),
+        ("2026-09", "Tháng 09/2026"),
+        ("2026-08", "Tháng 08/2026"),
+    ]
+
     return render(
         request,
         "danh_sach_yc.html",
         {
             "phieu_yeu_cau": phieu_yeu_cau,
             "is_sale_admin": is_admin,
+            "thang": thang,
+            "trang_thai": trang_thai,
+            "thang_options": thang_options,
         }
     )
 
@@ -839,31 +1039,34 @@ def xac_nhan_phieu(request, id):
         )
         return redirect("orders:phieu_yeu_cau", id=id)
 
-    phieu = get_object_or_404(
-        VehicleRequest.objects.prefetch_related("items__allocation"),
-        id=id
-    )
+    get_object_or_404(VehicleRequest, id=id)
+    try:
+        with transaction.atomic():
+            phieu = VehicleRequest.objects.select_for_update().prefetch_related("items__allocation").get(id=id)
 
-    # Chỉ cho phép xác nhận phiếu đã gửi
-    if phieu.status != VehicleRequest.Status.PENDING:
+            # Chỉ cho phép xác nhận phiếu đã gửi
+            if phieu.status != VehicleRequest.Status.PENDING:
+                messages.error(
+                    request,
+                    "Chỉ có thể xác nhận phiếu đang ở trạng thái chờ duyệt."
+                )
+                return redirect(
+                    "orders:phieu_yeu_cau",
+                    id=phieu.id
+                )
+
+            phieu.status = VehicleRequest.Status.ACCEPTED
+            phieu.save(update_fields=["status"])
+
+            # Đồng bộ sang Kho và tạo chứng từ nhập kho cho từng VIN (rollback nếu lỗi)
+            from warehouse.order_intake import sync_request
+            sync_request(phieu.pk)
+    except Exception as e:
         messages.error(
             request,
-            "Chỉ có thể xác nhận phiếu đang ở trạng thái chờ duyệt."
+            f"Không thể phê duyệt và chuyển phiếu yêu cầu sang Quản lý nhập kho: {e}"
         )
-        return redirect(
-            "orders:phieu_yeu_cau",
-            id=phieu.id
-        )
-
-    phieu.status = VehicleRequest.Status.ACCEPTED
-    phieu.save(update_fields=["status"])
-
-    # Đồng bộ sang Kho và tạo chứng từ nhập kho cho từng VIN
-    try:
-        from warehouse.order_intake import sync_request
-        sync_request(phieu.pk)
-    except Exception as e:
-        print("Lỗi sync_request sang kho:", repr(e))
+        return redirect("orders:phieu_yeu_cau", id=id)
 
     # Phát thông báo toàn hệ thống đã phê duyệt
     try:
@@ -937,12 +1140,13 @@ def danh_sach_de_xuat(request):
             so_phan_bo_thuc_te = xe_phu_hop.aggregate(total=Sum("quantity"))["total"] or 0
             first_xe = xe_phu_hop.first()
 
+            live_hd_cho_giao = tinh_hop_dong_cho_giao_thuc_te(dong.ten_xe, current_cn)
             danh_sach.append({
                 "dong_id": dong.id,
                 "allocation_id": first_xe.id if first_xe else None,
                 "ten_xe": dong.ten_xe,
                 "ma_dong_xe": getattr(dong, "ma_dong_xe", ""),
-                "hop_dong_cho_giao": dong.hop_dong_cho_giao,
+                "hop_dong_cho_giao": live_hd_cho_giao,
                 "so_ton": dong.ton_kho,
                 "chi_tieu": dong.chi_tieu,
                 "so_phan_bo": so_phan_bo_thuc_te,
@@ -989,13 +1193,15 @@ def danh_sach_de_xuat(request):
             so_ban = doanh_so_map.get(ten_xe, 0)
             so_ton = ton_kho_map.get(ten_xe, 0)
             so_phan_bo = thong_tin["so_phan_bo"]
-            nhu_cau = max(0, so_ban - so_ton)
+            live_hd = tinh_hop_dong_cho_giao_thuc_te(ten_xe, current_cn)
+            nhu_cau = max(0, so_ban + live_hd - so_ton)
             de_xuat_nhap = min(nhu_cau, so_phan_bo)
 
             danh_sach.append({
                 "dong_id": None,
                 "allocation_id": thong_tin["allocation_id"],
                 "ten_xe": ten_xe,
+                "hop_dong_cho_giao": live_hd,
                 "so_ban": so_ban,
                 "so_ton": so_ton,
                 "so_phan_bo": so_phan_bo,
@@ -1043,11 +1249,12 @@ def chi_tiet_de_xuat(request, id):
         )
         so_phan_bo_thuc_te = xe_phu_hop.aggregate(total=Sum("quantity"))["total"] or 0
 
+        live_hd = tinh_hop_dong_cho_giao_thuc_te(dong.ten_xe, current_cn)
         context = {
             "dong": dong,
             "phien": phien,
             "ten_xe": dong.ten_xe,
-            "hop_dong_cho_giao": dong.hop_dong_cho_giao,
+            "hop_dong_cho_giao": live_hd,
             "so_ton": dong.ton_kho,
             "chi_tieu": dong.chi_tieu,
             "so_phan_bo": so_phan_bo_thuc_te,
@@ -1094,3 +1301,118 @@ def chi_tiet_de_xuat(request, id):
         "de_xuat_nhap": de_xuat_nhap,
     }
     return render(request, "chi_tiet_de_xuat.html", context)
+
+
+@login_required
+@require_POST
+def tu_choi_phieu(request, id):
+    role_info = get_user_role_info(request.user)
+    is_admin = (
+        request.user.is_superuser
+        or (role_info and role_info.get("code") == "ADMIN")
+        or request.user.groups.filter(name__in=["Sale Admin", "Quản lý"]).exists()
+    )
+
+    if not is_admin:
+        messages.error(request, "Chỉ Quản trị viên (Sale Admin) mới có quyền từ chối phiếu yêu cầu đặt xe.")
+        return redirect("orders:phieu_yeu_cau", id=id)
+
+    phieu = get_object_or_404(VehicleRequest, id=id)
+    if phieu.status != VehicleRequest.Status.PENDING:
+        messages.error(request, "Chỉ có thể từ chối phiếu đang ở trạng thái chờ duyệt.")
+        return redirect("orders:phieu_yeu_cau", id=id)
+
+    ly_do = request.POST.get("ly_do", "").strip() or "Sale Admin từ chối"
+    phieu.status = VehicleRequest.Status.REJECTED
+    phieu.rejection_reason = ly_do
+    phieu.hold_until = None
+    phieu.save(update_fields=["status", "rejection_reason", "hold_until"])
+
+    messages.success(request, f"Đã từ chối phiếu {phieu.request_number}. Toàn bộ xe trong phiếu đã được nhả.")
+    return redirect("orders:phieu_yeu_cau", id=id)
+
+
+@login_required
+@require_POST
+def xoa_xe_phieu_nhap(request, id, item_id):
+    phieu = get_object_or_404(VehicleRequest, id=id)
+    if phieu.status != VehicleRequest.Status.DRAFT:
+        messages.error(request, "Chỉ có thể xóa xe khỏi phiếu ở trạng thái Bản nháp.")
+        return redirect("orders:phieu_yeu_cau", id=phieu.id)
+
+    if not (request.user.is_superuser or phieu.created_by == request.user):
+        messages.error(request, "Bạn không có quyền chỉnh sửa phiếu này.")
+        return redirect("orders:phieu_yeu_cau", id=phieu.id)
+
+    item = get_object_or_404(VehicleRequestItem, id=item_id, vehicle_request=phieu)
+    vin = item.allocation.vin
+    item.delete()
+
+    messages.success(request, f"Đã xóa xe VIN {vin} khỏi phiếu nháp. Xe đã được nhả.")
+    return redirect("orders:phieu_yeu_cau", id=phieu.id)
+
+
+def tinh_hop_dong_cho_giao_thuc_te(ten_xe, chi_nhanh_id=None):
+    """
+    Tính số lượng hợp đồng đã ký đang chờ giao xe (chưa xuất kho hoàn tất)
+    cho dòng xe `ten_xe` theo thời gian thực (real-time).
+    """
+    from database.models import HopDong, TrangThaiHopDong, TrangThaiPhieuXuat, ChiTietHopDong
+    if not ten_xe:
+        return 0
+
+    ten_lower = ten_xe.strip().lower()
+    main_keywords = [w for w in ["ranger", "everest", "territory", "explorer", "transit"] if w in ten_lower]
+
+    active_states = [
+        TrangThaiHopDong.CHO_XU_LY,
+        TrangThaiHopDong.CHO_PHAN_BO,
+        TrangThaiHopDong.CHO_XE_VE_KHO,
+        TrangThaiHopDong.DU_DIEU_KIEN_XUAT,
+        TrangThaiHopDong.DANG_XUAT_KHO,
+    ]
+
+    ct_qs = ChiTietHopDong.objects.filter(
+        hop_dong__trang_thai__in=active_states
+    ).exclude(
+        phieuxuatkho__trang_thai=TrangThaiPhieuXuat.DA_DUYET
+    ).select_related("hop_dong", "xe")
+
+    if chi_nhanh_id and chi_nhanh_id != "ALL":
+        ct_qs = ct_qs.filter(hop_dong__chi_nhanh__ma_cn=chi_nhanh_id)
+
+    count = 0
+    seen_hd_ids = set()
+    for ct in ct_qs:
+        xe = ct.xe
+        hd = ct.hop_dong
+        xe_name = f"{xe.ten_xe or ''} {getattr(xe, 'phien_ban', '') or ''} {xe.loai_xe or ''}".lower()
+        hd_req = f"{hd.dong_xe_yeu_cau or ''} {hd.phien_ban_yeu_cau or ''}".lower()
+
+        matched = (ten_lower in xe_name) or (ten_lower in hd_req)
+        if not matched and main_keywords:
+            matched = any(kw in xe_name or kw in hd_req for kw in main_keywords) and (
+                any(token in xe_name or token in hd_req for token in ten_lower.split() if len(token) > 2)
+            )
+
+        if matched:
+            count += 1
+            seen_hd_ids.add(hd.pk)
+
+    unassigned_hd_qs = HopDong.objects.filter(
+        chitiethopdong__isnull=True,
+        trang_thai__in=[TrangThaiHopDong.CHO_XU_LY, TrangThaiHopDong.CHO_PHAN_BO]
+    )
+    if chi_nhanh_id and chi_nhanh_id != "ALL":
+        unassigned_hd_qs = unassigned_hd_qs.filter(chi_nhanh__ma_cn=chi_nhanh_id)
+
+    for hd in unassigned_hd_qs:
+        hd_req = f"{hd.dong_xe_yeu_cau or ''} {hd.phien_ban_yeu_cau or ''}".lower()
+        matched = ten_lower in hd_req
+        if not matched and main_keywords:
+            matched = any(kw in hd_req for kw in main_keywords)
+        if matched and hd.pk not in seen_hd_ids:
+            count += 1
+            seen_hd_ids.add(hd.pk)
+
+    return count

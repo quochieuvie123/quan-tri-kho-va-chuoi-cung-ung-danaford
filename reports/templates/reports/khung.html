@@ -3,111 +3,375 @@
 {% block extra_css %}
 <style>
 .bc {
-    background: #fff;
-    border-radius: 12px;
-    padding: 22px;
+    background: #ffffff;
+    border: 1px solid #dce6f0;
+    border-radius: 14px;
+    padding: 24px;
     margin-bottom: 20px;
-    color: #102b46;
+    color: #243b53;
     min-width: 0;
+    box-sizing: border-box;
+}
+
+.bc h2 {
+    margin: 0 0 8px;
+    font-family: "Montserrat", system-ui, -apple-system, sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: #102a43;
 }
 
 .bc form {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
-    align-items: flex-start;
+    align-items: end;
 }
 
 .bc .truong {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    min-width: 180px;
-    flex: 1;
+    gap: 7px;
+    min-width: 0;
+}
+
+.bc .truong label {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.45;
+    color: #243b53;
 }
 
 .bc input,
 .bc select {
-    padding: 10px;
-    border: 1px solid #ccd6e1;
-    border-radius: 6px;
+    width: 100%;
+    height: 45px;
+    padding: 0 12px;
+    border: 1px solid #dce6f0;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #243b53;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.45;
     max-width: 100%;
     box-sizing: border-box;
 }
 
+.bc .bc-filter-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.bc .bc-filter-btns {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
 .bc .nut {
-    display: inline-block;
-    background: #0866c6;
-    color: #fff;
-    padding: 10px 16px;
-    border: 0;
-    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 39px;
+    padding: 0 14px;
+    background: #0067c5;
+    color: #ffffff;
+    border: 1px solid #0067c5;
+    border-radius: 8px;
     text-decoration: none;
-    font: inherit;
+    font-family: "Montserrat", system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.45;
     cursor: pointer;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+.bc .nut:hover {
+    background: #0056a6;
+    border-color: #0056a6;
+    color: #ffffff;
+    text-decoration: none;
 }
 
 .bc .phu {
-    background: #e9eff6;
-    color: #102b46;
+    background: #ffffff;
+    color: #0067c5;
+    border: 1px solid #dce6f0;
+}
+
+.bc .phu:hover {
+    background: #f4f7fb;
+    border-color: #0067c5;
+    color: #0067c5;
 }
 
 .bc .loi,
 .bc .errorlist {
-    color: #b42318;
+    color: #b82e3a;
+    font-size: 12px;
+    margin: 0;
 }
 
 .bc .the {
     display: grid;
-    grid-template-columns: repeat(
-        auto-fit,
-        minmax(210px, 1fr)
-    );
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px;
 }
 
 .bc .o {
-    border: 1px solid #dce4ec;
-    border-radius: 8px;
-    padding: 16px;
+    border: 1px solid #dce6f0;
+    border-radius: 12px;
+    padding: 20px;
+    min-height: 144px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    box-sizing: border-box;
+    background: #ffffff;
+}
+
+.bc .o strong {
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.45;
+    color: #243b53;
 }
 
 .bc .so {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 700;
-    margin: 12px 0;
+    line-height: 1.2;
+    color: #102a43;
+    margin: 0;
+    font-variant-numeric: tabular-nums;
 }
 
 .bc .so small {
-    font-size: 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #627d98;
+}
+
+.bc .o .ghi-chu {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.45;
+    color: #627d98;
+}
+
+.bc .o a {
+    margin-top: auto;
+    padding-top: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: #0067c5;
+    text-decoration: none;
+    align-self: flex-start;
+}
+
+.bc .o a:hover {
+    text-decoration: underline;
+}
+
+.bc .ghi-chu {
+    margin: 0;
+    line-height: 1.45;
+    color: #627d98;
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.bc .bieu-do-mo-ta {
+    margin: 0 0 16px;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.45;
+    color: #627d98;
+}
+
+.bc .pham-vi-ghi-chu {
+    margin-top: 16px;
 }
 
 .bc .cuon {
-    overflow-x: auto;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: auto;
+    max-height: 560px;
+    border: 1px solid #dce6f0;
+    border-radius: 14px;
+    background: #ffffff;
+    box-sizing: border-box;
 }
 
 .bc table {
     width: 100%;
     border-collapse: collapse;
-    margin: 12px 0;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.45;
+    color: #243b53;
 }
 
 .bc th,
 .bc td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #e1e7ee;
+    border-bottom: 1px solid #dce6f0;
+    vertical-align: top;
 }
 
-.bc th {
-    background: #eef4fa;
+.bc thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f4f7fb;
+    color: #102a43;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.45;
     white-space: nowrap;
 }
 
-.bc .ghi-chu {
-    line-height: 1.6;
-    color: #52677c;
-    font-size: 14px;
+.bc tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+/* 9 report table column profiles (Section 7.3) */
+.bc table.report-table--ton_kho { min-width: 1000px; }
+.bc table.report-table--ton_kho th:nth-child(1), .bc table.report-table--ton_kho td:nth-child(1) { min-width: 100px; }
+.bc table.report-table--ton_kho th:nth-child(2), .bc table.report-table--ton_kho td:nth-child(2) { min-width: 190px; white-space: nowrap; }
+.bc table.report-table--ton_kho th:nth-child(3), .bc table.report-table--ton_kho td:nth-child(3) { min-width: 430px; }
+.bc table.report-table--ton_kho th:nth-child(4), .bc table.report-table--ton_kho td:nth-child(4) { min-width: 160px; }
+.bc table.report-table--ton_kho th:nth-child(5), .bc table.report-table--ton_kho td:nth-child(5) { min-width: 120px; text-align: right; font-variant-numeric: tabular-nums; }
+
+.bc table.report-table--tuoi_ton { min-width: 1120px; }
+.bc table.report-table--tuoi_ton th:nth-child(1), .bc table.report-table--tuoi_ton td:nth-child(1) { min-width: 100px; }
+.bc table.report-table--tuoi_ton th:nth-child(2), .bc table.report-table--tuoi_ton td:nth-child(2) { min-width: 190px; white-space: nowrap; }
+.bc table.report-table--tuoi_ton th:nth-child(3), .bc table.report-table--tuoi_ton td:nth-child(3) { min-width: 400px; }
+.bc table.report-table--tuoi_ton th:nth-child(4), .bc table.report-table--tuoi_ton td:nth-child(4) { min-width: 150px; white-space: nowrap; }
+.bc table.report-table--tuoi_ton th:nth-child(5), .bc table.report-table--tuoi_ton td:nth-child(5) { min-width: 140px; text-align: right; font-variant-numeric: tabular-nums; }
+.bc table.report-table--tuoi_ton th:nth-child(6), .bc table.report-table--tuoi_ton td:nth-child(6) { min-width: 140px; text-align: right; font-variant-numeric: tabular-nums; }
+
+.bc table.report-table--nhap_kho,
+.bc table.report-table--xuat_kho { min-width: 1500px; }
+.bc table.report-table--nhap_kho th:nth-child(1), .bc table.report-table--nhap_kho td:nth-child(1),
+.bc table.report-table--xuat_kho th:nth-child(1), .bc table.report-table--xuat_kho td:nth-child(1) { min-width: 190px; }
+.bc table.report-table--nhap_kho th:nth-child(2), .bc table.report-table--nhap_kho td:nth-child(2),
+.bc table.report-table--xuat_kho th:nth-child(2), .bc table.report-table--xuat_kho td:nth-child(2) { min-width: 110px; }
+.bc table.report-table--nhap_kho th:nth-child(3), .bc table.report-table--nhap_kho td:nth-child(3),
+.bc table.report-table--xuat_kho th:nth-child(3), .bc table.report-table--xuat_kho td:nth-child(3) { min-width: 160px; white-space: nowrap; }
+.bc table.report-table--nhap_kho th:nth-child(4), .bc table.report-table--nhap_kho td:nth-child(4),
+.bc table.report-table--xuat_kho th:nth-child(4), .bc table.report-table--xuat_kho td:nth-child(4) { min-width: 160px; white-space: nowrap; }
+.bc table.report-table--nhap_kho th:nth-child(5), .bc table.report-table--nhap_kho td:nth-child(5),
+.bc table.report-table--xuat_kho th:nth-child(5), .bc table.report-table--xuat_kho td:nth-child(5) { min-width: 190px; white-space: nowrap; }
+.bc table.report-table--nhap_kho th:nth-child(6), .bc table.report-table--nhap_kho td:nth-child(6),
+.bc table.report-table--xuat_kho th:nth-child(6), .bc table.report-table--xuat_kho td:nth-child(6) { min-width: 390px; }
+.bc table.report-table--nhap_kho th:nth-child(7), .bc table.report-table--nhap_kho td:nth-child(7),
+.bc table.report-table--xuat_kho th:nth-child(7), .bc table.report-table--xuat_kho td:nth-child(7) { min-width: 160px; }
+.bc table.report-table--nhap_kho th:nth-child(8), .bc table.report-table--nhap_kho td:nth-child(8),
+.bc table.report-table--xuat_kho th:nth-child(8), .bc table.report-table--xuat_kho td:nth-child(8) { min-width: 140px; text-align: right; font-variant-numeric: tabular-nums; }
+
+.bc table.report-table--hop_dong { min-width: 1000px; }
+.bc table.report-table--hop_dong th:nth-child(1), .bc table.report-table--hop_dong td:nth-child(1) { min-width: 220px; }
+.bc table.report-table--hop_dong th:nth-child(2), .bc table.report-table--hop_dong td:nth-child(2) { min-width: 160px; }
+.bc table.report-table--hop_dong th:nth-child(3), .bc table.report-table--hop_dong td:nth-child(3) { min-width: 160px; white-space: nowrap; }
+.bc table.report-table--hop_dong th:nth-child(4), .bc table.report-table--hop_dong td:nth-child(4) { min-width: 460px; }
+
+.bc table.report-table--pdi { min-width: 1320px; }
+.bc table.report-table--pdi th:nth-child(1), .bc table.report-table--pdi td:nth-child(1) { min-width: 160px; }
+.bc table.report-table--pdi th:nth-child(2), .bc table.report-table--pdi td:nth-child(2) { min-width: 140px; }
+.bc table.report-table--pdi th:nth-child(3), .bc table.report-table--pdi td:nth-child(3) { min-width: 160px; white-space: nowrap; }
+.bc table.report-table--pdi th:nth-child(4), .bc table.report-table--pdi td:nth-child(4) { min-width: 190px; white-space: nowrap; }
+.bc table.report-table--pdi th:nth-child(5), .bc table.report-table--pdi td:nth-child(5) { min-width: 330px; }
+.bc table.report-table--pdi th:nth-child(6), .bc table.report-table--pdi td:nth-child(6) { min-width: 180px; }
+.bc table.report-table--pdi th:nth-child(7), .bc table.report-table--pdi td:nth-child(7) { min-width: 160px; }
+
+.bc table.report-table--dat_xe { min-width: 1760px; }
+.bc table.report-table--dat_xe th:nth-child(1), .bc table.report-table--dat_xe td:nth-child(1) { min-width: 160px; }
+.bc table.report-table--dat_xe th:nth-child(2), .bc table.report-table--dat_xe td:nth-child(2) { min-width: 160px; white-space: nowrap; }
+.bc table.report-table--dat_xe th:nth-child(3), .bc table.report-table--dat_xe td:nth-child(3) { min-width: 180px; }
+.bc table.report-table--dat_xe th:nth-child(4), .bc table.report-table--dat_xe td:nth-child(4) { min-width: 180px; }
+.bc table.report-table--dat_xe th:nth-child(5), .bc table.report-table--dat_xe td:nth-child(5) { min-width: 360px; }
+.bc table.report-table--dat_xe th:nth-child(6), .bc table.report-table--dat_xe td:nth-child(6) { min-width: 190px; white-space: nowrap; }
+.bc table.report-table--dat_xe th:nth-child(7), .bc table.report-table--dat_xe td:nth-child(7) { min-width: 180px; }
+.bc table.report-table--dat_xe th:nth-child(8), .bc table.report-table--dat_xe td:nth-child(8) { min-width: 150px; text-align: right; font-variant-numeric: tabular-nums; }
+.bc table.report-table--dat_xe th:nth-child(9), .bc table.report-table--dat_xe td:nth-child(9) { min-width: 200px; }
+
+.bc table.report-table--luu_chuyen { min-width: 1440px; }
+.bc table.report-table--luu_chuyen th:nth-child(1), .bc table.report-table--luu_chuyen td:nth-child(1) { min-width: 220px; }
+.bc table.report-table--luu_chuyen th:nth-child(2), .bc table.report-table--luu_chuyen td:nth-child(2) { min-width: 140px; }
+.bc table.report-table--luu_chuyen th:nth-child(3), .bc table.report-table--luu_chuyen td:nth-child(3) { min-width: 140px; }
+.bc table.report-table--luu_chuyen th:nth-child(4), .bc table.report-table--luu_chuyen td:nth-child(4) { min-width: 160px; white-space: nowrap; }
+.bc table.report-table--luu_chuyen th:nth-child(5), .bc table.report-table--luu_chuyen td:nth-child(5) { min-width: 190px; white-space: nowrap; }
+.bc table.report-table--luu_chuyen th:nth-child(6), .bc table.report-table--luu_chuyen td:nth-child(6) { min-width: 300px; }
+.bc table.report-table--luu_chuyen th:nth-child(7), .bc table.report-table--luu_chuyen td:nth-child(7) { min-width: 130px; text-align: right; font-variant-numeric: tabular-nums; }
+.bc table.report-table--luu_chuyen th:nth-child(8), .bc table.report-table--luu_chuyen td:nth-child(8) { min-width: 160px; }
+
+.bc table.report-table--canh_bao { min-width: 1600px; }
+.bc table.report-table--canh_bao th:nth-child(1), .bc table.report-table--canh_bao td:nth-child(1) { min-width: 120px; }
+.bc table.report-table--canh_bao th:nth-child(2), .bc table.report-table--canh_bao td:nth-child(2) { min-width: 180px; }
+.bc table.report-table--canh_bao th:nth-child(3), .bc table.report-table--canh_bao td:nth-child(3) { min-width: 180px; }
+.bc table.report-table--canh_bao th:nth-child(4), .bc table.report-table--canh_bao td:nth-child(4) { min-width: 340px; }
+.bc table.report-table--canh_bao th:nth-child(5), .bc table.report-table--canh_bao td:nth-child(5) { min-width: 180px; }
+.bc table.report-table--canh_bao th:nth-child(6), .bc table.report-table--canh_bao td:nth-child(6) { min-width: 140px; }
+.bc table.report-table--canh_bao th:nth-child(7), .bc table.report-table--canh_bao td:nth-child(7) { min-width: 200px; }
+.bc table.report-table--canh_bao th:nth-child(8), .bc table.report-table--canh_bao td:nth-child(8) { min-width: 260px; white-space: nowrap; }
+
+.bc table.report-table--du_bao { min-width: 1620px; }
+.bc table.report-table--du_bao th:nth-child(1), .bc table.report-table--du_bao td:nth-child(1) { min-width: 110px; white-space: nowrap; }
+.bc table.report-table--du_bao th:nth-child(2), .bc table.report-table--du_bao td:nth-child(2) { min-width: 200px; }
+.bc table.report-table--du_bao th:nth-child(3), .bc table.report-table--du_bao td:nth-child(3) { min-width: 310px; }
+.bc table.report-table--du_bao th:nth-child(4), .bc table.report-table--du_bao td:nth-child(4) { min-width: 140px; }
+.bc table.report-table--du_bao th:nth-child(5), .bc table.report-table--du_bao td:nth-child(5),
+.bc table.report-table--du_bao th:nth-child(6), .bc table.report-table--du_bao td:nth-child(6),
+.bc table.report-table--du_bao th:nth-child(7), .bc table.report-table--du_bao td:nth-child(7),
+.bc table.report-table--du_bao th:nth-child(8), .bc table.report-table--du_bao td:nth-child(8),
+.bc table.report-table--du_bao th:nth-child(9), .bc table.report-table--du_bao td:nth-child(9) { min-width: 130px; text-align: right; font-variant-numeric: tabular-nums; }
+.bc table.report-table--du_bao th:nth-child(10), .bc table.report-table--du_bao td:nth-child(10) { min-width: 180px; }
+
+.bc table.report-table--su_co { min-width: 1760px; }
+.bc table.report-table--su_co th:nth-child(1), .bc table.report-table--su_co td:nth-child(1) { min-width: 150px; }
+.bc table.report-table--su_co th:nth-child(2), .bc table.report-table--su_co td:nth-child(2) { min-width: 110px; }
+.bc table.report-table--su_co th:nth-child(3), .bc table.report-table--su_co td:nth-child(3) { min-width: 180px; }
+.bc table.report-table--su_co th:nth-child(4), .bc table.report-table--su_co td:nth-child(4) { min-width: 150px; white-space: nowrap; }
+.bc table.report-table--su_co th:nth-child(5), .bc table.report-table--su_co td:nth-child(5) { min-width: 180px; white-space: nowrap; }
+.bc table.report-table--su_co th:nth-child(6), .bc table.report-table--su_co td:nth-child(6) { min-width: 280px; }
+.bc table.report-table--su_co th:nth-child(7), .bc table.report-table--su_co td:nth-child(7) { min-width: 200px; }
+.bc table.report-table--su_co th:nth-child(8), .bc table.report-table--su_co td:nth-child(8) { min-width: 140px; }
+.bc table.report-table--su_co th:nth-child(9), .bc table.report-table--su_co td:nth-child(9) { min-width: 190px; }
+.bc table.report-table--su_co th:nth-child(10), .bc table.report-table--su_co td:nth-child(10) { min-width: 170px; text-align: right; font-variant-numeric: tabular-nums; }
+
+.bc .chi-tiet-top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.bc .chi-tiet-meta {
+    margin: 4px 0 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: #243b53;
 }
 
 .bc .thanh-tac-vu {
@@ -127,6 +391,7 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 20px;
+    align-items: start;
 }
 
 .bc-luoi .bc {
@@ -140,21 +405,126 @@
 
 .bc .rong {
     display: flex;
-    min-height: 220px;
+    min-height: 120px;
     align-items: center;
     justify-content: center;
     text-align: center;
-    background: #f6f8fb;
-    border-radius: 8px;
-    color: #52677c;
-    padding: 20px;
+    background: #f4f7fb;
+    border: 1px dashed #dce6f0;
+    border-radius: 10px;
+    color: #627d98;
+    font-size: 13px;
+    padding: 16px;
+    box-sizing: border-box;
 }
 
 .bc .canh-bao-du-lieu {
-    background: #fff5df;
-    color: #835600;
-    padding: 12px;
+    background: #fff4d8;
+    color: #b76e00;
+    border: 1px solid #f5dfa8;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.45;
+    margin: 0;
+}
+
+.thang-multi {
+    position: relative;
+}
+
+.thang-multi__btn {
+    width: 100%;
+    height: 45px;
+    padding: 0 34px 0 12px;
+    border: 1px solid #dce6f0;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #243b53;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.45;
+    text-align: left;
+    cursor: pointer;
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+}
+
+.thang-multi__btn::after {
+    content: "\25BC";
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: #627d98;
+}
+
+.thang-multi__menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    min-width: 240px;
+    max-height: 260px;
+    overflow-y: auto;
+    background: #ffffff;
+    border: 1px solid #dce6f0;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(16, 42, 67, 0.12);
+    z-index: 60;
+    padding: 6px;
+}
+
+.thang-multi__menu[hidden] {
+    display: none;
+}
+
+.thang-multi__actions {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 8px 8px;
+    border-bottom: 1px solid #dce6f0;
+    font-size: 12px;
+}
+
+.thang-multi__actions button {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: #0067c5;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.thang-multi__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 6px 8px;
     border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 400;
+    color: #243b53;
+    margin: 0;
+}
+
+.thang-multi__item:hover {
+    background: #f4f7fb;
+}
+
+.thang-multi__item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    padding: 0;
+    accent-color: #1a66b2;
 }
 
 @media (max-width: 1100px) {
@@ -162,64 +532,168 @@
         grid-template-columns: 1fr;
     }
 }
+
+@media (max-width: 960px) {
+    .bc form,
+    .bc .the {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .bc .the .o:last-child:nth-child(odd) {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 600px) {
+    .bc form,
+    .bc .the {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .bc .the .o:last-child:nth-child(odd) {
+        grid-column: span 1;
+    }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<div class="df-page-header">
     <div>
-        <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #0b2a4a;">Thống kê và báo cáo</h1>
-        <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Tổng quan tình hình chuỗi cung ứng, biến động tồn kho, đặt xe, lưu chuyển và xử lý sự cố</p>
+        <h1 class="df-page-title">Thống kê và báo cáo</h1>
+        <p class="df-page-subtitle">Tổng quan tình hình chuỗi cung ứng, biến động tồn kho, đặt xe, lưu chuyển và xử lý sự cố</p>
     </div>
 </div>
 <section class="bc">
-    <form method="get">
+    <h2 style="margin-bottom: 16px;">Bộ lọc báo cáo</h2>
+    <form method="get" id="form-bao-cao">
+        <div class="truong thang-multi" id="thang-multi-wrap">
+            <label for="thang-multi-btn">Tháng / Năm:</label>
+            <button type="button" id="thang-multi-btn" class="thang-multi__btn" aria-expanded="false">
+                Tất cả các tháng
+            </button>
+            <div id="thang-multi-menu" class="thang-multi__menu" hidden>
+                <div class="thang-multi__actions">
+                    <button type="button" onclick="chonTatCaThangBaoCao(true);">Chọn tất cả</button>
+                    <button type="button" onclick="chonTatCaThangBaoCao(false);">Tất cả các tháng (Bỏ chọn)</button>
+                </div>
+                {% for val, lbl in form.fields.thang.choices %}
+                <label class="thang-multi__item">
+                    <input type="checkbox" name="thang" value="{{ val }}" data-label="{{ lbl }}"
+                           {% if val in form.thang.value %}checked{% endif %}
+                           onchange="capNhatNhanThangBaoCao();">
+                    <span>{{ lbl }}</span>
+                </label>
+                {% endfor %}
+            </div>
+            {{ form.thang.errors }}
+        </div>
         {% for field in form %}
+        {% if field.name == 'thang' %}
+        {% elif field.name == 'tu_ngay' or field.name == 'den_ngay' %}
+        <div style="display: none;">
+            {{ field }}
+            {{ field.errors }}
+        </div>
+        {% else %}
         <div class="truong">
             {{ field.label_tag }}
             {{ field }}
             {{ field.errors }}
         </div>
+        {% endif %}
         {% endfor %}
 
-        <button class="nut" type="submit">
-            Áp dụng bộ lọc
-        </button>
+        <div class="bc-filter-actions">
+            <div class="bc-filter-btns">
+                <button class="nut" type="submit">
+                    Tìm kiếm
+                </button>
 
-        <a
-            class="nut phu"
-            href="{% url 'dashboard:index' %}"
-        >
-            Xóa bộ lọc
-        </a>
+                <a
+                    class="nut phu"
+                    href="{% url 'dashboard:index' %}"
+                >
+                    Đặt lại
+                </a>
+            </div>
+            {% if hop_le %}
+            <a
+                class="nut phu"
+                href="{% url 'dashboard:reports:xuat_excel' %}?{{ tham_so }}"
+            >
+                Xuất Excel (6 trang tính)
+            </a>
+            {% endif %}
+        </div>
     </form>
+    <script>
+    function capNhatNhanThangBaoCao() {
+        const btn = document.getElementById('thang-multi-btn');
+        const checks = Array.from(document.querySelectorAll('#thang-multi-menu input[name="thang"]:checked'));
+        if (!btn) return;
+        if (checks.length === 0) {
+            btn.textContent = 'Tất cả các tháng';
+        } else if (checks.length <= 2) {
+            btn.textContent = checks.map(c => c.dataset.label).join(', ');
+        } else {
+            const preview = checks.slice(0, 2).map(c => c.value.split('-').reverse().join('/')).join(', ');
+            btn.textContent = `Đã chọn ${checks.length} tháng (${preview}...)`;
+        }
+    }
+
+    function chonTatCaThangBaoCao(checked) {
+        document.querySelectorAll('#thang-multi-menu input[name="thang"]').forEach(cb => {
+            cb.checked = checked;
+        });
+        capNhatNhanThangBaoCao();
+    }
+
+    (function () {
+        const wrap = document.getElementById('thang-multi-wrap');
+        const btn = document.getElementById('thang-multi-btn');
+        const menu = document.getElementById('thang-multi-menu');
+        const form = document.getElementById('form-bao-cao');
+        if (!wrap || !btn || !menu) return;
+
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const isHidden = menu.hasAttribute('hidden');
+            if (isHidden) {
+                menu.removeAttribute('hidden');
+                btn.setAttribute('aria-expanded', 'true');
+            } else {
+                menu.setAttribute('hidden', '');
+                btn.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        menu.addEventListener('click', function (e) {
+            e.stopPropagation();
+        });
+
+        document.addEventListener('click', function () {
+            menu.setAttribute('hidden', '');
+            btn.setAttribute('aria-expanded', 'false');
+        });
+
+        if (form) {
+            form.addEventListener('submit', function () {
+                const tu = document.getElementById('id_tu_ngay');
+                const den = document.getElementById('id_den_ngay');
+                if (document.querySelectorAll('#thang-multi-menu input[name="thang"]:checked').length > 0) {
+                    if (tu) tu.value = '';
+                    if (den) den.value = '';
+                }
+            });
+        }
+
+        capNhatNhanThangBaoCao();
+    })();
+    </script>
 
     {{ form.non_field_errors }}
 
-    <div class="thanh-tac-vu">
-        <p class="ghi-chu">
-            Tổng hợp lúc:
-            {{ thoi_diem|date:"d/m/Y H:i:s" }}.
-        </p>
-
-        {% if hop_le %}
-        <a
-            class="nut"
-            href="{% url 'dashboard:reports:xuat_excel' %}?{{ tham_so }}"
-        >
-            Xuất Excel (6 trang tính)
-        </a>
-        {% endif %}
-    </div>
-
-    <p class="ghi-chu">
-        Tồn kho và tuổi tồn phản ánh hiện tại.
-        Bộ lọc ngày áp dụng cho nhập kho, xuất kho,
-        hợp đồng và PDI (bao gồm ngày đầu và ngày cuối).
-    </p>
-
     {% if kho_da_chon %}
-    <p class="ghi-chu">
+    <p class="ghi-chu pham-vi-ghi-chu">
         Phạm vi: kho {{ kho_da_chon.pk }}
         (chi nhánh {{ kho_da_chon.chi_nhanh_id }}).
     </p>

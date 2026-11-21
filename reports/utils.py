@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from django.core.exceptions import ValidationError
 from django.db.models import (
@@ -14,11 +14,15 @@ from database.models import (
     HopDong,
     Kho,
     PhieuXuatKho,
+    TrangThaiHopDong,
     TrangThaiPhieuXuat,
+    TrangThaiXe,
     TonKho,
 )
 
 from alerts.models import CanhBao
+from analytics.models import HOAN_TAT, PhienDuBao
+from incidents.models import HoSoSuCo, nhan_trang_thai
 from orders.models import VehicleRequest, VehicleRequestItem
 from transfers.models import LenhLuuChuyen, ChiTietLenhLuuChuyen
 from warehouse.models import PhieuNhapKho
@@ -60,6 +64,21 @@ def loc_ngay(queryset, truong, bo_loc, la_datefield=False):
         ten_truong = truong
     else:
         ten_truong = truong + "__date"
+
+    cac_thang = bo_loc.get("cac_thang")
+    if cac_thang:
+        q_thang = Q()
+        for moc in cac_thang:
+            if moc.month == 12:
+                thang_sau = date(moc.year + 1, 1, 1)
+            else:
+                thang_sau = date(moc.year, moc.month + 1, 1)
+            ngay_cuoi = thang_sau - timedelta(days=1)
+            q_thang |= Q(**{
+                ten_truong + "__gte": moc,
+                ten_truong + "__lte": ngay_cuoi,
+            })
+        return queryset.filter(q_thang)
 
     if bo_loc.get("tu_ngay"):
         queryset = queryset.filter(**{
@@ -111,6 +130,10 @@ def thong_ke_thang(queryset, truong, phep_tinh):
 
 
 def tao_truc_thang(cac_nhom, bo_loc):
+    cac_thang_chon = bo_loc.get("cac_thang")
+    if cac_thang_chon:
+        return sorted(set(m.replace(day=1) for m in cac_thang_chon))
+
     cac_moc = []
 
     for nhom in cac_nhom:
@@ -326,6 +349,17 @@ def tao_bao_cao(
     tong_ton = sum(
         item.so_luong_ton for item in ton
     )
+    so_san_sang = sum(
+        item.so_luong_ton for item in ton if item.xe.trang_thai == TrangThaiXe.SAN_SANG
+    )
+    so_giu_cho = sum(
+        item.so_luong_ton for item in ton if item.xe.trang_thai == TrangThaiXe.GIU_CHO_XUAT
+    )
+    so_khac = tong_ton - so_san_sang - so_giu_cho
+    ghi_chu_ton = f"Sẵn sàng: {so_san_sang}; Giữ chỗ xuất: {so_giu_cho}"
+    if so_khac:
+        ghi_chu_ton += f"; Khác: {so_khac}"
+
     data["ton_kho"] = {
         "ten": "Tồn kho hiện tại",
         "don_vi": "xe",
@@ -338,6 +372,7 @@ def tao_bao_cao(
             "Số lượng tồn",
         ],
         "dong": dong_ton,
+        "ghi_chu": ghi_chu_ton,
     }
 
     data["tuoi_ton"] = {
@@ -465,7 +500,9 @@ def tao_bao_cao(
         ).values("hop_dong_id")
 
         hop_dong = hop_dong.filter(
-            pk__in=ma_hd
+            Q(pk__in=ma_hd)
+            | Q(dong_xe_yeu_cau__icontains=ten)
+            | Q(phien_ban_yeu_cau__icontains=ten)
         )
 
     hop_dong = loc_ngay(
@@ -474,22 +511,27 @@ def tao_bao_cao(
         bo_loc,
     )
 
-    dong = [
-        [
+    dong = []
+    so_cho_xu_ly = 0
+    so_hoan_tat_hd = 0
+    for item in (
+        hop_dong.select_related(
+            "khach_hang"
+        ).order_by(
+            "ngay_ky",
+            "pk",
+        )
+    ):
+        if item.trang_thai in (TrangThaiHopDong.CHO_XU_LY, TrangThaiHopDong.CHO_PHAN_BO):
+            so_cho_xu_ly += 1
+        else:
+            so_hoan_tat_hd += 1
+        dong.append([
             item.pk,
             item.chi_nhanh_id,
             dinh_dang_ngay(item.ngay_ky),
             item.khach_hang.ten_kh,
-        ]
-        for item in (
-            hop_dong.select_related(
-                "khach_hang"
-            ).order_by(
-                "ngay_ky",
-                "pk",
-            )
-        )
-    ]
+        ])
 
     data["hop_dong"] = {
         "ten": "Hợp đồng ký trong kỳ",
@@ -502,12 +544,14 @@ def tao_bao_cao(
             "Khách hàng",
         ],
         "dong": dong,
+        "ghi_chu": f"Chờ xử lý: {so_cho_xu_ly}; Hoàn tất: {so_hoan_tat_hd}",
     }
 
-    # PDI theo trạng thái hiện tại.
+    # PDI theo trạng thái hiện tại (bao gồm cả sự cố từ hóa đơn nhập hãng và từ lệnh lưu chuyển nội bộ).
     pdi = BienBanPDI.objects.filter(
-        hoa_don_nhap__chi_nhanh_id__in=chi_nhanh_ids
-    )
+        Q(hoa_don_nhap__chi_nhanh_id__in=chi_nhanh_ids)
+        | Q(lenh_luu_chuyen__kho_nhap__chi_nhanh_id__in=chi_nhanh_ids)
+    ).distinct()
 
     if ten:
         pdi = pdi.filter(
@@ -527,6 +571,7 @@ def tao_bao_cao(
         pdi.select_related(
             "xe",
             "hoa_don_nhap",
+            "lenh_luu_chuyen__kho_nhap",
         ).order_by(
             "ngay_ghi_nhan",
             "pk",
@@ -538,10 +583,15 @@ def tao_bao_cao(
         )
 
         trang_thai[state] += 1
+        cn_id = (
+            item.hoa_don_nhap.chi_nhanh_id
+            if item.hoa_don_nhap_id
+            else (item.lenh_luu_chuyen.kho_nhap.chi_nhanh_id if item.lenh_luu_chuyen_id and item.lenh_luu_chuyen.kho_nhap else "CN01")
+        )
 
         dong.append([
             item.pk,
-            item.hoa_don_nhap.chi_nhanh_id,
+            cn_id,
             dinh_dang_ngay(item.ngay_ghi_nhan),
             item.xe_id,
             item.xe.ten_xe,
@@ -549,6 +599,11 @@ def tao_bao_cao(
             state,
         ])
 
+    ghi_chu_pdi = (
+        "; ".join(f"{k}: {v}" for k, v in sorted(trang_thai.items()))
+        if trang_thai
+        else "Chưa xử lý: 0; Đã xử lý: 0"
+    )
     data["pdi"] = {
         "ten": "Biên bản PDI trong kỳ",
         "don_vi": "biên bản",
@@ -564,6 +619,7 @@ def tao_bao_cao(
         ],
         "dong": dong,
         "nhom": sorted(trang_thai.items()),
+        "ghi_chu": ghi_chu_pdi,
     }
 
     kiem_tra_khoang_ngay([
@@ -686,6 +742,16 @@ def tao_bao_cao(
                 kho_duoc_xem, bo_loc,
             )
 
+        if user.has_perm(QUYEN_XEM_TUNG_BAO_CAO["du_bao"]):
+            data["du_bao"] = tao_bao_cao_du_bao(
+                bo_loc, kem_thong_ke,
+            )
+
+        if user.has_perm(QUYEN_XEM_TUNG_BAO_CAO["su_co"]):
+            data["su_co"] = tao_bao_cao_su_co(
+                kho_duoc_xem, bo_loc, kem_thong_ke,
+            )
+
     return data
 
 
@@ -694,6 +760,8 @@ QUYEN_XEM_TUNG_BAO_CAO = {
     "dat_xe": "orders.view_vehiclerequest",
     "luu_chuyen": "transfers.view_lenhluuchuyen",
     "canh_bao": "alerts.view_canhbao",
+    "du_bao": "analytics.view_phiendubao",
+    "su_co": "incidents.view_hososuco",
 }
 
 
@@ -841,7 +909,7 @@ def tao_bao_cao_luu_chuyen(kho_duoc_xem, bo_loc, kem_thong_ke=False):
 
         for ct in item.chi_tiet_bao_cao:
             tong_xe += ct.so_luong
-            if item.trang_thai == "DA_XAC_NHAN":
+            if item.trang_thai in ("DA_XAC_NHAN", LenhLuuChuyen.TrangThai.HOAN_TAT):
                 xe_da_xac_nhan += ct.so_luong
 
             dong.append([
@@ -894,6 +962,10 @@ def tao_bao_cao_canh_bao(kho_duoc_xem, bo_loc):
 
     theo_loai = dict.fromkeys(CanhBao.Loai.labels, 0)
     theo_xu_ly = dict.fromkeys(CanhBao.TrangThai.labels, 0)
+    theo_loai_va_xu_ly = {
+        loai_label: dict.fromkeys(CanhBao.TrangThai.labels, 0)
+        for loai_label in CanhBao.Loai.labels
+    }
     dong = []
     con_hieu_luc = 0
 
@@ -902,6 +974,8 @@ def tao_bao_cao_canh_bao(kho_duoc_xem, bo_loc):
         xu_ly = cb.get_trang_thai_display()
         theo_loai[loai] += 1
         theo_xu_ly[xu_ly] += 1
+        theo_loai_va_xu_ly.setdefault(loai, dict.fromkeys(CanhBao.TrangThai.labels, 0))
+        theo_loai_va_xu_ly[loai][xu_ly] = theo_loai_va_xu_ly[loai].get(xu_ly, 0) + 1
 
         if cb.con_hieu_luc:
             con_hieu_luc += 1
@@ -936,5 +1010,254 @@ def tao_bao_cao_canh_bao(kho_duoc_xem, bo_loc):
         ),
         "theo_loai": theo_loai,
         "theo_xu_ly": theo_xu_ly,
+        "theo_loai_va_xu_ly": theo_loai_va_xu_ly,
     }
+
+
+def _dinh_dang_tien_vn(so_tien):
+    """Định dạng số tiền VNĐ phân tách hàng nghìn bằng dấu chấm."""
+    return f"{int(round(so_tien)):,}".replace(",", ".")
+
+
+def _phien_khop_bo_loc(phien, bo_loc):
+    """Kiểm tra kỳ dự báo (tháng/năm) có nằm trong bộ lọc thời gian hay không."""
+    if not (1 <= phien.thang <= 12):
+        return False
+
+    cac_thang = bo_loc.get("cac_thang")
+    if cac_thang:
+        return any(m.year == phien.nam and m.month == phien.thang for m in cac_thang)
+
+    dau_ky = date(phien.nam, phien.thang, 1)
+    thang_sau = (
+        date(phien.nam + 1, 1, 1)
+        if phien.thang == 12
+        else date(phien.nam, phien.thang + 1, 1)
+    )
+    cuoi_ky = thang_sau - timedelta(days=1)
+
+    tu_ngay = bo_loc.get("tu_ngay")
+    den_ngay = bo_loc.get("den_ngay")
+    if tu_ngay and cuoi_ky < tu_ngay:
+        return False
+    if den_ngay and dau_ky > den_ngay:
+        return False
+    return True
+
+
+def tao_bao_cao_du_bao(bo_loc, kem_thong_ke=False):
+    """Tổng hợp số liệu dự báo nhu cầu từ module analytics theo bộ lọc báo cáo."""
+    phien_qs = (
+        PhienDuBao.objects
+        .filter(trang_thai=HOAN_TAT)
+        .prefetch_related("dong")
+        .order_by("-nam", "-thang", "-tao_luc", "-pk")
+    )
+
+    # Mỗi kỳ (năm, tháng) chỉ lấy phiên hoàn tất mới nhất để tránh cộng trùng khi phân tích lại.
+    cac_phien = []
+    ky_da_lay = set()
+    for phien in phien_qs:
+        ky = (phien.nam, phien.thang)
+        if ky in ky_da_lay or not _phien_khop_bo_loc(phien, bo_loc):
+            continue
+        ky_da_lay.add(ky)
+        cac_phien.append(phien)
+
+    tu_ngay = bo_loc.get("tu_ngay")
+    den_ngay = bo_loc.get("den_ngay")
+    if not bo_loc.get("cac_thang") and (bool(tu_ngay) != bool(den_ngay)) and cac_phien:
+        cac_moc = [date(p.nam, p.thang, 1) for p in cac_phien]
+        moc_dau = tu_ngay or min(cac_moc)
+        moc_cuoi = den_ngay or max(cac_moc)
+        so_thang = (moc_cuoi.year - moc_dau.year) * 12 + moc_cuoi.month - moc_dau.month + 1
+        if so_thang > MAX_KHOANG_BAO_CAO_THANG:
+            raise ValidationError(
+                "Khoảng thời gian báo cáo không được vượt quá 120 tháng. "
+                "Vui lòng chọn thêm ngày còn lại để thu hẹp khoảng báo cáo."
+            )
+
+    ten = (bo_loc.get("ten_xe") or "").strip().lower()
+    dong = []
+    tong_du_bao_raw = 0.0
+    tong_ky_truoc = 0
+    tong_nhap = 0
+    hang_bieu_do = []
+    ky_bieu_do = ""
+
+    for chi_so, phien in enumerate(cac_phien):
+        ky_nhan = f"{phien.thang:02d}/{phien.nam}"
+        cac_dong = [
+            d for d in phien.dong.all()
+            if not ten or ten in d.ten_xe.lower()
+        ]
+        if chi_so == 0 and cac_dong:
+            ky_bieu_do = ky_nhan
+
+        for d in cac_dong:
+            du_bao = round(d.du_bao_sarima, 1)
+            tong_du_bao_raw += d.du_bao_sarima
+            tong_ky_truoc += d.ky_truoc
+            tong_nhap += d.so_luong_nhap
+
+            dong.append([
+                ky_nhan,
+                d.ma_dong_xe,
+                d.ten_xe,
+                d.loai_xe,
+                d.ky_truoc,
+                du_bao,
+                d.ton_kho,
+                d.de_xuat_poq,
+                d.so_luong_nhap,
+                phien.trang_thai_de_xuat,
+            ])
+
+            if chi_so == 0 and kem_thong_ke:
+                hang_bieu_do.append({
+                    "ten": f"{d.ten_ngan} {d.phien_ban}".strip() or d.ten_xe,
+                    "ky_truoc": d.ky_truoc,
+                    "du_bao": du_bao,
+                    "de_xuat": d.so_luong_nhap,
+                })
+
+    tong_du_bao = round(tong_du_bao_raw, 1)
+    if float(tong_du_bao).is_integer():
+        tong_du_bao = int(tong_du_bao)
+
+    if cac_phien:
+        phien_moi = cac_phien[0]
+        ghi_chu = (
+            f"Kỳ mới nhất {phien_moi.thang:02d}/{phien_moi.nam} ({len(cac_phien)} kỳ); "
+            f"Bán tháng trước: {tong_ky_truoc}; Đề xuất nhập: {tong_nhap} xe. "
+            "Bộ lọc kho không áp dụng cho dự báo nhu cầu."
+        )
+    else:
+        ghi_chu = "Chưa có phiên dự báo phù hợp. Bộ lọc kho không áp dụng cho dự báo nhu cầu."
+
+    ket_qua = {
+        "ten": "Nhu cầu dự báo trong kỳ",
+        "don_vi": "xe",
+        "tong": tong_du_bao,
+        "cot": [
+            "Kỳ dự báo", "Mã dòng xe", "Tên xe", "Phân khúc",
+            "Bán tháng trước", "Dự báo SARIMA", "Tồn kho khả dụng",
+            "Đề xuất POQ", "SL nhập dự kiến", "Trạng thái phiên",
+        ],
+        "dong": dong,
+        "ghi_chu": ghi_chu,
+    }
+
+    if kem_thong_ke:
+        ket_qua["so_sanh"] = {
+            "ky": ky_bieu_do,
+            "so_ky": len(cac_phien),
+            "hang": hang_bieu_do,
+        }
+
+    return ket_qua
+
+
+def tao_bao_cao_su_co(kho_duoc_xem, bo_loc, kem_thong_ke=False):
+    """Tổng hợp sự cố vận chuyển từ module incidents/BienBanPDI theo bộ lọc báo cáo."""
+    if bo_loc.get("kho"):
+        kho_duoc_xem = kho_duoc_xem.filter(pk=bo_loc["kho"].pk)
+
+    chi_nhanh_ids = list(kho_duoc_xem.values_list("chi_nhanh_id", flat=True))
+    qs = BienBanPDI.objects.filter(
+        Q(hoa_don_nhap__chi_nhanh_id__in=chi_nhanh_ids)
+        | Q(lenh_luu_chuyen__kho_nhap__chi_nhanh_id__in=chi_nhanh_ids)
+    ).distinct()
+
+    ten = (bo_loc.get("ten_xe") or "").strip()
+    if ten:
+        qs = qs.filter(xe__ten_xe__icontains=ten)
+
+    qs = loc_ngay(qs, "ngay_ghi_nhan", bo_loc)
+    kiem_tra_khoang_ngay([(qs, "ngay_ghi_nhan")], bo_loc)
+
+    danh_sach = qs.select_related(
+        "xe",
+        "hoa_don_nhap__don_vi_van_chuyen",
+        "lenh_luu_chuyen__kho_nhap",
+        "lenh_luu_chuyen__don_vi_van_chuyen",
+        "ho_so",
+    ).order_by("ngay_ghi_nhan", "pk")
+
+    dong = []
+    dang_xu_ly_count = 0
+    da_dong_count = 0
+    tong_boi_thuong = 0
+    theo_loai = defaultdict(lambda: [0, 0])
+
+    for item in danh_sach:
+        trang_thai_xl = nhan_trang_thai(item.trang_thai_claim)
+        loai = (item.loai_su_co or "Khác").strip()
+
+        if trang_thai_xl == "Đã đóng":
+            da_dong_count += 1
+            theo_loai[loai][1] += 1
+        else:
+            dang_xu_ly_count += 1
+            theo_loai[loai][0] += 1
+
+        try:
+            ho_so = item.ho_so
+        except HoSoSuCo.DoesNotExist:
+            ho_so = None
+
+        hinh_thuc = (
+            ho_so.get_hinh_thuc_khac_phuc_display()
+            if ho_so and ho_so.hinh_thuc_khac_phuc
+            else "—"
+        )
+        tien_bt = ho_so.so_tien_boi_thuong if ho_so and ho_so.so_tien_boi_thuong is not None else 0
+        tong_boi_thuong += tien_bt
+
+        cn_id = (
+            item.hoa_don_nhap.chi_nhanh_id
+            if item.hoa_don_nhap_id
+            else (
+                item.lenh_luu_chuyen.kho_nhap.chi_nhanh_id
+                if item.lenh_luu_chuyen_id and item.lenh_luu_chuyen.kho_nhap
+                else "CN01"
+            )
+        )
+
+        dong.append([
+            item.pk,
+            cn_id,
+            item.don_vi_van_chuyen or "—",
+            dinh_dang_ngay(item.ngay_ghi_nhan),
+            item.xe_id,
+            item.xe.ten_xe,
+            loai,
+            trang_thai_xl,
+            hinh_thuc,
+            int(round(tien_bt)) if tien_bt else 0,
+        ])
+
+    ket_qua = {
+        "ten": "Sự cố vận chuyển trong kỳ",
+        "don_vi": "sự cố",
+        "tong": len(dong),
+        "cot": [
+            "Mã sự cố", "Chi nhánh", "ĐVVC", "Ngày ghi nhận",
+            "VIN", "Tên xe", "Loại sự cố", "Trạng thái xử lý",
+            "Hình thức khắc phục", "Tiền bồi thường (VNĐ)",
+        ],
+        "dong": dong,
+        "ghi_chu": (
+            f"Đang xử lý: {dang_xu_ly_count}; Đã đóng: {da_dong_count}; "
+            f"Bồi thường: {_dinh_dang_tien_vn(tong_boi_thuong)} đ"
+        ),
+    }
+
+    if kem_thong_ke:
+        ket_qua["theo_loai"] = sorted(
+            [(loai, dem[0], dem[1]) for loai, dem in theo_loai.items()],
+            key=lambda row: (-(row[1] + row[2]), row[0]),
+        )
+
+    return ket_qua
 

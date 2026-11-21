@@ -30,6 +30,7 @@ class VehicleRequest(models.Model):
         DRAFT = "DRAFT", "Bản nháp"
         PENDING = "PENDING", "Đã gửi - Chờ xử lý"
         ACCEPTED = "ACCEPTED", "Yêu cầu đã được chấp nhận"
+        REJECTED = "REJECTED", "Từ chối"
 
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -53,6 +54,27 @@ class VehicleRequest(models.Model):
         choices=Status.choices,
         default=Status.DRAFT,
         verbose_name="Trạng thái yêu cầu"
+    )
+
+    hold_until = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Hạn giữ chỗ"
+    )
+
+    rejection_reason = models.TextField(
+        blank=True,
+        default="",
+        verbose_name="Lý do từ chối"
+    )
+
+    hop_dong = models.ForeignKey(
+        "database.HopDong",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="phieu_dat_xe",
+        verbose_name="Hợp đồng xe bán liên kết"
     )
 
     @property

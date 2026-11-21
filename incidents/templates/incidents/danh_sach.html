@@ -4,10 +4,10 @@
 {% block content %}
 {% include "incidents/_messages.html" %}
 
-<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<div class="page-header">
   <div>
-    <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #0b2a4a;">Quản lý sự cố vận chuyển</h1>
-    <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Ghi nhận, xử lý claim bồi thường và theo dõi khắc phục sự cố phát sinh từ kiểm định PDI</p>
+    <h1 class="page-header__title">Quản lý sự cố vận chuyển</h1>
+    <p class="page-header__subtitle">Ghi nhận, xử lý claim bồi thường và theo dõi khắc phục sự cố phát sinh từ kiểm định PDI</p>
   </div>
   <a class="btn btn--primary" href="{% url 'incidents:ghi_nhan' %}"><i class="bi bi-plus-lg"></i> Ghi nhận sự cố</a>
 </div>
@@ -17,14 +17,22 @@
     <label class="filter__wide">{{ form.q.label }}{{ form.q }}</label>
     <label>{{ form.tu_ngay.label }}{{ form.tu_ngay }}</label>
     <label>{{ form.den_ngay.label }}{{ form.den_ngay }}</label>
+    <label>Kỳ tháng
+      <select name="thang" class="inp" onchange="this.form.submit()">
+        <option value="">-- Tất cả các tháng --</option>
+        <option value="2026-11"{% if request.GET.thang == '2026-11' %} selected{% endif %}>Tháng 11/2026</option>
+        <option value="2026-10"{% if request.GET.thang == '2026-10' %} selected{% endif %}>Tháng 10/2026</option>
+        <option value="2026-09"{% if request.GET.thang == '2026-09' %} selected{% endif %}>Tháng 09/2026</option>
+        <option value="2026-08"{% if request.GET.thang == '2026-08' %} selected{% endif %}>Tháng 08/2026</option>
+      </select>
+    </label>
     <label>{{ form.dvvc.label }}{{ form.dvvc }}</label>
     <label>{{ form.trang_thai.label }}{{ form.trang_thai }}</label>
   </div>
   <div class="actions">
     <button class="btn btn--primary" type="submit"><i class="bi bi-search"></i> Tìm kiếm</button>
-    <a class="btn" href="{% url 'incidents:index' %}">Xóa bộ lọc</a>
+    <a class="btn" href="{% url 'incidents:index' %}">Đặt lại</a>
     <span class="spacer"></span>
-    <a class="btn btn--primary" href="{% url 'incidents:ghi_nhan' %}"><i class="bi bi-plus-lg"></i> Ghi nhận sự cố</a>
     <button class="btn" type="button" id="btn-export" {% if not tong and not co_loc %}disabled{% endif %}>
       <i class="bi bi-download"></i> Xuất báo cáo</button>
   </div>
@@ -32,13 +40,14 @@
 
 <div class="card">
   <p class="muted">{% if co_loc %}Tìm thấy {{ tong }} sự cố phù hợp.{% else %}Tổng cộng {{ tong }} sự cố.{% endif %}</p>
-  <table class="tbl">
+  <div class="scroll">
+  <table class="tbl tbl--su-co" style="min-width: 1210px;">
     <thead><tr><th>Mã sự cố</th><th>Mã VIN xe</th><th>Loại lỗi</th><th>Tên ĐVVC</th><th>Ngày ghi nhận</th><th>Trạng thái</th></tr></thead>
     <tbody>
     {% for bb in trang %}
       <tr>
-        <td><a href="{% url 'incidents:chi_tiet' bb.ma_pdi %}" style="text-decoration: none; font-weight: 700; color: #0067c5;">{{ bb.ma_pdi }}</a></td>
-        <td><a href="{% url 'incidents:chi_tiet' bb.ma_pdi %}" style="text-decoration: none; color: inherit; font-weight: 600;">{{ bb.xe_id }}</a></td>
+        <td><a class="df-code" href="{% url 'incidents:chi_tiet' bb.ma_pdi %}">{{ bb.ma_pdi }}</a></td>
+        <td><a class="df-code" href="{% url 'incidents:chi_tiet' bb.ma_pdi %}" style="color: #243b53 !important;">{{ bb.xe_id }}</a></td>
         <td>{{ bb.loai_su_co }}</td>
         <td>{{ bb.don_vi_van_chuyen|default:bb.hoa_don_nhap.don_vi_van_chuyen.ten_dvvc }}</td>
         <td>{{ bb.ngay_ghi_nhan|date:"d/m/Y H:i" }}</td>
@@ -51,11 +60,23 @@
     {% endfor %}
     </tbody>
   </table>
+  </div>
   {% if trang.paginator.num_pages > 1 %}
-  <div class="pager">
-    {% if trang.has_previous %}<a href="?{{ query }}&page={{ trang.previous_page_number }}">&laquo; Trước</a>{% endif %}
-    <span>Trang {{ trang.number }} / {{ trang.paginator.num_pages }}</span>
-    {% if trang.has_next %}<a href="?{{ query }}&page={{ trang.next_page_number }}">Sau &raquo;</a>{% endif %}
+  <div class="df-pager" aria-label="Phân trang sự cố">
+    <div class="df-pager__info">Tổng: {{ tong }} sự cố</div>
+    <div class="df-pager__controls">
+      {% if trang.has_previous %}
+        <a class="df-pager__btn" href="?{{ query }}&page={{ trang.previous_page_number }}">&laquo; Trước</a>
+      {% else %}
+        <span class="df-pager__btn is-disabled" aria-disabled="true">&laquo; Trước</span>
+      {% endif %}
+      <span class="df-pager__counter">Trang {{ trang.number }} / {{ trang.paginator.num_pages }}</span>
+      {% if trang.has_next %}
+        <a class="df-pager__btn" href="?{{ query }}&page={{ trang.next_page_number }}">Sau &raquo;</a>
+      {% else %}
+        <span class="df-pager__btn is-disabled" aria-disabled="true">Sau &raquo;</span>
+      {% endif %}
+    </div>
   </div>
   {% endif %}
 </div>

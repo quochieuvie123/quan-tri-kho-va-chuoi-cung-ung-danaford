@@ -4,16 +4,25 @@
 {% block content %}
 {% include "analytics/_messages.html" %}
 
-<div class="actions">
-  <a class="btn" href="{% url 'analytics:index' %}"><i class="bi bi-arrow-left"></i> Phiên dự báo</a>
-  <span class="badge {% if phien.trang_thai_de_xuat == 'Tự động' %}badge--auto{% else %}badge--manual{% endif %}">{{ phien.trang_thai_de_xuat }}</span>
-  <span class="spacer"></span>
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">Phiên dự báo kỳ {{ phien.thang|stringformat:"02d" }}/{{ phien.nam }}</h1>
+    <p class="page-header__subtitle">Tổng hợp dự báo SARIMA, đề xuất POQ và điều chỉnh số lượng nhập xe theo phân khúc</p>
+  </div>
+  <div class="actions actions--top">
+    <span class="badge {% if phien.trang_thai_de_xuat == 'Tự động' %}badge--auto{% else %}badge--manual{% endif %}">{{ phien.trang_thai_de_xuat }}</span>
+    <a class="btn" href="{% url 'analytics:index' %}"><i class="bi bi-arrow-left"></i> Phiên dự báo</a>
+  </div>
+</div>
+
+<div class="actions actions--top" style="margin-bottom: 20px;">
   <form method="get" class="inline">
-    <select name="nhom" class="inp" onchange="this.form.submit()">
+    <select name="nhom" class="inp" onchange="this.form.submit()" style="min-width: 220px;">
       <option value="">Tất cả phân khúc</option>
       {% for n in ds_nhom %}<option value="{{ n }}" {% if n == nhom %}selected{% endif %}>{{ n }}</option>{% endfor %}
     </select>
   </form>
+  <span class="spacer"></span>
   <button type="button" class="btn" id="btn-xuat"><i class="bi bi-download"></i> Xuất danh sách đề xuất</button>
 </div>
 
@@ -29,7 +38,7 @@
   <div class="stats">
     <div class="card stat"><small>Tổng số lượng xe dự kiến đặt</small><strong id="tk-sl">{{ tk.tong_sl }}</strong></div>
     <div class="card stat"><small>Tỷ lệ so với chỉ tiêu hãng</small><strong id="tk-tl">{% if tk.ty_le is not None %}{{ tk.ty_le }}% ({{ tk.tong_sl }}/{{ tk.tong_chi_tieu }}){% else %}chưa có chỉ tiêu{% endif %}</strong></div>
-    <div class="card stat"><small>Tổng giá trị vốn nhập dự kiến</small><strong id="tk-von">{{ tk.tong_von|floatformat:"0g" }} đ</strong></div>
+    <div class="card stat"><small>Tổng giá trị vốn nhập dự kiến</small><strong id="tk-von">{{ tk.tong_von|tien_vn }} đ</strong></div>
   </div>
   <div id="canh-bao-vuot" class="msg msg--error" {% if not tk.vuot %}hidden{% endif %}>
     Tổng số lượng xe vượt quá hạn mức phân bổ được giao [<span id="vuot-sl">{{ tk.tong_sl }}</span>/<span id="vuot-ct">{{ tk.tong_chi_tieu }}</span> xe].
@@ -41,7 +50,7 @@
   <div class="card">
     <h3>{{ ten_nhom }} <small class="muted">({{ ds|length }} dòng xe)</small></h3>
     <div class="scroll">
-    <table class="tbl tbl--sm">
+    <table class="tbl tbl--sm tbl--du-bao" style="min-width: 1460px;">
       <thead><tr><th>Mã dòng xe</th><th>Tên xe</th><th>Phiên bản</th><th>Dự báo SARIMA</th><th>Tồn kho khả dụng</th>
         <th>HĐ chờ giao</th><th>Đang vận chuyển</th><th>Chỉ tiêu hãng</th><th>Đề xuất POQ</th><th>Số lượng nhập điều chỉnh</th><th>Lý do điều chỉnh</th></tr></thead>
       <tbody>

@@ -60,6 +60,12 @@
 
 {% block content %}
 <div class="stack">
+    <div class="page-header no-print">
+        <div>
+            <h1 class="page-header__title">Chi tiết lệnh lưu chuyển {{ lenh.ma_lenh|default:"" }}</h1>
+            <p class="page-header__subtitle">Chứng từ điều phối và theo dõi tiến trình vận chuyển xe giữa các chi nhánh</p>
+        </div>
+    </div>
     <!-- Thanh điều hướng và in ấn -->
     <div class="toolbar no-print">
         <a href="{% url 'transfers:danh_sach_lenh' %}" class="btn btn--light">
@@ -263,7 +269,7 @@
             {% if is_sale_admin %}
                 <form method="POST" action="{% url 'transfers:phe_duyet_lenh' lenh.pk %}" onsubmit="return confirm('Xác nhận phê duyệt lệnh lưu chuyển này?');" style="margin: 0;">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn--success" style="background: #15803d; border-color: #15803d; color: #fff;">
+                    <button type="submit" class="btn btn--success">
                         <i class="bi bi-check-lg"></i> Phê duyệt lệnh (Sale Admin)
                     </button>
                 </form>
@@ -284,16 +290,13 @@
         {% elif lenh.trang_thai == "DA_DUYET" %}
             {% if is_kho_xuat %}
                 <button type="button" class="btn btn--primary" onclick="openModal('xuatKhoModal')" style="padding: 10px 20px; font-weight: 600;">
-                    <i class="bi bi-truck"></i> Xác nhận xuất xe & Bàn giao ĐVVC
+                    <i class="bi bi-truck"></i> Xác nhận xuất kho nguồn &amp; Bàn giao ĐVVC
                 </button>
             {% else %}
                 <div style="background: #e0f2fe; border: 1px solid #bae6fd; color: #0369a1; padding: 8px 16px; border-radius: 6px; font-size: 13px;">
-                    <i class="bi bi-info-circle"></i> Lệnh đã duyệt. Xe đã sẵn sàng tiếp nhận tại kho Đà Nẵng.
+                    <i class="bi bi-info-circle"></i> Lệnh đã duyệt phương án. Chờ kho nguồn ({{ lenh.kho_xuat.ma_kho }}) xác nhận xuất xe rời kho.
                 </div>
             {% endif %}
-            <a href="{% url 'warehouse:nhap' %}" class="btn btn--success" style="background: #15803d; border-color: #15803d; color: #fff; padding: 10px 18px; font-weight: 600; text-decoration: none;">
-                <i class="bi bi-box-arrow-in-down"></i> Sang Quản lý nhập kho tiếp nhận xe
-            </a>
             {% if can_cancel %}
                 <button type="button" class="btn btn--light" onclick="openModal('huyModal')">
                     <i class="bi bi-slash-circle"></i> Hủy lệnh

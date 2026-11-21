@@ -3,11 +3,19 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'analytics/analytics.css' %}">{% endblock %}
 {% block content %}
 {% include "analytics/_messages.html" %}
-<form method="post" action="{% url 'analytics:phan_tich' %}" class="card">
+<div class="page-header">
+  <div>
+    <h1 class="page-header__title">Phiên dự báo đã hết hạn ({{ phien.thang|stringformat:"02d" }}/{{ phien.nam }})</h1>
+    <p class="page-header__subtitle">Khởi tạo lại phiên dự báo mới để cập nhật số liệu mới nhất</p>
+  </div>
+</div>
+<form method="post" action="{% url 'analytics:phan_tich' %}" class="card form">
   {% csrf_token %}
   <input type="hidden" name="thang" value="{{ phien.thang }}"><input type="hidden" name="nam" value="{{ phien.nam }}">
   <p>Kỳ {{ phien.thang|stringformat:"02d" }}/{{ phien.nam }}.</p>
-  <button class="btn btn--primary" type="submit">Khởi tạo lại dự báo</button>
-  <a class="btn" href="{% url 'analytics:index' %}">Quay lại</a>
+  <div class="actions actions--top">
+    <button class="btn btn--primary" type="submit">Khởi tạo lại dự báo</button>
+    <a class="btn" href="{% url 'analytics:index' %}">Quay lại</a>
+  </div>
 </form>
 {% endblock %}

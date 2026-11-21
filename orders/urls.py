@@ -31,6 +31,11 @@ urlpatterns = [
         name="lap_phieu_yeu_cau"
     ),
     path(
+        "phieu-yeu-cau/<int:id>/chinh-sua/",
+        views.chinh_sua_phieu_yeu_cau,
+        name="chinh_sua_phieu_yeu_cau",
+    ),
+    path(
         "phieu-yeu-cau/<int:id>/gui/",
         views.gui_phieu_yeu_cau,
         name="gui_phieu_yeu_cau",
@@ -49,6 +54,16 @@ urlpatterns = [
         "phieu-yeu-cau/<int:id>/xac-nhan/",
         views.xac_nhan_phieu,
         name="xac_nhan_phieu"
+    ),
+    path(
+        "phieu-yeu-cau/<int:id>/tu-choi/",
+        views.tu_choi_phieu,
+        name="tu_choi_phieu",
+    ),
+    path(
+        "phieu-yeu-cau/<int:id>/xoa-xe/<int:item_id>/",
+        views.xoa_xe_phieu_nhap,
+        name="xoa_xe_phieu_nhap",
     ),
     path(
         "de-xuat/<int:id>/",

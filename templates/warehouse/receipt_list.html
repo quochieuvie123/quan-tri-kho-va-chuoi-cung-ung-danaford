@@ -47,9 +47,19 @@
           {% endfor %}
         </select>
       </div>
-      <div style="display: flex; gap: 8px; align-items: flex-end; padding-bottom: 2px;">
+      <div class="field">
+        <label>Tháng nhập kho</label>
+        <select class="select" name="thang">
+          <option value="">-- Tất cả các tháng --</option>
+          <option value="2026-11"{% if request.GET.thang == '2026-11' %} selected{% endif %}>Tháng 11/2026</option>
+          <option value="2026-10"{% if request.GET.thang == '2026-10' %} selected{% endif %}>Tháng 10/2026</option>
+          <option value="2026-09"{% if request.GET.thang == '2026-09' %} selected{% endif %}>Tháng 09/2026</option>
+          <option value="2026-08"{% if request.GET.thang == '2026-08' %} selected{% endif %}>Tháng 08/2026</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: flex-end; padding-bottom: 2px;">
         <button class="btn btn--primary" type="submit">
-          <i class="bi bi-search"></i> Lọc dữ liệu
+          <i class="bi bi-search"></i> Tìm kiếm
         </button>
         <a class="btn btn--light" href="{% url 'warehouse:nhap' %}">
           <i class="bi bi-arrow-counterclockwise"></i> Đặt lại
@@ -64,7 +74,7 @@
       </div>
     {% else %}
       <div class="table-wrap">
-        <table class="data-table">
+        <table class="data-table data-table--nhap-kho">
           <thead>
             <tr>
               <th>Mã phiếu</th>
@@ -87,16 +97,16 @@
                 {% elif p.pending_order %}
                   {{ p.ma_phieu }}
                 {% else %}
-                <a href="{% url 'warehouse:receipt_detail' p.id %}" style="text-decoration: none; font-weight: 700; color: #0067c5;">
+                <a class="df-code" href="{% url 'warehouse:receipt_detail' p.id %}">
                   {{ p.ma_phieu }}
                 </a>
                 {% endif %}
               </td>
               <td>
                 {% if not p.pending_order %}
-                <a href="{% url 'warehouse:receipt_detail' p.id %}" style="text-decoration: none; color: inherit; font-weight: 700;">{{ p.vin }}</a>
+                <a class="df-code" href="{% url 'warehouse:receipt_detail' p.id %}" style="color: #243b53 !important;">{{ p.vin }}</a>
                 {% else %}
-                <strong>{{ p.vin }}</strong>
+                <span class="df-code">{{ p.vin }}</span>
                 {% endif %}
               </td>
               <td>

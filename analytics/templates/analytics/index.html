@@ -4,28 +4,35 @@
 {% block content %}
 {% include "analytics/_messages.html" %}
 
-<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<div class="page-header">
   <div>
-    <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #0b2a4a;">Dự báo nhu cầu & Đề xuất nhập xe</h1>
-    <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Ứng dụng mô hình dự báo chuỗi thời gian SARIMA và tính toán số lượng đặt hàng kinh tế POQ</p>
+    <h1 class="page-header__title">Dự báo nhu cầu & Đề xuất nhập xe</h1>
+    <p class="page-header__subtitle">Ứng dụng mô hình dự báo chuỗi thời gian SARIMA và tính toán số lượng đặt hàng kinh tế POQ</p>
   </div>
 </div>
 <form method="post" action="{% url 'analytics:phan_tich' %}" class="card">
   {% csrf_token %}
   <h3>Chọn kỳ kế hoạch nhập xe</h3>
-  <div class="row">
-    <label>Tháng
-      <select name="thang" class="inp">{% for t in thang_ds %}<option value="{{ t }}" {% if t == thang %}selected{% endif %}>Tháng {{ t }}</option>{% endfor %}</select>
-    </label>
-    <label>Năm <input class="inp" type="number" name="nam" value="{{ nam }}" min="2000" max="2100"></label>
-    <button class="btn btn--primary" type="submit"><i class="bi bi-graph-up-arrow"></i> Bắt đầu phân tích</button>
+  <div class="df-filter-grid">
+    <div class="df-field">
+      <label class="df-label" for="id_fc_thang">Tháng</label>
+      <select id="id_fc_thang" name="thang" class="inp">{% for t in thang_ds %}<option value="{{ t }}" {% if t == thang %}selected{% endif %}>Tháng {{ t }}</option>{% endfor %}</select>
+    </div>
+    <div class="df-field">
+      <label class="df-label" for="id_fc_nam">Năm</label>
+      <input id="id_fc_nam" class="inp" type="number" name="nam" value="{{ nam }}" min="2000" max="2100">
+    </div>
+    <div class="df-actions">
+      <button class="btn btn--primary" type="submit"><i class="bi bi-graph-up-arrow"></i> Bắt đầu phân tích</button>
+    </div>
   </div>
-  <p class="muted">Hệ thống thu thập lịch sử bán 24-36 tháng, tồn kho, hợp đồng chờ giao, xe đang vận chuyển và chỉ tiêu
+  <p class="muted" style="margin-top: 12px;">Hệ thống thu thập lịch sử bán 24-36 tháng, tồn kho, hợp đồng chờ giao, xe đang vận chuyển và chỉ tiêu
     của hãng, rồi dự báo (SARIMA mô phỏng) và tính số lượng đặt tối ưu (POQ). Chỉ tiêu hãng nhập ở Trang quản trị > Chỉ tiêu phân bổ của hãng.</p>
 </form>
 
 <div class="card">
   <h3>Các phiên dự báo đã lưu</h3>
+  <div class="scroll">
   <table class="tbl">
     <thead><tr><th>Kỳ</th><th>Tạo lúc</th><th>Người tạo</th><th>Trạng thái</th><th>Hết hạn</th><th></th></tr></thead>
     <tbody>
@@ -41,5 +48,6 @@
     {% empty %}<tr><td colspan="6" class="none">Chưa có phiên dự báo nào. Hãy bắt đầu phân tích.</td></tr>{% endfor %}
     </tbody>
   </table>
+  </div>
 </div>
 {% endblock %}

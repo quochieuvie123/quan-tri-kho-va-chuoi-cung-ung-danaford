@@ -7,36 +7,37 @@
 <style>
 .tab-nav {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
+  padding: 16px 24px;
+  border-bottom: 1px solid #dce6f0;
+  background: #f4f7fb;
 }
 .source-jump {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  min-height: 44px;
+  padding: 0 14px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: #334155;
+  color: #243b53;
   background: #ffffff;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #dce6f0;
   text-decoration: none;
   cursor: pointer;
   transition: all .15s ease;
 }
 .source-jump:hover {
-  background: #e2e8f0;
-  color: #0f172a;
+  background: #eaf4ff;
+  border-color: #0067c5;
+  color: #0067c5;
 }
 .source-jump.active {
   background: #0067c5;
   color: #ffffff;
   border-color: #0067c5;
-  box-shadow: 0 2px 4px rgba(0, 103, 197, 0.25);
 }
 .source-jump .count-badge {
   display: inline-flex;
@@ -45,15 +46,15 @@
   padding: 2px 8px;
   border-radius: 9999px;
   font-size: 12px;
-  background: #e2e8f0;
-  color: #1e293b;
+  background: #f4f7fb;
+  color: #243b53;
 }
 .source-jump.active .count-badge {
   background: rgba(255, 255, 255, 0.25);
   color: #ffffff;
 }
 .source-section {
-  padding: 20px 24px 28px;
+  padding: 24px;
 }
 .source-section[hidden] {
   display: none;
@@ -66,23 +67,27 @@
   align-items: center;
   gap: 8px;
   margin: 0 0 4px;
-  color: #0f172a;
-  font-size: 17px;
-  font-weight: 700;
+  color: #102a43;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.45;
 }
 .source-desc {
   margin: 0;
   font-size: 13px;
-  color: #64748b;
+  color: #627d98;
 }
 .source-empty {
   margin: 0;
   padding: 24px;
   text-align: center;
-  color: #64748b;
-  background: #f8fafc;
-  border: 1px dashed #cbd5e1;
-  border-radius: 8px;
+  color: #627d98;
+  background: #f4f7fb;
+  border: 1px dashed #dce6f0;
+  border-radius: 10px;
+}
+.df-workflow .source-section .data-table {
+  min-width: 1420px;
 }
 </style>
 {% endblock %}
@@ -115,8 +120,8 @@
         <span class="count-badge">{{ xe_chi_nhanh|length }} xe</span>
       </a>
       <a class="source-jump" href="#xe-phan-bo" id="tab-xe-phan-bo">
-        <i class="bi bi-calendar2-check"></i> 3. Theo lịch phân bổ
-        <span class="count-badge">{{ xe_phan_bo|length }} xe</span>
+        <i class="bi bi-calendar2-check"></i> 3. Nguồn phân bổ & Xe chờ PDI
+        <span class="count-badge">{{ tiers_info.PHAN_BO.count|default:xe_phan_bo|length }} xe</span>
       </a>
     </div>
 
@@ -188,7 +193,7 @@
         </table>
       </div>
       {% else %}
-        <p class="source-empty">Kho Đà Nẵng hiện chưa có xe phù hợp tiêu chí hợp đồng này.</p>
+        <p class="source-empty">Không có xe phù hợp</p>
       {% endif %}
     </section>
 
@@ -230,12 +235,19 @@
               <td><span class="badge badge--wait">{{ xe.phuong_an }}</span></td>
               <td style="text-align: center;"><span class="badge badge--DA_DUYET">{{ xe.trang_thai_hien_thi }}</span></td>
               <td style="text-align: right;">
+                {% if xe.duoc_chon or xe.duoc_chon is None %}
                 <form method="post" action="{% url 'contracts:choose_suggested_vehicle' ma_hd xe.vin %}" style="margin: 0;">
                   {% csrf_token %}
                   <button class="btn btn--primary" type="submit" style="background: #059669; border-color: #059669; font-weight: 600;">
                     <i class="bi bi-arrow-left-right"></i> Chốt xe & Lập lệnh lưu chuyển
                   </button>
                 </form>
+                {% else %}
+                <button class="btn btn--light" disabled style="opacity: 0.6; cursor: not-allowed; font-size: 12px;" title="{{ xe.ly_do_khoa }}">
+                  <i class="bi bi-lock-fill"></i> Đã khóa
+                </button>
+                <div style="font-size: 11px; color: #dc2626; margin-top: 4px; max-width: 220px;">{{ xe.ly_do_khoa }}</div>
+                {% endif %}
               </td>
             </tr>
             {% endfor %}
@@ -243,15 +255,67 @@
         </table>
       </div>
       {% else %}
-        <p class="source-empty">Kho Bình Định và Gia Lai hiện không có xe phù hợp tiêu chí.</p>
+        <p class="source-empty">Không có xe phù hợp</p>
       {% endif %}
     </section>
 
-    <!-- 3. THEO LỊCH PHÂN BỔ -->
+    <!-- 3. THEO LỊCH PHÂN BỔ VÀ XE TỪ PYC CHỜ PDI -->
     <section id="xe-phan-bo" class="source-section" hidden>
+      {% if xe_pyc %}
+      <div style="margin-bottom: 24px; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 10px; padding: 18px;">
+        <div class="source-title" style="color: #9333ea; margin-bottom: 6px;">
+          <i class="bi bi-hourglass-split"></i> Xe từ Phiếu yêu cầu (PYC) đang chờ kiểm tra PDI tại Đà Nẵng ({{ xe_pyc|length }} xe)
+        </div>
+        <p class="source-desc" style="margin-bottom: 14px;">
+          Xe đã được đại lý lên phiếu yêu cầu đặt xe từ trước và đang trong quá trình nhập kho / kiểm tra PDI tại kho Đà Nẵng. Cùng tầng ưu tiên với lịch phân bổ.
+        </p>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Số khung (VIN)</th>
+                <th>Dòng xe & Phiên bản</th>
+                <th>Màu sắc</th>
+                <th>Vị trí kho</th>
+                <th>Tình trạng</th>
+                <th style="text-align: right;">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for xe in xe_pyc %}
+              <tr>
+                <td><strong style="color: #0067c5; font-family: monospace;">{{ xe.vin }}</strong></td>
+                <td><strong>{{ xe.xe__ten_xe }}</strong> {{ xe.xe__phien_ban }}</td>
+                <td>{{ xe.xe__mau_sac|default:"Tiêu chuẩn" }}</td>
+                <td><span class="badge">{{ xe.vi_tri_kho }}</span></td>
+                <td><span class="badge" style="background: #f3e8ff; color: #7e22ce; border-color: #d8b4fe;">Chờ PDI nhập kho</span></td>
+                <td style="text-align: right;">
+                  {% if xe.duoc_chon or xe.duoc_chon is None %}
+                  <form method="post" action="{% url 'contracts:choose_suggested_vehicle' ma_hd xe.vin %}" style="margin: 0;"
+                        onsubmit="return confirm('Xác nhận chọn xe VIN {{ xe.vin }} từ nguồn PYC chờ PDI cho hợp đồng {{ ma_hd }}?');">
+                    {% csrf_token %}
+                    <button class="btn btn--primary" type="submit" style="background: #9333ea; border-color: #9333ea; font-weight: 600; white-space: nowrap;">
+                      <i class="bi bi-check2-circle"></i> Chốt xe chờ PDI
+                    </button>
+                  </form>
+                  {% else %}
+                  <button class="btn btn--light" disabled style="opacity: 0.6; cursor: not-allowed; font-size: 12px;" title="{{ xe.ly_do_khoa }}">
+                    <i class="bi bi-lock-fill"></i> Đã khóa
+                  </button>
+                  <div style="font-size: 11px; color: #dc2626; margin-top: 4px;">{{ xe.ly_do_khoa }}</div>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
       <div class="source-header">
         <div class="source-title" style="color: #7c3aed;">
-          <i class="bi bi-calendar2-check"></i> Xe theo lịch phân bổ nhà máy (Kỳ Tháng 11/2026: {{ xe_phan_bo|length }} xe phù hợp)
+          <i class="bi bi-calendar2-check"></i> Xe theo lịch phân bổ nhà máy ({{ xe_phan_bo|length }} xe phù hợp)
         </div>
         <p class="source-desc">
           Nguồn xe từ danh sách phân bổ của nhà máy Ford cho các tháng tiếp theo. Khi cả kho Đà Nẵng và các kho chi nhánh đều không có sẵn xe trong kho, Sale Admin có thể chọn xe đề xuất theo lịch phân bổ để gán cho hợp đồng và xác nhận kế hoạch bàn giao.
@@ -303,6 +367,7 @@
               </td>
               <td><span class="badge" style="background: #f3e8ff; color: #7e22ce;">{{ xe.phuong_an }}</span></td>
               <td style="text-align: right;">
+                {% if xe.duoc_chon or xe.duoc_chon is None %}
                 <form method="post" action="{% url 'contracts:choose_allocation_vehicle' ma_hd xe.id %}" style="margin: 0;"
                       onsubmit="return confirm('Xác nhận chọn xe VIN {{ xe.vin }} từ kế hoạch phân bổ {{ xe.ky_phan_bo }} cho hợp đồng {{ ma_hd }}?');">
                   {% csrf_token %}
@@ -310,6 +375,12 @@
                     <i class="bi bi-check2-circle"></i> Chọn xe theo lịch phân bổ
                   </button>
                 </form>
+                {% else %}
+                <button class="btn btn--light" disabled style="opacity: 0.6; cursor: not-allowed; font-size: 12px;" title="{{ xe.ly_do_khoa }}">
+                  <i class="bi bi-lock-fill"></i> Đã khóa
+                </button>
+                <div style="font-size: 11px; color: #dc2626; margin-top: 4px; max-width: 220px;">{{ xe.ly_do_khoa }}</div>
+                {% endif %}
               </td>
             </tr>
             {% endfor %}
@@ -317,15 +388,23 @@
         </table>
       </div>
       {% else %}
-        <p class="source-empty">Lịch phân bổ các kỳ tiếp theo hiện chưa có xe phù hợp với tiêu chí của hợp đồng này.</p>
+        <div class="source-empty">
+          <p style="margin: 0 0 8px; font-weight: 600; color: #334155;">Không có xe phù hợp</p>
+          <p style="margin: 0; font-size: 13px; color: #64748b;">
+            Hướng xử lý nghiệp vụ: Hợp đồng giữ ở trạng thái <strong>Chờ xử lý</strong> (nhu cầu được cộng vào cột <strong>Hợp đồng chờ giao xe</strong> bên Đề xuất nhập xe POQ để xin thêm phân bổ từ Ford Việt Nam ở kỳ tiếp theo).
+          </p>
+        </div>
         {% if co_the_cho_phan_bo %}
-        <div style="text-align: center; margin-top: 16px;">
-          <form method="post" action="{% url 'contracts:wait_allocation' ma_hd %}" style="display: inline-block;">
+        <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 16px;">
+          <form method="post" action="{% url 'contracts:wait_allocation' ma_hd %}" style="display: inline-block; margin: 0;">
             {% csrf_token %}
             <button class="btn btn--light" type="submit" style="color: #475569; border-color: #cbd5e1;">
-              <i class="bi bi-clock-history"></i> Chuyển trạng thái sang Chờ lịch phân bổ
+              <i class="bi bi-clock-history"></i> Xác nhận chờ đợt phân bổ tiếp theo
             </button>
           </form>
+          <a href="{% url 'orders:proposal_list' %}" class="btn btn--primary" style="text-decoration: none;">
+            <i class="bi bi-graph-up-arrow"></i> Xem Đề xuất POQ & Đặt xe bổ sung từ hãng
+          </a>
         </div>
         {% endif %}
       {% endif %}
@@ -363,5 +442,15 @@ if (tabCn) {
   tabCn.click();
 }
 {% endif %}
+
+document.querySelectorAll('.source-section form[method="post"]').forEach(form => {
+  form.addEventListener('submit', () => {
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = '0.7';
+    }
+  });
+});
 </script>
 {% endblock %}

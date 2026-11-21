@@ -8,10 +8,10 @@
 
 {% include "warehouse/_messages.html" %}
 
-<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<div class="page-header">
   <div>
-    <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #0b2a4a;">Quản lý tồn kho</h1>
-    <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Theo dõi số lượng tồn kho theo chi nhánh, phân loại tuổi tồn và kiểm kê thực tế</p>
+    <h1 class="page-header__title">Quản lý tồn kho</h1>
+    <p class="page-header__subtitle">Theo dõi số lượng tồn kho theo chi nhánh, phân loại tuổi tồn và kiểm kê thực tế</p>
   </div>
   <a class="btn btn--primary" href="{% url 'warehouse:kk_ds' %}?kho={{ ma_kho }}"><i class="bi bi-clipboard-check"></i> Kiểm kê kho</a>
 </div>
@@ -52,11 +52,7 @@
 
     <button class="btn btn--primary" type="submit"><i class="bi bi-search"></i> Tìm kiếm</button>
 
-    <a class="btn" href="{% url 'warehouse:ton_kho' %}">Xóa bộ lọc</a>
-
-    <span class="spacer"></span>
-
-    <a class="btn" href="{% url 'warehouse:kk_ds' %}?kho={{ ma_kho }}"><i class="bi bi-clipboard-check"></i> Kiểm kê</a>
+    <a class="btn" href="{% url 'warehouse:ton_kho' %}">Đặt lại</a>
 
   </div>
 
@@ -68,7 +64,7 @@
 
   <div class="scroll">
 
-  <table class="tbl">
+  <table class="tbl tbl--ton-kho">
 
     <thead><tr><th>VIN</th><th>Tên xe</th><th>Loại</th><th>Màu</th>{% if ma_kho == "ALL" %}<th>Kho</th>{% endif %}<th>Vị trí</th><th>Ngày vào kho</th><th>Tuổi tồn</th><th>Trạng thái xe</th></tr></thead>
 
@@ -78,7 +74,7 @@
 
       <tr>
 
-        <td><a href="{% url 'warehouse:ton_chi_tiet' x.vin %}?kho={{ ma_kho }}"><strong>{{ x.vin }}</strong></a></td>
+        <td><a class="df-code" href="{% url 'warehouse:ton_chi_tiet' x.vin %}?kho={{ ma_kho }}">{{ x.vin }}</a></td>
 
         <td>{{ x.ten_xe }}</td><td>{{ x.loai_xe }}</td><td>{{ x.mau_sac|default:"—" }}</td>{% if ma_kho == "ALL" %}<td><span class="badge" style="background:#e0f2fe; color:#0369a1; font-weight:600;">{{ x.kho_id }}</span></td>{% endif %}<td>{{ x.vi_tri }}</td>
 
@@ -103,17 +99,22 @@
   </div>
 
   {% if trang.paginator.num_pages > 1 %}
-
-  <div class="pager">
-
-    {% if trang.has_previous %}<a href="?{{ query }}&page={{ trang.previous_page_number }}">&laquo; Trước</a>{% endif %}
-
-    <span>Trang {{ trang.number }} / {{ trang.paginator.num_pages }}</span>
-
-    {% if trang.has_next %}<a href="?{{ query }}&page={{ trang.next_page_number }}">Sau &raquo;</a>{% endif %}
-
+  <div class="df-pager" aria-label="Phân trang tồn kho">
+    <div class="df-pager__info">Tổng: {{ tong }} dòng tồn kho</div>
+    <div class="df-pager__controls">
+      {% if trang.has_previous %}
+        <a class="df-pager__btn" href="?{{ query }}&page={{ trang.previous_page_number }}">&laquo; Trước</a>
+      {% else %}
+        <span class="df-pager__btn is-disabled" aria-disabled="true">&laquo; Trước</span>
+      {% endif %}
+      <span class="df-pager__counter">Trang {{ trang.number }} / {{ trang.paginator.num_pages }}</span>
+      {% if trang.has_next %}
+        <a class="df-pager__btn" href="?{{ query }}&page={{ trang.next_page_number }}">Sau &raquo;</a>
+      {% else %}
+        <span class="df-pager__btn is-disabled" aria-disabled="true">Sau &raquo;</span>
+      {% endif %}
+    </div>
   </div>
-
   {% endif %}
 
 </div>
