@@ -13,6 +13,7 @@ THANG_PATTERN = re.compile(r"^(\d{4})-(0[1-9]|1[0-2])$")
 def lay_danh_sach_thang_bao_cao():
     """Tổng hợp danh sách (value, label) các tháng có dữ liệu thực tế kèm tháng hiện tại."""
     from alerts.models import CanhBao
+    from analytics.models import HOAN_TAT, PhienDuBao
     from orders.models import VehicleRequest
     from transfers.models import LenhLuuChuyen
     from warehouse.models import PhieuNhapKho
@@ -33,6 +34,13 @@ def lay_danh_sach_thang_bao_cao():
                 cac_moc.add(d.replace(day=1))
         except Exception:
             continue
+
+    try:
+        for nam, thang in PhienDuBao.objects.filter(trang_thai=HOAN_TAT).values_list("nam", "thang").distinct():
+            if 1 <= thang <= 12:
+                cac_moc.add(date(nam, thang, 1))
+    except Exception:
+        pass
 
     sorted_months = sorted(cac_moc, reverse=True)
     return [(d.strftime("%Y-%m"), f"Tháng {d.month:02d}/{d.year}") for d in sorted_months]

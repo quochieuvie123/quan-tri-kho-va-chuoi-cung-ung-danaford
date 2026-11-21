@@ -176,30 +176,157 @@ def them_bieu_do_bo_sung(cac_bieu_do, data):
 
     if "canh_bao" in data:
         bao_cao = data["canh_bao"]
+        bang_canh_bao = bao_cao.get("theo_loai_va_xu_ly") or {}
+        figure = None
 
-        for key, tieu_de in [
-            ("theo_loai", "Cảnh báo theo loại"),
-            ("theo_xu_ly", "Cảnh báo theo trạng thái xử lý"),
-        ]:
-            figure = None
-
-            if bao_cao["tong"]:
-                figure = go.Figure(go.Bar(
-                    x=list(bao_cao[key].keys()),
-                    y=list(bao_cao[key].values()),
-                    marker_color="#0067c5",
+        if bao_cao["tong"] and bang_canh_bao:
+            loai_ds = list(bang_canh_bao.keys())
+            cac_trang_thai = [
+                ("Chưa xử lý", "#c62828"),
+                ("Đang xử lý", "#f3b340"),
+                ("Đã xử lý", "#2e7d32"),
+            ]
+            figure = go.Figure()
+            for ten_tt, mau_tt in cac_trang_thai:
+                so_luong = [bang_canh_bao[loai].get(ten_tt, 0) for loai in loai_ds]
+                if not any(so_luong):
+                    continue
+                figure.add_trace(go.Bar(
+                    name=ten_tt,
+                    x=loai_ds,
+                    y=so_luong,
+                    marker_color=mau_tt,
+                    text=[v if v else "" for v in so_luong],
+                    textposition="auto",
+                    hovertemplate=(
+                        "%{x}<br>" + ten_tt + ": %{y} cảnh báo<extra></extra>"
+                    ),
                 ))
-                figure.update_yaxes(
-                    title_text="Số cảnh báo",
-                    tickformat="d", rangemode="tozero",
-                )
-                figure.update_xaxes(type="category")
 
-            them_bieu_do(
-                cac_bieu_do, tieu_de, figure,
-                "Mỗi mã cảnh báo chỉ được đếm một lần. "
-                "Trạng thái xử lý khác với hiệu lực cảnh báo.",
+            figure.update_layout(barmode="stack")
+            figure.update_yaxes(
+                title_text="Số cảnh báo",
+                tickformat="d",
+                rangemode="tozero",
             )
+            figure.update_xaxes(type="category")
+
+        them_bieu_do(
+            cac_bieu_do,
+            "Cảnh báo theo loại và trạng thái xử lý",
+            figure,
+            "Mỗi mã cảnh báo chỉ được đếm một lần, phân tách theo loại và trạng thái xử lý hiện tại. "
+            "Trạng thái xử lý khác với hiệu lực cảnh báo.",
+        )
+
+    if "du_bao" in data:
+        bao_cao = data["du_bao"]
+        so_sanh = bao_cao.get("so_sanh") or {}
+        hang = so_sanh.get("hang") or []
+        figure = None
+
+        if hang:
+            ten_xe = [escape(row["ten"]) for row in hang]
+            ky_truoc = [row["ky_truoc"] for row in hang]
+            du_bao = [row["du_bao"] for row in hang]
+            ky_nhan = so_sanh.get("ky") or ""
+
+            figure = go.Figure()
+            figure.add_trace(go.Bar(
+                name="Bán tháng trước",
+                y=ten_xe,
+                x=ky_truoc,
+                orientation="h",
+                marker_color="#9fb3c8",
+                text=[str(v) for v in ky_truoc],
+                textposition="auto",
+                hovertemplate="%{y}<br>Bán tháng trước: %{x} xe<extra></extra>",
+            ))
+            figure.add_trace(go.Bar(
+                name=f"Dự báo kỳ {ky_nhan}" if ky_nhan else "Dự báo SARIMA",
+                y=ten_xe,
+                x=du_bao,
+                orientation="h",
+                marker_color="#0067c5",
+                text=[f"{v:.1f}".replace(".", ",") for v in du_bao],
+                textposition="auto",
+                hovertemplate="%{y}<br>Dự báo SARIMA: %{x:.1f} xe<extra></extra>",
+            ))
+            figure.update_layout(barmode="group", bargap=0.22, bargroupgap=0.08)
+            figure.update_xaxes(
+                title_text="Số lượng xe",
+                rangemode="tozero",
+            )
+            figure.update_yaxes(
+                autorange="reversed",
+                automargin=True,
+            )
+
+        mo_ta_du_bao = (
+            f"Kỳ {so_sanh['ky']}: so sánh lượng bán tháng trước và dự báo SARIMA theo dòng xe."
+            if so_sanh.get("ky")
+            else "So sánh lượng bán tháng trước và nhu cầu dự báo SARIMA theo dòng xe."
+        )
+        if so_sanh.get("so_ky", 0) > 1:
+            mo_ta_du_bao = f"Hiển thị kỳ mới nhất trong {so_sanh['so_ky']} kỳ đã lọc ({so_sanh['ky']})."
+
+        them_bieu_do(
+            cac_bieu_do,
+            "So sánh nhu cầu dự báo với tháng trước",
+            figure,
+            mo_ta_du_bao,
+            chieu_cao=max(360, len(hang) * 34 + 120),
+        )
+
+    if "su_co" in data:
+        bao_cao = data["su_co"]
+        rows = bao_cao.get("theo_loai") or []
+        figure = None
+
+        if rows:
+            loai_ds = [escape(str(row[0])) for row in rows]
+            dang_xu_ly = [row[1] for row in rows]
+            da_dong = [row[2] for row in rows]
+
+            figure = go.Figure()
+            figure.add_trace(go.Bar(
+                name="Đang xử lý",
+                y=loai_ds,
+                x=dang_xu_ly,
+                orientation="h",
+                marker_color="#f3b340",
+                text=[v if v else "" for v in dang_xu_ly],
+                textposition="auto",
+                hovertemplate="%{y}<br>Đang xử lý: %{x} sự cố<extra></extra>",
+            ))
+            figure.add_trace(go.Bar(
+                name="Đã đóng",
+                y=loai_ds,
+                x=da_dong,
+                orientation="h",
+                marker_color="#2e7d32",
+                text=[v if v else "" for v in da_dong],
+                textposition="auto",
+                hovertemplate="%{y}<br>Đã đóng: %{x} sự cố<extra></extra>",
+            ))
+            figure.update_layout(barmode="stack")
+            figure.update_xaxes(
+                title_text="Số sự cố",
+                tickformat="d",
+                rangemode="tozero",
+            )
+            figure.update_yaxes(
+                autorange="reversed",
+                automargin=True,
+            )
+
+        them_bieu_do(
+            cac_bieu_do,
+            "Sự cố vận chuyển theo loại và trạng thái",
+            figure,
+            "Phân bổ sự cố vận chuyển theo loại lỗi và trạng thái xử lý (Đang xử lý / Đã đóng).",
+            chieu_cao=max(360, len(rows) * 32 + 110),
+        )
 
 
 def tao_cac_bieu_do(data):
@@ -551,6 +678,8 @@ def chi_tiet(request, loai):
         "dat_xe",
         "luu_chuyen",
         "canh_bao",
+        "du_bao",
+        "su_co",
     }
 
     if loai not in cac_loai:
