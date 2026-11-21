@@ -554,3 +554,23 @@ class TransferToIntakeWorkflowTests(TestCase):
         self.assertEqual(TonKho.objects.get(kho=self.kho_dn, xe=self.xe).so_luong_ton, 1)
         self.lenh.refresh_from_db()
         self.assertEqual(self.lenh.trang_thai, LenhLuuChuyen.TrangThai.HOAN_TAT)
+
+    def test_08_xem_lich_su_phieu_nhap_tra_ve_200(self):
+        """GET /kho/phieu-nhap/<pk>/lich-su/ không bị route <str:action> bắt nhầm gây lỗi 405."""
+        from django.urls import reverse
+        from warehouse import nhap_services as services
+
+        receipt = services.create_receipt(
+            self.user,
+            ma_phieu="PN-LC-HISTORY",
+            kho_id=self.kho_dn.pk,
+            ngay_nhap=timezone.localdate(),
+            lenh_luu_chuyen_id=self.lenh.pk,
+            xe_id=self.xe.vin,
+        )
+        self.client.force_login(self.user)
+        url = reverse("warehouse:receipt_history", args=[receipt.pk])
+        resp_html = self.client.get(url, HTTP_ACCEPT="text/html")
+        self.assertEqual(resp_html.status_code, 200)
+        resp_json = self.client.get(url)
+        self.assertEqual(resp_json.status_code, 200)
